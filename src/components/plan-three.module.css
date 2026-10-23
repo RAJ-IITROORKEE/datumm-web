@@ -1,0 +1,176 @@
+.root {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.viewport {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.stage {
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  background: #f2f0ea;
+}
+
+.error {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  padding: 12px;
+  border: 1px solid #d8d6cf;
+  border-radius: 8px;
+  background: #fffefa;
+  color: #5b5955;
+  box-shadow: 0 4px 18px #00000012;
+  transform: translate(-50%, -50%);
+}
+
+.orientation {
+  position: absolute;
+  z-index: 4;
+  top: 16px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transform: scale(.85);
+  transform-origin: top right;
+}
+
+.triad {
+  position: relative;
+  width: 74px;
+  height: 69px;
+}
+
+.triad::before {
+  position: absolute;
+  top: 31px;
+  left: 24px;
+  width: 30px;
+  height: 24px;
+  border: 1px solid #bab5aa;
+  border-radius: 2px;
+  background: #faf9f6;
+  content: '';
+  pointer-events: none;
+  transform: skewY(-24deg);
+}
+
+.triad button {
+  position: absolute;
+  display: grid;
+  width: 23px;
+  height: 23px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #00000015;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px #00000009;
+  font: 10px Consolas, monospace;
+  transition: transform .15s;
+}
+
+.triad button:hover { transform: scale(1.1); }
+.axisZ { top: 0; left: 29px; background: #dce5f5; color: #3456a0; }
+.axisX { right: 0; bottom: 0; background: #eee1da; color: #a25640; }
+.axisY { bottom: 0; left: 0; background: #dfe8db; color: #5d7d4d; }
+
+.presets {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid #d8d6cf;
+  border-radius: 5px;
+  background: #fffefa;
+  box-shadow: 0 2px 8px #00000009;
+}
+
+.presets button {
+  min-width: 31px;
+  height: 22px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: #625f58;
+  font: 9px Consolas, monospace;
+}
+
+.presets button[aria-pressed='true'] { background: #e8e6e0; color: #242424; }
+
+.zoomControls {
+  position: absolute;
+  z-index: 4;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid #d8d6cf;
+  border-radius: 6px;
+  background: #fff;
+  color: #5b5955;
+}
+
+.zoomControls button {
+  width: 27px;
+  height: 25px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  font: 13px Arial, sans-serif;
+}
+
+.zoomControls button:hover { background: #e5e3de; }
+.zoomControls output { min-width: 38px; text-align: center; font: 10px Consolas, monospace; }
+.zoomControls svg { width: 13px; height: 13px; }
+
+.pins {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.pins[hidden], .pin[hidden] { display: none; }
+
+.pin {
+  position: absolute;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: #3456a0;
+  color: #fff;
+  box-shadow: 0 2px 7px #00000035;
+  font: 600 11px Arial, sans-serif;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+}
+
+.pin[aria-pressed='true'] { outline: 2px solid #91aade; outline-offset: 2px; }
+
+.orientation button:focus-visible,
+.zoomControls button:focus-visible,
+.pin:focus-visible { outline: 2px solid #778bab; outline-offset: 2px; }

@@ -1,0 +1,13 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
+  "functions": {
+    "src/app/api/chat/route.ts": {
+      "maxDuration": 240
+    },
+    "src/app/api/service/[...path]/route.ts": {
+      "maxDuration": 240
+    }
+  }
+}

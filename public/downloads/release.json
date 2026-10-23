@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "storage": "vercel-blob-public-v1",
+  "version": "0.5.0-alpha.16",
+  "file": "https://c0kq0obyl6kbgo0p.public.blob.vercel-storage.com/releases/DatummAgent-0.5.0-alpha.16-unsigned-win-x64.exe",
+  "checksumUrl": "https://c0kq0obyl6kbgo0p.public.blob.vercel-storage.com/releases/DatummAgent-0.5.0-alpha.16-unsigned-win-x64.exe.sha256",
+  "sha256": "1f5996dc01c40609856846e42a0721f0d954b53d3ae510fd84cdd19cc9ca0e7f",
+  "bytes": 27045026,
+  "unsigned": true,
+  "sourceCommit": "6ba00b3549f607f5e08b74915410451e452e9a6e",
+  "builtAt": "2026-09-28T21:21:29.8990063Z",
+  "componentVersion": "0.2.0-alpha.1",
+  "revitApiVersion": "26.4.0.32",
+  "nodeVersion": "v24.21.0",
+  "revit": "2026.4 / API 26.4.0.32",
+  "capabilities": [
+    "model-read-v1",
+    "variable-drafting-v1",
+    "exact-proposal-v1",
+    "native-operation-status-v1"
+  ]
+}

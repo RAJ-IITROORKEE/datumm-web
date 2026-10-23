@@ -15,3 +15,7 @@ node_modules/
 artifacts/
 .DS_Store
 Thumbs.db
+
+.vercel
+
+.npm-cache/
