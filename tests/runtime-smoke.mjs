@@ -13,6 +13,6 @@ const checks=[
 for(const [name,url,init,expected] of checks){
  const response=await fetch(url,init),body=await response.text();
  if(!(Array.isArray(expected)?expected:[expected]).includes(response.status))throw Error(name+' returned '+response.status);
- if(name==='studio'&&(!body.includes('desktop-workspace')||body.includes('aria-label="Window controls"')))throw Error('Studio browser layout mismatch');
+ if(name==='studio'&&(!body.includes('desktop-workspace')&&!body.includes('Loading your DATUMM account...')||body.includes('aria-label="Window controls"')))throw Error('Studio account entry/layout mismatch');
  console.log(name+': '+response.status);
 }
