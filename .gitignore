@@ -1,0 +1,17 @@
+node_modules/
+.next/
+.next-*/
+.vercel/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.sqlite*
+*.db
+*.log
+*.tsbuildinfo
+artifacts/
+.DS_Store
+Thumbs.db
