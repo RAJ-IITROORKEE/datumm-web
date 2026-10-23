@@ -11,7 +11,6 @@ export interface VoiceStatus { provider: VoiceProvider; configured: boolean; mod
 export interface ProviderStatus { state: "missing" | "saved" | "connected"; persistent: boolean;
   models: ProviderModel[]; preferences: ModelPreferences; runtimeLimits: RuntimeLimits; verifiedAt?: number; inferenceAvailable: boolean;
   voice: VoiceStatus; routing: AgentRouting }
-
 export type FilePartInput = { name: string; data: Uint8Array; page?: number; crop?: {x:number;y:number;width:number;height:number} };
 export type AttachmentReadiness = 'parsed' | 'manifest' | 'companion-review' | 'native-inspection' | 'retained';
 export type Attachment = { id: string; name: string; sha256: string; bytes: number; mime: string; readiness: AttachmentReadiness; width?: number; height?: number; sourceWidth?:number;sourceHeight?:number;crop?:FilePartInput['crop'];page?: number; pages?: number; text?: string; task?: string; createdAt: number };
@@ -70,4 +69,3 @@ export interface DesktopApi {
   cancelTranscription: () => Promise<void>;
   nativeBuildAction: (task:string,action:'approve'|'reconcile'|'refresh'|'show'|'select'|'design_select'|'design_prepare'|'design_context'|'design_adapt'|'design_build',input:unknown)=>Promise<unknown>;
 }
-
