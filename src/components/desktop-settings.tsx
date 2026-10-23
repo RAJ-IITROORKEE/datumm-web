@@ -14,7 +14,7 @@ export function DesktopSettings({open,onOpenChange,generalContent,revitContent,m
   const [section,setSection]=useState<string>('general');
   if(!open)return null;
   return <section className={styles.embedded+' studio-settings-embedded'} aria-label="Settings"><div className={styles.layout}>
-    <aside className={styles.sidebar}><Button variant="ghost" className={styles.backButton} onClick={()=>onOpenChange(false)}><ArrowLeft size={15}/>Back to workspace</Button><nav className={styles.navigation} aria-label="Settings sections">{sections.map(([id,title,Icon])=><button key={id} className={'settings-nav-item '+styles.navItem} aria-pressed={section===id} onClick={()=>setSection(id)}><Icon size={15}/><span className={styles.navTitle}>{title}</span></button>)}</nav></aside>
+    <aside className={styles.sidebar}><Button variant="ghost" className={styles.backButton} onClick={()=>onOpenChange(false)}><ArrowLeft size={15}/>Back to workspace</Button><nav className={'settings-navigation '+styles.navigation} aria-label="Settings sections">{sections.map(([id,title,Icon])=><Button variant="ghost" key={id} className={'settings-nav-item '+styles.navItem} aria-pressed={section===id} onClick={()=>setSection(id)}><Icon size={15}/><span className={styles.navTitle}>{title}</span></Button>)}</nav></aside>
     <main className={'settings-content '+styles.content}><h1 className={styles.pageTitle}>{sections.find(([id])=>id===section)?.[1]}</h1>
       {section==='general'&&generalContent}
       {section==='appearance'&&<ThemeSettings motionRow={null} advancedControl={null}/>}

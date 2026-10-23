@@ -1,4 +1,4 @@
-import { hostedCommand } from '@/lib/hosted-command.mjs';
+import { hostedCommand, postHostedCommand } from '@/lib/hosted-command.mjs';
 import { createUIMessageStream, createUIMessageStreamResponse } from 'ai';
 import { backend } from '@/lib/backend';
 import { chatStartResult } from '@/lib/chat-start';
@@ -16,7 +16,7 @@ export async function POST(request:Request){
  const taskId=body.taskId;
  const command=taskId?{schemaVersion:2,type:'chat_followup',prompt,visiblePlan:body.visiblePlan??null,acceptedAssumptions:body.acceptedAssumptions??[],placement:body.placement??null,model:body.model,reasoningEffort:body.reasoningEffort,modelContextRequirement:body.modelContextRequirement==='read'?'read':'auto',deviceId:body.deviceId||null}:{schemaVersion:2,type:'submit',prompt,mode:body.mode??'plan',model:body.model,reasoningEffort:body.reasoningEffort,modelContextRequirement:body.modelContextRequirement==='read'?'read':'auto',deviceId:body.deviceId||null,recipe:body.recipe===true};
  let envelope;try{envelope=hostedCommand(body,command);}catch(error){return Response.json({code:'DATUMM_CHAT_COMMAND',message:error instanceof Error?error.message:'Unsupported web request.'},{status:422});}
- try{response=await backend(taskId?`/v2/tasks/${encodeURIComponent(taskId)}/commands`:'/v2/tasks',{method:'POST',body:JSON.stringify(envelope)});}
+ try{response=await postHostedCommand(backend,taskId,envelope);}
  catch{return Response.json({code:'DATUMM_CHAT_COMMAND',message:'The orchestrator is unavailable. Check the saved task before retrying.'},{status:503});}
  const result=await chatStartResult(response);
  if(result instanceof Response)return result;

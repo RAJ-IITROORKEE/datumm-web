@@ -8,6 +8,8 @@ Clerk authenticates browser users; the server proxy forwards their token to the 
 
 The hosted request envelope excludes desktop-only project and attachment fields. Unsupported source data is rejected rather than silently discarded. This frontend does not host an OpenCode worker or expose local runtime credentials.
 
+New chat submissions check saved active tasks before creation and offer to open the blocking chat while retaining the unsent draft. This advisory check never approves or cancels work; backend admission still handles races and durable rejections.
+
 Preview exports trace their font and native Resvg/Sharp companions. Raster libraries load only for preview requests so task and account requests can start independently of image conversion.
 
 Vercel deployments explicitly exclude local npm caches, build outputs, environment files and artifacts through `.vercelignore`; server credentials are configured in the linked project environment.
@@ -17,5 +19,7 @@ Vercel deployments explicitly exclude local npm caches, build outputs, environme
 Studio layout does not install a desktop bridge. Authenticated task commands accept plans and approve exact proposals; the separately installed Revit connector validates the native operation and its original identity.
 
 Studio chrome is independent of native authority. Global 3D layout rules live in the global stylesheet so CSS Modules retain their required local scope.
+
+Settings navigation uses the same Button component and navigation class as the desktop, preserving inline icons, label spacing and compact controls across both surfaces.
 
 Browser sign-out and account switching reset mounted workspace state. Native window controls and desktop runtime settings are unavailable in the browser. See [[contracts#Hosted contract tests]] for the serialization boundary.

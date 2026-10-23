@@ -1,5 +1,5 @@
 type Receipt={id:string;taskVersion?:number;state?:string;error?:string|null};
-type Failure={code:'DATUMM_CHAT_COMMAND';message:string;state?:string;taskId?:string;taskVersion?:number};
+type Failure={code:'DATUMM_CHAT_COMMAND';message:string;state?:string;taskId?:string;taskVersion?:number;blockingTask?:{id:string;title:string;status:string}};
 
 // Rejected commands are durable receipts, not a newly started event stream.
 export async function chatStartResult(response:Response):Promise<Receipt|Response>{
@@ -9,6 +9,7 @@ export async function chatStartResult(response:Response):Promise<Receipt|Respons
   const message=typeof detail==='string'?detail:typeof detail?.error==='string'?detail.error:
    response.status===503?'The orchestrator is unavailable. Check the saved task before retrying.':'The request could not be completed. Check the saved task before retrying.';
   const failure:Failure={code:'DATUMM_CHAT_COMMAND',message};
+  if(typeof detail?.blockingTask?.id==='string'&&/^[a-zA-Z0-9-]{1,128}$/.test(detail.blockingTask.id)&&typeof detail.blockingTask.title==='string'&&['queued','running','awaiting_approval'].includes(detail.blockingTask.status))failure.blockingTask=detail.blockingTask;
   if(detail?.state==='rejected'||detail?.state==='interrupted'){
    failure.state=detail.state;
    if(typeof detail.id==='string')failure.taskId=detail.id;

@@ -14,6 +14,10 @@ Empty desktop metadata is omitted from hosted requests while idempotency, versio
 
 Project identifiers and nonempty or malformed attachment collections fail before dispatch so the UI cannot silently omit user evidence.
 
+## Blocked new chat
+
+An existing active chat blocks a new submit before task creation, preserves the prompt and returns the saved chat identity for explicit navigation without cancelling or approving it.
+
 ## Native preview encoding
 
 The installed native raster libraries render the traced font and encode actual PNG and JPEG outputs, exposing missing native companions before deployment.
