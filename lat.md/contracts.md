@@ -25,3 +25,7 @@ The installed native raster libraries render the traced font and encode actual P
 ## Browser request boundaries
 
 A running production build presents Studio without native window controls, rejects missing or foreign request origins, rejects unsupported source data and keeps anonymous service access closed.
+
+## Ask and Plan proxy routes
+
+The actual proxy forwards questions, cancellation, queue edits and design review to v2, rejects native task routes, and preserves existing Azure run routing and request bodies.

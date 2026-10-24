@@ -16,7 +16,7 @@ function boundedRasterSvg(svg:string):Buffer|null{
 }
 async function proxy(request:Request,context:{params:Promise<{path:string[]}>}){
  const {path}=await context.params;const suffix=path.join('/');
-    const taskRoute=/^tasks(?:\/[a-zA-Z0-9-]+(?:\/(?:commands|build-context|events|specialist-artifacts\/[a-f0-9]{64}|history\/(?:pin|archive|delete)))?)?$/.test(suffix);
+    const taskRoute=/^tasks(?:\/[a-zA-Z0-9-]+(?:\/(?:commands|build-context|events|questions\/answer|cancel|queue(?:\/(?:resume|[a-f0-9-]+))?|design-review|specialist-artifacts\/[a-f0-9]{64}|history\/(?:pin|archive|delete)))?)?$/.test(suffix);
  if(!allowed.test(suffix)&&!taskRoute)return new Response('Not found',{status:404});
  let phase='backend';
  try{
