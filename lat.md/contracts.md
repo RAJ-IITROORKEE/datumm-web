@@ -29,3 +29,7 @@ A running production build presents Studio without native window controls, rejec
 ## Ask and Plan proxy routes
 
 The actual proxy forwards questions, cancellation, queue edits and design review to v2, rejects native task routes, and preserves existing Azure run routing and request bodies.
+
+## Browser sidebar history
+
+Hosted chats with project identifiers remain visible without desktop project groups. The actual sidebar predicates preserve pinned separation, desktop grouping and the server's newest-first order.
