@@ -16,7 +16,9 @@ Project identifiers and nonempty or malformed attachment collections fail before
 
 ## Blocked new chat
 
-An existing active chat blocks a new submit before task creation, preserves the prompt and returns the saved chat identity for explicit navigation without cancelling or approving it.
+Running work and native-context or Build requests blocked by a pending review preserve the prompt and return the saved chat identity without cancelling or approving it.
+
+Independent Ask and Plan requests may pass a pending review. The backend remains authoritative for inferred Revit context and concurrent execution.
 
 ## Native preview encoding
 
