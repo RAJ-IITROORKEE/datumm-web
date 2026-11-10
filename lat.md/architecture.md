@@ -29,3 +29,5 @@ Settings navigation uses the same Button component and navigation class as the d
 Signed-out visitors see only a modal sign-in gate. Browser sign-out and account switching reset mounted workspace state. Native window controls and desktop runtime settings are unavailable in the browser. See [[contracts#Hosted contract tests]] for the serialization boundary.
 
 Sidebar project grouping follows desktop capability, independently of Studio layout. Browsers list all unpinned hosted chats even when their stored default-project identifiers cannot be resolved through desktop-only project metadata.
+
+Chat-first center: the conversation owns the center until the current chat has renderable plan geometry (a drawing or saved SVG, `hasRenderablePlan` in workspace.tsx). Then the studio canvas takes the center and the conversation moves to the side assistant panel; switching chats re-evaluates this.
