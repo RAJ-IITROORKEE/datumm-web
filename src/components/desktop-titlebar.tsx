@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Copy, FolderOpen, MessageSquare, Minus, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Settings2, Square, X } from 'lucide-react';
 import '@/lib/desktop';
 
-export function DesktopTitlebar({ onSettings, left, right, onToggleLeft, onToggleRight, title, project, options, leftWidth=208, nativeAvailable=true, settingsOpen=false }: { onSettings: () => void; left:boolean; right:boolean; onToggleLeft:()=>void; onToggleRight:()=>void; title:string; project?:string; options?:React.ReactNode;nativeAvailable?:boolean;leftWidth?:number;settingsOpen?:boolean }) {
+export function DesktopTitlebar({ onSettings, left, right, onToggleLeft, onToggleRight, title, project, options, leftWidth=208, nativeAvailable=true, settingsOpen=false }: { onSettings: () => void; left:boolean; right:boolean; onToggleLeft:()=>void; onToggleRight?:()=>void; title:string; project?:string; options?:React.ReactNode;nativeAvailable?:boolean;leftWidth?:number;settingsOpen?:boolean }) {
   const [maximized, setMaximized] = useState(false);
   useEffect(() => {
     const desktop = window.desktop;
@@ -19,7 +19,7 @@ export function DesktopTitlebar({ onSettings, left, right, onToggleLeft, onToggl
     </div>
     <div className="desktop-drag desktop-chat-title"><FolderOpen size={17}/><span className="current-chat-title" title={project??title}>{project??'Architectural workspace'}</span><small>/ &nbsp;{project?'Architectural workspace':title}</small></div>
     <div className="desktop-chat-actions">{options}
-    <button className="desktop-panel-toggle" aria-label={right?'Hide inspector':'Show inspector'} title={right?'Hide right inspector':'Show right inspector'} aria-expanded={right} aria-controls={right?'workspace-inspector':undefined} onClick={onToggleRight}>{right?<PanelRightClose size={17}/>:<PanelRightOpen size={17}/>}</button>
+    {onToggleRight&&<button className="desktop-panel-toggle" aria-label={right?'Hide inspector':'Show inspector'} title={right?'Hide right inspector':'Show right inspector'} aria-expanded={right} aria-controls={right?'workspace-inspector':undefined} onClick={onToggleRight}>{right?<PanelRightClose size={17}/>:<PanelRightOpen size={17}/>}</button>}
     <button className="desktop-settings" aria-label="Settings" title="Settings (Ctrl+,)" onClick={onSettings}><Settings2 size={15}/></button>
     {nativeAvailable&&<div className="window-controls" role="group" aria-label="Window controls" title={nativeAvailable?undefined:"Desktop window controls are unavailable in browser preview"}>
       <button disabled={!nativeAvailable} aria-label="Minimize window" title="Minimize" onClick={() => void window.desktop?.minimize()}><Minus size={16}/></button>
