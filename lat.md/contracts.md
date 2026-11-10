@@ -35,3 +35,7 @@ The actual proxy forwards questions, cancellation, queue edits and design review
 ## Browser sidebar history
 
 Hosted chats with project identifiers remain visible without desktop project groups. The actual sidebar predicates preserve pinned separation, desktop grouping and the server's newest-first order.
+
+## Sign-in gate
+
+Signed-out visitors see a non-dismissible Clerk sign-in dialog instead of the workspace; loading and unconfigured-auth states are decided by one pure helper.
