@@ -25,3 +25,7 @@ The installed native raster libraries render the traced font and encode actual P
 ## Browser request boundaries
 
 A running production build presents Studio without native window controls, rejects missing or foreign request origins, rejects unsupported source data and keeps anonymous service access closed.
+
+## Sign-in gate
+
+Signed-out visitors see a non-dismissible Clerk sign-in dialog instead of the workspace; loading and unconfigured-auth states are decided by one pure helper.
