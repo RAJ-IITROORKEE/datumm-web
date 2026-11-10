@@ -56,6 +56,8 @@ import { AgentMemory, AgentLimit, ContextUsage, type TaskMemory, type ContextMet
 import { cn } from '@/lib/utils';
 import { emptyProjection, reduceProjection, type TaskEvent } from '@/lib/task-projection';
 import installerRelease from '../../public/downloads/release.json';
+import {PluginSetupGuide} from './plugin-setup-guide';
+import {needsPluginSetup} from '@/lib/plugin-setup.mjs';
 import { DraftAssessmentDetails, type DraftAssessment, type NativeBatch } from './draft-assessment';
 import { BuildComparisonCard, type BuildComparison, type BuildFeedback } from './build-comparison';
 import { EvidenceResults, type ModelCoverage, type AdviceFinding, type RegulationResearch } from './evidence-results';
@@ -616,7 +618,7 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
    }
    if(busy&&!variableSelection)return;
   if((override??mode)==='build'&&(!selectedDevice?.online||revitSessions!==1)){
-   setError(!selectedDevice?.online?'Connect a Revit device before building. Open Connections to authorize this computer.':'Enable the DATUMM local bridge in Revit and close its settings panel before building.');return;
+   setError(!selectedDevice?.online?(devices.some(d=>d.online)?'Select your online Revit device in Connections before building.':'Build needs the DATUMM Revit plugin connected. Follow the setup steps above the message box, or continue in Plan mode. Your prompt is preserved.'):'Enable the DATUMM local bridge in Revit and close its settings panel before building.');return;
   }
    setError('');setConnectionNotice('');if(!run){setRun(null);setRunId('');setDesignVersion(null);setDesignDiff('');}if(!preserveDraft)setPrompt('');
   if(run?.data.agent_design&&(override??mode)==='build'&&!run.data.compiled&&!run.data.operation_id)setBuildSetupOpen(true);
@@ -969,6 +971,7 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
      {connectionNotice&&<p className="connection-notice" role="status">{connectionNotice}<button type="button" className="icon-button" aria-label="Dismiss connection notice" onClick={()=>setConnectionNotice('')}><X size={14}/></button></p>}
       </div>
      <div className="workspace-controls"><div className="header-actions">{mode!=='build'&&!offlineFixture&&<button type="button" className={cn('context-toggle',useCurrentModel&&'active')} aria-label={useCurrentModel?'Revit context on':'Revit context'} aria-pressed={useCurrentModel} disabled={busy} onClick={()=>setUseCurrentModel(value=>!value)} title="Include measured Revit context in this request"><Box size={13}/>{useCurrentModel?'Revit context on':'Revit context'}</button>}<button className="device-status" disabled={offlineFixture} onClick={event=>{dialogTrigger.current=event.currentTarget;setDeviceDialog(true);}}><span className={cn('connection-dot',selectedDevice?.online&&revitSessions===1&&'online')}/><span>{offlineFixture?'Revit unavailable':!selectedDevice?.online?'Connect Revit':revitSessions===1?'Revit ready':revitSessions===0?'Enable Revit bridge':'Checking Revit'}</span><ChevronDown size={12}/></button></div></div>
+     {needsPluginSetup(mode,devices)&&<PluginSetupGuide onCheck={refresh} onUsePlan={()=>setMode('plan')}/>}
      <form className="composer" onSubmit={e=>{e.preventDefault();void submit(prompt,mode==='build'&&prompt.toLowerCase().includes('verified 3bhk'));}}>
       {draftReferences.length>0&&<div className="saved-source-strip" aria-label="Draft design references">{draftReferences.map((row,i)=><span className="draft-reference-chip" key={i}>{row.target.kind==='source'?'Source region':row.target.key} / {row.intent} / {row.fingerprint.slice(0,10)}{queueData?.design?.candidates.some(candidate=>candidate.fingerprint===row.fingerprint)?'':' / saved version, review against current geometry'}</span>)}</div>}
       {commandsOpen&&<div className="slash-commands" id="workflow-commands" role="listbox" aria-label="Workflow commands">{commandMatches.map((command,index)=><button type="button" role="option" aria-selected={index===commandIndex} id={`workflow-${index}`} key={command} onClick={()=>chooseCommand(command)}>/{command}<small>{command==='inspect'?'Read current Revit evidence':command==='plan'?'Prepare a proposed design':command==='compare'?'Compare saved versions':command==='verify'?'Read recorded native outcome':'Save context for the next turn'}</small></button>)}</div>}
