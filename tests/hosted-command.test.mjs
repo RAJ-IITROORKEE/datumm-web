@@ -29,3 +29,27 @@ test('an existing approval blocks new chat creation without posting or changing 
   assert.deepEqual(calls,[{path:'/v2/tasks?active=true',init:undefined}]);
   assert.equal(envelope.command.prompt,'Web connection verified.');
 });
+
+test('independent Ask and Plan may pass a pending approval, but not a running task',async()=>{
+  for (const mode of ['ask','plan']) {
+    const calls=[];
+    const request=async(path,init)=>{calls.push(path);return path.includes('?')?Response.json([{id:'build',title:'Pending',status:'awaiting_approval'}]):Response.json({id:'new'});};
+    const result=await postHostedCommand(request,undefined,{command:{type:'submit',mode,modelContextRequirement:'auto'}});
+    assert.equal(result.status,200);
+    assert.deepEqual(calls,['/v2/tasks?active=true','/v2/tasks']);
+  }
+  const request=async()=>Response.json([{id:'build',title:'Pending',status:'awaiting_approval'},{id:'running',title:'Running',status:'running'}]);
+  const result=await postHostedCommand(request,undefined,{command:{type:'submit',mode:'ask',modelContextRequirement:'auto'}});
+  assert.equal(result.status,409);
+  assert.equal((await result.json()).detail.blockingTask.id,'running');
+});
+
+test('Revit-context and Build requests remain blocked by a pending proposal',async()=>{
+  for(const command of [{type:'submit',mode:'ask',modelContextRequirement:'read'},{type:'submit',mode:'build',modelContextRequirement:'auto'}]){
+    const calls=[];
+    const request=async(path)=>{calls.push(path);return Response.json([{id:'build',title:'Pending',status:'awaiting_approval'}]);};
+    const result=await postHostedCommand(request,undefined,{command});
+    assert.equal(result.status,409);
+    assert.deepEqual(calls,['/v2/tasks?active=true']);
+  }
+});

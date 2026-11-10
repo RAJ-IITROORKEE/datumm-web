@@ -8,6 +8,8 @@ Clerk authenticates browser users; the server proxy forwards their token to the 
 
 The hosted request envelope excludes desktop-only project and attachment fields. Unsupported source data is rejected rather than silently discarded. This frontend does not host an OpenCode worker or expose local runtime credentials.
 
+The service proxy forwards Ask and Plan clarification replies, cancellation, queue controls and design review to v2. A separate preview can select the isolated hosted OpenCode gateway through server-only ORCHESTRATOR_URL; production routing stays configured independently.
+
 New chat submissions check saved active tasks before creation and offer to open the blocking chat while retaining the unsent draft. This advisory check never approves or cancels work; backend admission still handles races and durable rejections.
 
 Preview exports trace their font and native Resvg/Sharp companions. Raster libraries load only for preview requests so task and account requests can start independently of image conversion.
@@ -25,3 +27,5 @@ Studio chrome is independent of native authority. Global 3D layout rules live in
 Settings navigation uses the same Button component and navigation class as the desktop, preserving inline icons, label spacing and compact controls across both surfaces.
 
 Signed-out visitors see only a modal sign-in gate. Browser sign-out and account switching reset mounted workspace state. Native window controls and desktop runtime settings are unavailable in the browser. See [[contracts#Hosted contract tests]] for the serialization boundary.
+
+Sidebar project grouping follows desktop capability, independently of Studio layout. Browsers list all unpinned hosted chats even when their stored default-project identifiers cannot be resolved through desktop-only project metadata.

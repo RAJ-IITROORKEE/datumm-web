@@ -12,7 +12,8 @@ export async function postHostedCommand(request, taskId, envelope) {
     if (!response.ok) return response;
     const tasks = await response.json();
     if (!Array.isArray(tasks)) throw new Error('Invalid active task response.');
-    const active = tasks.find(task => typeof task?.id === 'string' && /^[a-zA-Z0-9-]{1,128}$/.test(task.id) && ['queued','running','awaiting_approval'].includes(task.status));
+    const independent = ['ask','plan'].includes(envelope.command?.mode) && envelope.command?.modelContextRequirement !== 'read';
+    const active = tasks.find(task => typeof task?.id === 'string' && /^[a-zA-Z0-9-]{1,128}$/.test(task.id) && (['queued','running'].includes(task.status) || task.status === 'awaiting_approval' && !independent));
     if (active) {
       const title = typeof active.title === 'string' && active.title ? active.title : 'Untitled chat';
       const state = active.status === 'awaiting_approval' ? 'awaiting approval' : active.status;
