@@ -306,3 +306,14 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 
 /* Keep the prompt and Send reachable when workflow controls grow or zoom reduces height. */
 .composer-area{display:flex;flex-direction:column;max-height:100%}.composer-workflow{min-height:0;overflow-y:auto;flex-shrink:1}.composer-area>.composer,.composer-area>.workspace-controls{flex-shrink:0}
+
+/* Chat presentation: question cards, collapsed work, secondary result cards. */
+.agent-question.question-group{border-radius:16px;box-shadow:0 1px 2px rgb(0 0 0/.08);display:grid;gap:4px}
+.question-choices{display:flex;flex-wrap:wrap;gap:8px}
+.question-item legend{display:flex;align-items:flex-start;gap:8px}.question-number{flex:none;background:var(--secondary);font-weight:600;margin-right:0}
+.question-choice{flex:1 1 200px;border-radius:999px;padding:8px 14px;align-items:center}.question-choice:has(small){border-radius:12px}
+.question-choice[data-state=checked],.question-choice:has(input:checked){border-color:var(--trace-accent);background:var(--secondary)}
+.question-submit{padding-top:14px;border-top:1px solid var(--border)}
+.reasoning-content .activity-feed{margin:6px 0}
+.task-outcome,.saved-turn-result{opacity:.92}.task-outcome header strong{font-size:12px}
+.tool pre:focus-visible{outline:2px solid var(--trace-accent)}

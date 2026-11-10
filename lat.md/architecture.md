@@ -31,3 +31,9 @@ Signed-out visitors see only a modal sign-in gate. Browser sign-out and account 
 Sidebar project grouping follows desktop capability, independently of Studio layout. Browsers list all unpinned hosted chats even when their stored default-project identifiers cannot be resolved through desktop-only project metadata.
 
 Chat-first center: the conversation owns the center until the current chat has renderable plan geometry (a drawing or saved SVG, `hasRenderablePlan` in workspace.tsx). Then the studio canvas takes the center and the conversation moves to the side assistant panel; switching chats re-evaluates this.
+
+## Chat presentation
+
+Agent work is collapsed by default behind a single "Worked · N steps" row; the answer renders as markdown and result cards stay secondary.
+
+The [[src/components/ai-elements/reasoning.tsx#Reasoning]] panel opens while a run streams or waits for input and collapses when it settles, still showing failed counts. Each tool call uses [[src/components/ai-elements/tool.tsx#Tool]] with a status badge and bounded, escaped input and output.
