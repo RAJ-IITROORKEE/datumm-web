@@ -1,6 +1,8 @@
 import { ArrowRight, Brain, Check, ChevronDown, CircleHelp, FileArchive, FileText, Search, Square, Users, Workflow, Wrench, X } from 'lucide-react';
 
 import {MessageResponse} from './ai-elements/message';
+import {Reasoning} from './ai-elements/reasoning';
+import {Tool,ToolContent,ToolHeader,ToolInput,ToolOutput,toolStatus} from './ai-elements/tool';
 import type { TaskEvent } from '@/lib/task-projection';
 import type { ContextUsageData } from './agent-memory';
 import { PublicResearchEvidence, PdfReviewEvidence, CompanionReviewEvidence } from './evidence-results';
@@ -113,7 +115,11 @@ export function AgentActivity({events,nativeMessages=[],active=false,waiting=fal
  const latest=rows.at(-1);
  const completed=evidence.filter(call=>call.status==='completed').length,failed=evidence.filter(call=>call.status==='failed').length;
 
-  const content=<>{publicText}{showFeed&&<ActivityFeed events={events} active={active} waiting={waiting} compact={compact}/>}<PublicResearchEvidence evidence={evidence}/><PdfReviewEvidence evidence={evidence}/><CompanionReviewEvidence evidence={evidence}/><details className="activity-turn" open={!compact&&(waiting||failed>0||undefined)}><summary><ChevronDown size={13} aria-hidden="true"/><span>Activity</span><small>{completed} tool results{manifest?.children?.length?` · ${manifest.children.length} specialists`:''}{manifest?.elapsedMs!=null?` · ${(manifest.elapsedMs/1000).toFixed(1)}s`:''}{failed?` · ${failed} failed`:''}</small></summary><section className="orchestration-trace" aria-label="Agent orchestration">
+  const steps=Math.max(evidence.length,rows.filter(row=>row.stage==='tool_completed'||row.stage==='tool_failed').length)||rows.filter(row=>!['model_turn','assistant_update'].includes(row.stage)).length;
+  const stepLabel=`${steps} ${steps===1?'step':'steps'}`,live=active&&!waiting;
+  const current=latest&&latest.stage.startsWith('tool_')?toolName(latest).replaceAll('_',' '):'';
+  const summary=waiting?'Waiting for your input':live?<span className="activity-shimmer">{current?`Working · ${current}`:'Working'}</span>:<>{failed?`Worked · ${stepLabel} · ${failed} failed`:`Worked · ${stepLabel}`}{manifest?.elapsedMs!=null?` · ${(manifest.elapsedMs/1000).toFixed(1)}s`:''}</>;
+  const content=<>{publicText}<Reasoning isStreaming={live} forceOpen={waiting} summary={summary}>{showFeed&&<ActivityFeed events={events} active={active} waiting={waiting} compact={compact}/>}<section className="orchestration-trace" aria-label="Agent orchestration">
 
    <div className="orchestration-heading"><strong>{active?(waiting?'Waiting for your input':'DATUMM working'):'Recorded activity'}</strong><span>{completed} tool results{failed?` · ${failed} failed`:``}{manifest?.elapsedMs!=null?` · ${(manifest.elapsedMs/1000).toFixed(1)}s`:``}</span>{todos.length>0&&<span>{todos.filter(todo=>todo.status==='completed').length}/{todos.length} tasks completed</span>}</div>
 
@@ -135,13 +141,14 @@ export function AgentActivity({events,nativeMessages=[],active=false,waiting=fal
 
   })}</ol>
 
-   {evidence.length>0&&<details className="orchestration-evidence"><summary>Tool inputs and results · {evidence.length} {evidence.length===1?'call':'calls'}</summary>{evidence.map(call=><details key={call.callId}><summary>{call.role?call.role+' · ':''}{call.tool} · {call.status}{call.elapsedMs!=null?` · ${(call.elapsedMs/1000).toFixed(1)}s`:''}</summary><strong>Input</strong><pre>{JSON.stringify(call.arguments??{},null,2)}</pre><strong>Observation</strong><pre>{JSON.stringify(call.result??'No result was recorded.',null,2)}</pre></details>)}</details>}
+   {evidence.length>0&&<div className="orchestration-evidence" aria-label={`Tool calls · ${evidence.length}`}>{evidence.map(call=>{const status=toolStatus(call.status);return <Tool key={call.callId}><ToolHeader name={`${call.role?call.role+' · ':''}${call.tool}`} status={status} meta={call.elapsedMs!=null?`${(call.elapsedMs/1000).toFixed(1)}s`:undefined}/><ToolContent><ToolInput input={call.arguments}/><ToolOutput output={call.result} failed={status==='failed'}/></ToolContent></Tool>;})}</div>}
 
    </div></details>}
 
   <footer className="orchestration-footer"><Square size={12} aria-hidden="true"/><strong>{manifest?.mode??mode}</strong><details className="activity-runtime"><summary>Runtime details</summary><span>{manifest?.model??model}</span></details>{active&&<span className="orchestration-live" role="status" aria-live="polite">{waiting?<CircleHelp size={12}/>:<WorkingIndicator/>}{waiting?'Waiting for you':<span className="activity-shimmer">{latest?.stage==='tool_running'?'Calling tool':'Working'}</span>}</span>}</footer>
 
- </section></details></>;
+ </section></Reasoning><PublicResearchEvidence evidence={evidence}/><PdfReviewEvidence evidence={evidence}/><CompanionReviewEvidence evidence={evidence}/></>;
+  return compact
   return compact?<div className="activity-compact">{content}</div>:content;
 
 }
