@@ -12,6 +12,8 @@ export function placementIssue(input:{pending:boolean;preparing?:boolean;session
  if(!input.rotation.trim()||!Number.isFinite(Number(input.rotation))||Number(input.rotation)<0||Number(input.rotation)>=360)return 'Rotation must be a number from 0 up to 360 degrees (excluding 360).';
  return null;
 }
+/** True only when the agent is really waiting for an answer, not for every settled or failed turn. */
+export const hasPendingQuestion=(task:Task)=>task.status==='needs_input'&&Boolean(task.data.agent_question||task.data.opencode_questions?.length);
 // @lat: [[architecture#Hosted workspace#Review and authority]]
 export function workflowState(task:Task){
  const d=task.data,build=d.native_build,design=d.design;

@@ -1,0 +1,10 @@
+type Item = { id: string; required: boolean; options: { id: string; label: string }[] };
+type Draft = Record<string, { choice: string; custom: string }>;
+export function answerValue(item: Item, draft: Draft): string | undefined;
+export function reviewStep(items: Item[]): number;
+export function canAdvance(items: Item[], draft: Draft, step: number): boolean;
+export function canSubmit(items: Item[], draft: Draft): boolean;
+export function nextStep(items: Item[], draft: Draft, step: number): number;
+export function backStep(step: number): number;
+export function firstOpenStep(items: Item[], draft: Draft): number;
+export function buildPayload(question: { id: string; version?: number }, items: Item[], draft: Draft): { question_id: string; answer?: string } | { question_id: string; question_version: number; answers: { question_id: string; option_id?: string; value?: string }[] };

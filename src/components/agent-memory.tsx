@@ -58,10 +58,8 @@ export function AgentMemory({memory,metrics,runId}:{memory:TaskMemory;metrics?:C
 }
 
 export function AgentLimit({runId,canContinue,hasOperation,pending,findings,onContinue,onRecover}:{runId:string;canContinue:boolean;hasOperation:boolean;pending:boolean;findings:string[];onContinue:()=>void;onRecover:()=>void}){
- return <div className="saved-plan-card analysis-checkpoint" role="status" aria-label="Analysis checkpoint"><div className="section-caption">ANALYSIS CHECKPOINT <span>Progress saved</span></div><strong>Review what DATUMM found</strong>
-  {findings.length>0?<ul>{findings.map((finding,index)=><li key={index}>{finding}</li>)}</ul>:<p>{canContinue?'Your goal and inspected evidence are saved. The remaining analysis can continue from this checkpoint.':hasOperation?'The task paused after a Revit operation. Check its original status before starting another model change.':'This task reached its shared run allowance. Review saved evidence before starting a focused follow-up.'}</p>}
-  {hasOperation?<p>Check the original Revit operation before starting another model change.</p>:null}
-  <div className="plan-actions">{canContinue?<Button disabled={pending} onClick={onContinue}>Continue analysis</Button>:hasOperation?<Button disabled={pending} onClick={onRecover}>Check original operation</Button>:<span>Review the saved handoff before starting a focused follow-up.</span>}<a href={`/api/service/runs/${runId}/export/handoff`} download>Download findings</a></div>
-  {canContinue?<small>DATUMM carries saved decisions and the remaining-step cursor into one linked continuation. Usage limits stay shared; native evidence is refreshed and approvals are never inherited.</small>:null}
- </div>;
+ const text=hasOperation?'Paused after a Revit operation. Check its original status before another model change.':canContinue?'Run allowance reached. Progress is saved.':'Run allowance reached. Review the saved handoff before a focused follow-up.';
+ return <div className="analysis-checkpoint-line" role="status" aria-label="Analysis checkpoint" title={findings.join('; ')||undefined}><span>{text}</span>
+  {canContinue?<Button size="sm" disabled={pending} onClick={onContinue}>Continue analysis</Button>:hasOperation?<Button size="sm" disabled={pending} onClick={onRecover}>Check original operation</Button>:null}
+  <a href={`/api/service/runs/${runId}/export/handoff`} download>Download findings</a></div>;
 }

@@ -4,7 +4,7 @@ import {ArrowRight,Eye,ShieldCheck} from 'lucide-react';
 import type {DrawingVersion} from './plan-canvas';
 import {Button} from './ui/button';
 
-export function StudioProperties({drawing,selected,onSelect,onRequest,onReview}:{drawing:DrawingVersion;selected:string;onSelect:(key:string)=>void;onRequest:(text:string)=>void;onReview:()=>void}){
+export function StudioProperties({drawing,selected,onSelect,onRequest,onReview}:{drawing:DrawingVersion;selected:string;onSelect:(key:string)=>void;onRequest:(text:string)=>void;onReview?:()=>void}){
  const room=drawing.graph.rooms.find(row=>row.key===selected);
  const [name,setName]=useState(room?.name??''),[x,setX]=useState('0'),[y,setY]=useState('0'),[error,setError]=useState('');
  const t=drawing.graph.wallThicknessMm;
@@ -21,7 +21,7 @@ export function StudioProperties({drawing,selected,onSelect,onRequest,onReview}:
    {error&&<p role="alert" className="error-banner">{error}</p>}
   </form>
   <p className="studio-annotation-note">Preview adds an editable request to the assistant. Send it to generate the proposal. Revit changes require separate approval.</p>
-  <div className="studio-property-review"><strong><ShieldCheck size={17}/>Plan ready to review</strong><p>Inspect the exact geometry, then prepare the native proposal for this project.</p><Button onClick={onReview}>Review design<ArrowRight size={15}/></Button></div>
+  {onReview&&<div className="studio-property-review"><strong><ShieldCheck size={17}/>Plan ready to review</strong><p>Inspect the exact geometry, then prepare the native proposal for this project.</p><Button onClick={onReview}>Review design<ArrowRight size={15}/></Button></div>}
   <details className="studio-property-identity"><summary>Design identity</summary><code>{drawing.planId} · v{drawing.version}<br/>{drawing.fingerprint}</code></details>
  </div>;
 }

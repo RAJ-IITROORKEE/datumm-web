@@ -34,7 +34,7 @@ The actual proxy forwards questions, cancellation, queue edits and design review
 
 ## Browser sidebar history
 
-Hosted chats with project identifiers remain visible without desktop project groups. The actual sidebar predicates preserve pinned separation, desktop grouping and the server's newest-first order.
+Hosted chats with project identifiers remain visible without desktop project groups. The list rules in `src/lib/sidebar-history.mjs` preserve pinned separation, desktop grouping and the server's newest-first order.
 
 ## Plugin setup guide
 
@@ -43,3 +43,11 @@ Build mode shows the Revit plugin setup card only while no device is online; Ask
 ## Sign-in gate
 
 Signed-out visitors see a non-dismissible Clerk sign-in dialog instead of the workspace; loading and unconfigured-auth states are decided by one pure helper.
+
+## Agent plan checklist
+
+The pinned checklist maps saved plan progress or native to-dos to done, running, failed and pending items, and an active turn always has one running step.
+
+## Question stepper
+
+The question dock blocks Next on a missing required answer, can skip optional ones, reviews before one submit, and builds the exact reply payload the service already accepts.
