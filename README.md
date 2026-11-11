@@ -19,16 +19,22 @@ After starting the production build with `npm start`, run `npm run check:runtime
 - `src/components/workspace/plan-details.tsx`: alternatives, comparison, exports, assumptions and limits for the plan, shown in the Exports tab (the chat keeps a compact card).
 - `src/components/workspace/chat-row.tsx`: one minimal chat row with status dots, inline rename and the row menu (Rename, Move to project, Pin, Archive, Delete).
 - `src/components/workspace/project-create.tsx`: hosted "New project" inline field.
-- `src/components/workspace/plan-dock.tsx`: pinned "Plan · n of m" checklist above the composer.
+- `src/components/workspace/plan-dock.tsx`: pinned "Plan · n of m" checklist above the composer (task plan, native to-dos, or stage spans for Ask turns).
+- `src/components/workspace/share-dialog.tsx`: chat-header Share button and dialog (create link, copy, stop sharing); hidden when the backend share route answers 404/405.
+- `src/app/share/[token]/page.tsx` and `not-found.tsx`: public read-only shared chat, fetched server-side from `GET /v2/shared/{token}` without sign-in (`src/proxy.ts` skips Clerk for `/share`); the plan SVG is shown through an `<img>` data URI only.
+- `src/lib/share.mjs`: pure share link, token and shared-payload normalisation, covered by `tests/share.test.mjs`.
 - `src/components/workspace/brief-chips.tsx`: compact brief chips (footprint, entry, counts) at the top of the Properties tab.
 - `src/components/agent-questions.tsx`: the one-question-at-a-time dock (hosted questions).
 - `src/components/workspace/composer.tsx`: composer area (notices, queue, mode menu, model picker, plugin setup guide, send and stop).
 - `src/components/workspace/inspector.tsx`: right panel tabs (Agent, Properties, Activity) plus Exports and MCP tools.
 - `src/lib/sidebar-history.mjs` and `src/lib/workspace-layout.mjs`: pure rules for the chat lists and plan focus, covered by `tests/sidebar-history.test.mjs` and `tests/workspace-layout.test.mjs`.
-- `src/lib/turn-nesting.mjs` and `src/lib/chat-seen.mjs`: step, agent, tool grouping (`nestProcess`, hosted `stageSpans`) and unread-chat rules, covered by `tests/turn-nesting.test.mjs` and `tests/chat-seen.test.mjs`.
+- `src/lib/turn-nesting.mjs` and `src/lib/chat-seen.mjs`: step, agent, tool grouping (`nestProcess`, hosted `stageSpans` with note-based titles and summaries, `latestNote` for the shimmering Working line) and unread-chat rules, covered by `tests/turn-nesting.test.mjs` and `tests/chat-seen.test.mjs`.
 - `src/lib/settled-poll.mjs`: the polling loop (skips hidden tabs, backs off on errors) and the interval rules `openChatPollMs` / `listPollMs`, covered by `tests/settled-poll.test.mjs`.
 - `src/lib/hosted-command.mjs`: strict v2 envelope and the new-chat pre-check (parallel Ask/Plan up to three), covered by `tests/hosted-command.test.mjs`.
 - `src/lib/agent-todos.mjs` and `src/lib/question-stepper.mjs`: pure rules for the plan checklist and the question dock, covered by `tests/agent-todos.test.mjs` and `tests/question-stepper.test.mjs`.
+- `src/app/admin/`: the dark-only `/admin` console. `layout.tsx` is the server gate (verified primary email in `ADMIN_EMAILS`, comma list, default the owner, else 404), `admin.css` pins the dark tokens, and each section is a one-line page.
+- `src/components/admin/`: `admin-shell.tsx` (collapsible sidebar, mobile sheet, breadcrumb), `use-admin.tsx` (proxy calls, 404/403/409 states, config load and revision-checked save), `form.tsx` (fields, chips, config page with save bar), `config-sections.tsx` (Agent, Web search, Skills, MCP servers), `data-sections.tsx` (Overview, Knowledge, Plugin, Audit log).
+- `src/lib/admin-access.mjs` and `src/lib/admin-config.mjs`: pure email gate and config validation, covered by `tests/admin-access.test.mjs`, `tests/admin-config.test.mjs` and `tests/admin-proxy.test.mjs`. Set `ADMIN_EMAILS` in Vercel to add admins; the backend still requires the Clerk subject in `ADMIN_SUBJECTS`.
 
 ## Deploy
 

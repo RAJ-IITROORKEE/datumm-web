@@ -9,7 +9,7 @@ import { activityBatches, toolName, type RunManifest, type ToolEvidence } from '
 import type { SchedulerView } from '../agent-scheduler';
 import type { SpecialistResult } from '../agent-specialists';
 import type { TaskEvent } from '@/lib/task-projection';
-import { nestProcess, stageSpans } from '@/lib/turn-nesting.mjs';
+import { latestNote, nestProcess, stageSpans } from '@/lib/turn-nesting.mjs';
 
 type Status = 'running' | 'done' | 'failed';
 type Row = { key: string; name: string; status: Status; team?: boolean };
@@ -37,7 +37,7 @@ function Rows({ rows }: { rows: Row[] }) {
   );
 }
 
-function Node({ title, status, count, open = false, children }: { title: string; status: Status; count?: number; open?: boolean; children?: ReactNode }) {
+function Node({ title, status, count, open = false, summary, children }: { title: string; status: Status; count?: number; open?: boolean; summary?: string; children?: ReactNode }) {
   return (
     <Collapsible.Root defaultOpen={open} className="turn-process-node" data-status={status}>
       <Collapsible.Trigger className="turn-process-trigger group">
@@ -46,6 +46,7 @@ function Node({ title, status, count, open = false, children }: { title: string;
         {count ? <small>{count}</small> : null}
         <ChevronDown size={13} className="turn-process-chevron" aria-hidden="true" />
       </Collapsible.Trigger>
+      {summary && <p className="turn-process-summary">{summary}</p>}
       <Collapsible.Content className="turn-process-content">{children}</Collapsible.Content>
     </Collapsible.Root>
   );
@@ -109,8 +110,9 @@ export function TurnProcess(props: Props) {
   const seconds = elapsedMs != null && elapsedMs >= 1000 ? `${Math.round(elapsedMs / 1000)} s` : null;
   const stepText = `${steps} ${steps === 1 ? 'step' : 'steps'}`;
   const failed = batches.some((step) => step.rows.some((row) => row.status === 'failed'));
+  const note = live ? latestNote(events, spans) : '';
   const summary = live ? (
-    <><Loader2 size={13} className="spin turn-process-lead" aria-hidden="true" /><span>Working…</span></>
+    <span className="activity-shimmer turn-process-working" role="status">{note ? `Working… ${note}` : 'Working…'}</span>
   ) : (
     <>{`Worked${seconds ? ` for ${seconds}` : ''}${steps ? ` · ${stepText}` : ''}${failed ? ' · some failed' : ''}`}</>
   );
@@ -131,7 +133,7 @@ export function TurnProcess(props: Props) {
           {spans.map((span, i) => {
             const status: Status = span.done || !live ? 'done' : 'running';
             const rows: Row[] = span.children.map((event) => ({ key: `${event.index}`, name: event.agent?.name ?? label(event.stage), status }));
-            return <Node key={`s-${span.id}`} title={span.title} status={status} count={rows.length} open={live && !span.done && i === spans.length - 1}>{rows.length > 0 && <Rows rows={rows} />}</Node>;
+            return <Node key={`s-${span.id}`} title={span.title} summary={status === 'done' ? span.summary : undefined} status={status} count={rows.length} open={live && !span.done && i === spans.length - 1}>{rows.length > 0 && <Rows rows={rows} />}</Node>;
           })}
           {nested.steps.map((step, i) => {
             const rows = step.agents.map((agent) => ({ agent, rows: stepRows(agent.events) }));

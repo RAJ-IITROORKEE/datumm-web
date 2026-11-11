@@ -317,3 +317,9 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .reasoning-content .activity-feed{margin:6px 0}
 .task-outcome,.saved-turn-result{opacity:.92}.task-outcome header strong{font-size:12px}
 .tool pre:focus-visible{outline:2px solid var(--trace-accent)}
+.share-page{max-width:760px;margin:0 auto;padding:32px 16px 64px;color:var(--foreground);background:var(--background);min-height:100vh;display:grid;gap:24px;align-content:start}
+.share-page h1{font-size:22px;margin:0}.share-page h2{font-size:14px;margin:0 0 8px}.share-page small,.share-page footer{color:var(--muted-foreground);font-size:12px}
+.share-thread{display:grid;gap:16px}.share-thread article{display:grid;gap:4px;min-width:0;overflow-wrap:anywhere}.share-thread article[data-role=user]{padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--card)}.share-thread strong{font-size:12px;color:var(--muted-foreground)}
+.share-plan{width:100%;height:auto;border:1px solid var(--border);border-radius:12px;background:#fff}
+.share-list{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13px}.share-list li{display:flex;align-items:center;gap:8px;min-width:0}.share-list a{color:var(--foreground);text-decoration:underline;overflow-wrap:anywhere}
+.share-page footer a{color:var(--foreground)}

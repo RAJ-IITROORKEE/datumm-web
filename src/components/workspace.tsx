@@ -44,6 +44,7 @@ import { Sidebar } from './workspace/sidebar';
 import { ConversationPanel } from './workspace/conversation';
 import { PlanDetails } from './workspace/plan-details';
 import { Inspector } from './workspace/inspector';
+import { ShareButton } from './workspace/share-dialog';
 
 export function Workspace({
   authConfigured,
@@ -343,6 +344,8 @@ export function Workspace({
         title={run?.title ?? 'New chat'}
         project={currentProject?.title}
         options={
+          <>
+          <ShareButton taskId={run?.id} />
           <details
             className="studio-titlebar-options"
             onKeyDown={(event) => {
@@ -366,6 +369,7 @@ export function Workspace({
               {chatOptions}
             </div>
           </details>
+          </>
         }
       />
       <div

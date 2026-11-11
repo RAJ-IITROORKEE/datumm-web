@@ -7,6 +7,7 @@ import { PromptContent } from '../prompt-content';
 import { TurnProcess, turnProcessVisible } from './turn-process';
 import { PlanDock } from './plan-dock';
 import { deriveTodos } from '@/lib/agent-todos.mjs';
+import { stageSpans } from '@/lib/turn-nesting.mjs';
 import { SavedTurnResult } from '../saved-turn-result';
 import { PlanningGoalPanel } from '../planning-goal';
 import { OpenCodeQuestions } from '../opencode-questions';
@@ -487,7 +488,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
       onAction={nativeAction}
     />
   );
-  const todoItems = deriveTodos({ plan: run?.data.agent_task_plan, todos: nativeTodos, active: executing });
+  const todoItems = deriveTodos({ plan: run?.data.agent_task_plan, todos: nativeTodos, active: executing, spans: stageSpans(traceTurns.at(-1) ?? []) });
   const d = run?.data;
   const hasArtifacts = Boolean(d && (d.agent_design || d.plan || d.agent_draft || d.concept || d.agent_result?.operationId || queueData?.native_build));
   return (

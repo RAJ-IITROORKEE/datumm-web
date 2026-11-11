@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {nestProcess,stageSpans} from '../src/lib/turn-nesting.mjs';
+import {latestNote,nestProcess,stageSpans} from '../src/lib/turn-nesting.mjs';
 
 // @lat: [[contracts#Hosted contract tests#Process nesting]]
 test('events with parentStepId nest step, agent, tool calls; others stay flat',()=>{
@@ -37,4 +37,26 @@ test('hosted lead stages become flat spans with child rows',()=>{
 test('an unclosed stage is still running and no stages gives no spans',()=>{
   assert.equal(stageSpans([{index:0,stage:'agent_stage_start',detail:''}])[0].done,false);
   assert.deepEqual(stageSpans([{index:0,stage:'agent_action'}]),[]);
+});
+
+// @lat: [[contracts#Hosted contract tests#Step notes]]
+test('span titles come from the first note, summaries from the last',()=>{
+  const long='n'.repeat(100);
+  const events=[
+    {index:0,stage:'agent_stage_start',detail:'Planning the next step'},
+    {index:1,stage:'agent_action',note:`  ${long} `},
+    {index:2,stage:'agent_action',note:'Found the walls; next I will draft'},
+    {index:3,stage:'agent_stage_complete'},
+    {index:4,stage:'agent_stage_start',detail:'Planning the next step'},
+    {index:5,stage:'agent_action'},
+  ];
+  const [a,b]=stageSpans(events);
+  assert.equal(a.title.length,80);
+  assert.equal(a.summary,'Found the walls; next I will draft');
+  assert.equal(a.done,true);
+  assert.equal(b.title,'Planning the next step');
+  assert.equal(b.summary,'');
+  assert.equal(latestNote(events),'Found the walls; next I will draft');
+  assert.equal(latestNote(events.slice(4)),'Planning the next step');
+  assert.equal(latestNote([]),'');
 });
