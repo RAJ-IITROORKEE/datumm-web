@@ -780,7 +780,7 @@ export function Workspace({
               <span className={cn('connection-dot', selectedDevice?.online && revitSessions === 1 && 'online')} />
               {selectedDevice?.online && revitSessions === 1 ? 'Revit connected' : 'Connect Revit'}
             </button>
-            {hasContent && studioView === 'workspace' && (
+            {hasRenderablePlan && (run?.mode ?? mode) !== 'ask' && studioView === 'workspace' && (
               <Button
                 className="studio-review-primary"
                 onClick={() =>
