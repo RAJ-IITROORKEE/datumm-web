@@ -726,8 +726,11 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   }catch(e){setError((e as Error).message);}finally{setActionBusy(false);}
  };
  const reviewPlacement=async()=>{
-  if(!run)return;setActionBusy(true);setError('');setConfirmedPlacement(null);
-  try{const context=await api<PlacementContext>(`tasks/${run.id}/build-context?deviceId=${encodeURIComponent(deviceId||run.device_id)}`);setPlacementContext(context);setPlacementTask(run.id);setPlacementView('');}
+  if(!run)return;
+  const device=deviceId||run.device_id;
+  if(!device){setError('Revit is not connected. Open Revit, connect the DATUMM plugin, then choose the placement again.');return;}
+  setActionBusy(true);setError('');setConfirmedPlacement(null);
+  try{const context=await api<PlacementContext>(`tasks/${run.id}/build-context?deviceId=${encodeURIComponent(device)}`);setPlacementContext(context);setPlacementTask(run.id);setPlacementView('');}
   catch(e){setError((e as Error).message);}finally{setActionBusy(false);}
  };
  const confirmPlacement=async()=>{
