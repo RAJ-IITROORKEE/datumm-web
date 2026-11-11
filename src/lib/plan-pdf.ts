@@ -1,8 +1,9 @@
 /** One A3–A1 page embeds the drawing raster at a readable label size. Plain byte arrays, so it runs on the server and in the browser. */
 export function planPdf(jpeg:Uint8Array,width:number,height:number,svgWidth=width,svgHeight=height):Uint8Array{
  if(!Number.isInteger(width)||!Number.isInteger(height)||width<1||height<1||width>2400||height>2400||jpeg.length>10_000_000)throw Error('Drawing exceeds PDF bounds.');
+ // Extents include the sheet margins around a site of up to 50 m per edge.
  const margin=36;
- if(!Number.isFinite(svgWidth)||!Number.isFinite(svgHeight)||svgWidth<=0||svgHeight<=0||svgWidth>24000||svgHeight>24000)throw Error('Invalid drawing extents.');
+ if(!Number.isFinite(svgWidth)||!Number.isFinite(svgHeight)||svgWidth<=0||svgHeight<=0||svgWidth>60000||svgHeight>60000)throw Error('Invalid drawing extents.');
  const [pageW,pageH]=[[842,1191],[1191,1684],[1684,2384]].find(([w,h])=>Math.min((w-2*margin)/svgWidth,(h-2*margin)/svgHeight)*112.5>=7)??[1684,2384];
  const scale=Math.min((pageW-2*margin)/width,(pageH-2*margin)/height);
  const w=width*scale,h=height*scale,x=(pageW-w)/2,y=(pageH-h)/2;
