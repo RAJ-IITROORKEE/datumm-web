@@ -608,6 +608,7 @@ export function Composer(props: ComposerProps) {
                 }}
               />
             </div>
+            {executing && <span className="activity-shimmer composer-working" role="status">Working…</span>}
             {executing && (
               <button
                 type="button"
