@@ -66,6 +66,28 @@ Hosted questions appear in a dock above the composer, one at a time with progres
 
 [[src/components/agent-questions.tsx#AgentQuestions]] uses the pure rules in `src/lib/question-stepper.mjs`. Only a real pending question shows the sidebar attention icon ([[src/lib/workflow-state.ts#hasPendingQuestion]]); failed chats show a small error dot. Ask chats and chats without a plan hide the build part of the pipeline bar and the "Review design" button. The question and plan docks share one `composer-dock` block in normal flow above the composer, no wider than it. "Review design" needs a renderable plan. Below 850px the sidebar starts closed and a plan canvas keeps a 280px minimum height.
 
+## Plan viewer
+
+The plan viewer draws the 2D floor plan in the browser from the plan graph, in a Revit hidden-line style that follows the app theme. It never holds approval authority.
+
+### 2D sheet
+
+[[src/components/plan-drawing.tsx#PlanDrawing]] renders walls as solid cut poche, thin door leaves and swings, window lines, room tags, chained and overall dimensions, a scale bar and a north arrow.
+
+Geometry comes from `src/lib/plan-geometry.mjs`, in model millimetres. Hidden line is the default; "Presentation" adds the coloured room fills. Sheet colours are CSS variables set in `plan-canvas.module.css`: white paper with black ink in light mode, the theme canvas with light linework in dark mode. The server SVG is still used for server exports and other previews.
+
+### Tools and export
+
+Select picks rooms, walls and openings and shows their properties; measure takes two clicks, snaps to wall ends and reports millimetres and metres.
+
+[[src/components/plan-drawing.tsx#exportPlanSheet]] saves the current view as PNG or a one-page PDF, always black on white. Comments stay in browser storage; there is no server endpoint for them yet.
+
+### 3D view
+
+The 3D view reads its colours from the theme tokens and repaints when the theme changes. "Hidden" shows unlit paper-coloured faces with ink edges.
+
+The level cut rebuilds each wall at the cut height with [[src/components/plan-three.tsx#wallGeometry]], so the cut face is a real cap with real edges.
+
 ## Admin console
 
 `/admin` is a dark-only console for runtime agent configuration, gated on the server by the signed-in primary email and enforced again by the backend by Clerk subject.

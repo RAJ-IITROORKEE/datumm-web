@@ -27,6 +27,8 @@ After starting the production build with `npm start`, run `npm run check:runtime
 - `src/components/agent-questions.tsx`: the one-question-at-a-time dock (hosted questions).
 - `src/components/workspace/composer.tsx`: composer area (notices, queue, mode menu, model picker, plugin setup guide, send and stop).
 - `src/components/workspace/inspector.tsx`: right panel tabs (Agent, Properties, Activity) plus Exports and MCP tools.
+- `src/components/plan-canvas.tsx`: the plan viewer (2D and 3D tabs, tools, comments, properties, export). `src/components/plan-drawing.tsx` draws the 2D sheet from the plan graph (`PlanDrawing`) and exports a view (`exportPlanSheet`, `exportRaster`); `src/components/plan-three.tsx` is the 3D view.
+- `src/lib/plan-geometry.mjs`: pure 2D plan geometry (room outlines, dimension chains, wall and arc paths, sheet extents, measure label), covered by `tests/plan-geometry.test.mjs`. `src/lib/plan-pdf.ts` wraps a JPEG in a one-page PDF on the server and in the browser.
 - `src/lib/sidebar-history.mjs` and `src/lib/workspace-layout.mjs`: pure rules for the chat lists and plan focus, covered by `tests/sidebar-history.test.mjs` and `tests/workspace-layout.test.mjs`.
 - `src/lib/turn-nesting.mjs` and `src/lib/chat-seen.mjs`: step, agent, tool grouping (`nestProcess`, hosted `stageSpans` with note-based titles and summaries, `latestNote` for the shimmering Working line) and unread-chat rules, covered by `tests/turn-nesting.test.mjs` and `tests/chat-seen.test.mjs`.
 - `src/lib/settled-poll.mjs`: the polling loop (skips hidden tabs, backs off on errors) and the interval rules `openChatPollMs` / `listPollMs`, covered by `tests/settled-poll.test.mjs`.

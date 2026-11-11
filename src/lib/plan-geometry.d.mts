@@ -1,0 +1,12 @@
+type Point = number[];
+type RoomShape = { rect: number[]; boundary?: Point[] };
+type WallShape = { start: Point; end: Point; curve?: { kind: string; mid?: Point } };
+export function roomPoints(room: RoomShape): Point[];
+export function roomCentre(room: RoomShape): [number, number];
+export function pointInRoom(room: RoomShape, x: number, y: number): boolean;
+export function dimensionChain(rooms: RoomShape[], axis: 'x' | 'y'): number[];
+export function formatLength(mm: number): string;
+export function wallLength(wall: WallShape): number;
+export function wallPoint(wall: WallShape, distance: number): [number, number];
+export function wallPath(wall: WallShape, depth: number, from?: number, to?: number): string;
+export function planSheet(graph: { site: { widthMm: number; depthMm: number } }): { unit: number; pad: number; bounds: [number, number, number, number] };

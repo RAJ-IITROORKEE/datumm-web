@@ -124,7 +124,8 @@ button:disabled { cursor:not-allowed; opacity:.45; }
 .question-choice:focus-visible,.question-custom textarea:focus-visible,.question-custom input:focus-visible,.transcript-viewport:focus-visible{outline:2px solid var(--trace-accent);outline-offset:3px}
 .agent-active{display:flex;align-items:center;gap:10px;font-size:12px;line-height:1.8;min-height:24px;color:var(--muted-foreground)}
 .activity-pulse{width:6px;height:6px;border-radius:50%;background:#c2b493;animation:activity-pulse 1.8s ease-in-out infinite}
-.activity-shimmer{background:linear-gradient(100deg,#aaa294 20%,#f5eedf 45%,#aaa294 70%);background-size:240% 100%;background-clip:text;color:transparent;animation:activity-shimmer 2.8s ease-in-out infinite}
+.composer-working{font-size:12px;white-space:nowrap}
+.activity-shimmer{background:linear-gradient(100deg,var(--muted-foreground) 20%,var(--foreground) 45%,var(--muted-foreground) 70%);background-size:240% 100%;background-clip:text;color:transparent;animation:activity-shimmer 2.8s ease-in-out infinite}
 @keyframes activity-shimmer{from{background-position:100% 0}to{background-position:-100% 0}}
 @keyframes activity-pulse{50%{opacity:.4}}
 @media(max-width:600px){.question-choices{grid-template-columns:minmax(0,1fr)}.question-group{padding:16px}.question-submit>button{width:100%}.conversation-inner{padding:24px 16px!important}.composer-area{padding:0 16px 12px}}
