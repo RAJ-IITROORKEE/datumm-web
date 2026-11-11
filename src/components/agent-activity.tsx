@@ -69,11 +69,11 @@ export function ActivityFeed({events,active,waiting,compact=false}:{events:TaskE
 
 export function activityTurns(events:TaskEvent[]):TaskEvent[][]{
 
- const turns:TaskEvent[][]=[];
+ const turns:TaskEvent[][]=[],starts=['queued','command_accepted'];
 
  for(const event of [...events].sort((a,b)=>a.index-b.index)){
 
-  if(event.stage==='queued'||!turns.length)turns.push([]);
+  if(!turns.length||starts.includes(event.stage)&&!turns.at(-1)!.every(row=>starts.includes(row.stage)))turns.push([]);
 
   turns.at(-1)!.push(event);
 
@@ -81,7 +81,7 @@ export function activityTurns(events:TaskEvent[]):TaskEvent[][]{
 
  // Setup events before the first admitted prompt belong to that first turn.
 
- if(turns.length>1&&turns[0].every(event=>!['queued','answer','completed','failed','cancelled','interrupted'].includes(event.stage))){const setup=turns.shift()!;turns[0].unshift(...setup);}
+ if(turns.length>1&&turns[0].every(event=>!['queued','command_accepted','answer','completed','failed','cancelled','interrupted'].includes(event.stage))){const setup=turns.shift()!;turns[0].unshift(...setup);}
 
  return turns;
 

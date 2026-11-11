@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {nestProcess} from '../src/lib/turn-nesting.mjs';
+import {nestProcess,stageSpans} from '../src/lib/turn-nesting.mjs';
 
 // @lat: [[contracts#Hosted contract tests#Process nesting]]
 test('events with parentStepId nest step, agent, tool calls; others stay flat',()=>{
@@ -24,4 +24,17 @@ test('without the new fields everything falls back to the flat list',()=>{
   const {steps,rest}=nestProcess(events);
   assert.equal(steps.length,0);
   assert.equal(rest.length,2);
+});
+
+// @lat: [[contracts#Hosted contract tests#Stage spans]]
+test('hosted lead stages become flat spans with child rows',()=>{
+  const seq=['command_accepted','agent_stage_start','context_packet','agent_action','intent_repair','agent_stage_complete','agent_stage_start','context_packet','agent_action','research','agent_stage_complete','agent_stage_start','context_compacted','context_packet','agent_action','needs_input','agent_stage_complete','needs_input'];
+  const events=seq.map((stage,index)=>({index,stage,detail:stage==='agent_stage_start'?`Planning ${index}`:stage,agent:{name:'Lead'}}));
+  const spans=stageSpans(events);
+  assert.deepEqual(spans.map(s=>[s.title,s.done,s.children.map(c=>c.stage)]),[['Planning 1',true,['agent_action']],['Planning 6',true,['agent_action','research']],['Planning 11',true,['agent_action']]]);
+});
+
+test('an unclosed stage is still running and no stages gives no spans',()=>{
+  assert.equal(stageSpans([{index:0,stage:'agent_stage_start',detail:''}])[0].done,false);
+  assert.deepEqual(stageSpans([{index:0,stage:'agent_action'}]),[]);
 });
