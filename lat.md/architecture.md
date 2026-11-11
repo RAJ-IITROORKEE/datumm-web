@@ -37,3 +37,19 @@ Chat-first center: the conversation owns the center until the current chat has r
 Agent work is collapsed by default behind a single "Worked · N steps" row; the answer renders as markdown and result cards stay secondary.
 
 The [[src/components/ai-elements/reasoning.tsx#Reasoning]] panel opens while a run streams or waits for input and collapses when it settles, still showing failed counts. Each tool call uses [[src/components/ai-elements/tool.tsx#Tool]] with a status badge and bounded, escaped input and output.
+
+### Agent panel
+
+The inspector tab is "Agent". Each agent turn shows the message, then one collapsed process accordion (step, then agent or job, then tool names and statuses); raw output stays in the Activity tab.
+
+[[src/components/workspace/turn-process.tsx#TurnProcess]] builds the accordion from saved events, the run manifest and evidence, with a spinner and the current step while running. The transcript no longer shows background work, specialist review, the brief, partial-outcome or "Response prepared" cards; scheduler and specialists live in the Activity tab and the brief is summarised as chips in Properties. A budget checkpoint stays as one line with its action.
+
+### Plan checklist
+
+A pinned "Plan · done of total" checklist above the composer shows the agent's steps, derived by `src/lib/agent-todos.mjs` from the saved task plan or native to-dos; it collapses once every step is done.
+
+### Question dock
+
+Hosted questions appear in a dock above the composer, one at a time with progress, option chips, an "Other" input, Back and Next, then a review and one submit. The reply path and sessionStorage draft are unchanged.
+
+[[src/components/agent-questions.tsx#AgentQuestions]] uses the pure rules in `src/lib/question-stepper.mjs`. Only a real pending question shows the sidebar attention icon ([[src/lib/workflow-state.ts#hasPendingQuestion]]); failed chats show a small error dot. Ask chats and chats without a plan hide the build part of the pipeline bar and the "Review design" button. Below 850px the sidebar starts closed and a plan canvas keeps a 280px minimum height.

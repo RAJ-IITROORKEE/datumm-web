@@ -419,16 +419,16 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   },[liveRuntime,useCurrentModel,selectedDevice?.id,selectedDevice?.online]);
 
  useEffect(()=>{
-  const mobile=window.matchMedia('(max-width:700px)'),narrow=window.matchMedia('(max-width:850px)');
-  const update=()=>{setLeft(!mobile.matches);setRight(!narrow.matches);setViewportReady(true);};
-  update();mobile.addEventListener('change',update);narrow.addEventListener('change',update);
-  return()=>{mobile.removeEventListener('change',update);narrow.removeEventListener('change',update);};
+  const narrow=window.matchMedia('(max-width:850px)');
+  const update=()=>{setLeft(!narrow.matches);setRight(!narrow.matches);setViewportReady(true);};
+  update();narrow.addEventListener('change',update);
+  return()=>narrow.removeEventListener('change',update);
  },[]);
 
  useEffect(()=>{
   const closeDrawer=(event:KeyboardEvent)=>{
    if(event.key!=='Escape'||event.defaultPrevented||document.querySelector('[role="dialog"][data-state="open"]'))return;
-   if(left&&window.matchMedia('(max-width:700px)').matches){
+   if(left&&window.matchMedia('(max-width:850px)').matches){
     setLeft(false);requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>('button[aria-label="Show sidebar"]')?.focus());return;
    }
    if(right&&window.matchMedia('(max-width:850px)').matches){
@@ -739,7 +739,7 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  };
 
 
- const closeMobileNav=()=>{if(window.matchMedia('(max-width:700px)').matches)setLeft(false);};
+ const closeMobileNav=()=>{if(window.matchMedia('(max-width:850px)').matches)setLeft(false);};
  const newTask=(projectId='')=>{if(mediaBusy)return;setStudioView('workspace');setTab('preview');setRight(false);setPlanningGoalOpen(false);setNewProject(projectId);promptDrafts.current[sourceKey]=pendingSubmission.current&&!pendingSubmission.current.runStarted?pendingSubmission.current.text:prompt;recoveryEpoch.current++;setConnectionNotice('');reviewEpoch.current++;setActionBusy(false);setCompareVersion(null);setDrawingError('');const url=new URL(window.location.href);url.searchParams.delete('task');window.history.replaceState(null,'',url);pendingSubmission.current=null;void stop();submissionKey.current=null;commandRetry.current.clear();setRun(null);setRunId('');setMessages([]);setDesignVersion(null);setDesignDiff('');setError('');setPrompt(promptDrafts.current[projectId?'new:'+projectId:'new']??'');setUseCurrentModel(false);closeMobileNav();};
 
  const selectRun=(value:Run)=>{if(mediaBusy)return;setStudioView('workspace');setTab('preview');setRight(false);setPlanningGoalOpen(false);promptDrafts.current[sourceKey]=pendingSubmission.current&&!pendingSubmission.current.runStarted?pendingSubmission.current.text:prompt;setPrompt(promptDrafts.current[value.id]??'');recoveryEpoch.current++;setConnectionNotice('');reviewEpoch.current++;setActionBusy(false);setCompareVersion(null);setDrawingError('');pendingSubmission.current=null;submissionKey.current=null;void stop();commandRetry.current.clear();setRun(value);setRunId(value.id);setMode(value.mode);setModel(value.model);setReasoningEffort(value.reasoningEffort??'high');setUseCurrentModel((value.data as Run['data']&{model_context_requirement?:string}).model_context_requirement==='read');setDesignVersion(null);setDesignDiff('');setMessages([]);closeMobileNav();};
@@ -771,8 +771,8 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  const contextTitle=typeof nativeContext?.context.title==='string'?nativeContext.context.title:run?.data.context?.title??(selectedDevice?.online?'Revit connected':'Your model, in context');
  const contextView=typeof nativeContext?.context.activeViewName==='string'?nativeContext.context.activeViewName:run?.data.context?.activeViewName??(selectedDevice?.online?'Inspect to read the active view and level.':'Connect Revit to bring your project into the conversation.');
 
- const toggleLeft=()=>{if(!left&&window.matchMedia('(max-width:700px)').matches)setRight(false);setLeft(value=>!value);};
- const toggleRight=()=>{if(!right&&window.matchMedia('(max-width:700px)').matches)setLeft(false);setRight(value=>!value);};
+ const toggleLeft=()=>{if(!left&&window.matchMedia('(max-width:850px)').matches)setRight(false);setLeft(value=>!value);};
+ const toggleRight=()=>{if(!right&&window.matchMedia('(max-width:850px)').matches)setLeft(false);setRight(value=>!value);};
  const hasContent=messages.length>0||Boolean(run);
 
  const filteredChats=runs.filter(item=>(!workflowFilter||workflowState(item).kind===workflowFilter&&!item.data.organized_done)&&item.title.toLowerCase().includes(search.toLowerCase()));

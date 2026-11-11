@@ -22,7 +22,7 @@ import {
   LogOut,
   ArrowUpRight,
 } from 'lucide-react';
-import { workflowState } from '@/lib/workflow-state';
+import { hasPendingQuestion, workflowState } from '@/lib/workflow-state';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { PanelResize } from '../panel-resize';
 import { useUser, useClerk, Show, SignInButton } from '@clerk/nextjs';
@@ -200,9 +200,10 @@ export function Sidebar(props: SidebarProps) {
         {['queued', 'running'].includes(item.status) && workflowState(item).kind === 'in_progress' && (
           <span className="chat-running" aria-label="Chat running" />
         )}
-        {workflowState(item).kind === 'needs_input' && item.status !== 'completed' && (
-          <CircleHelp size={12} className="chat-attention" aria-label="Chat needs attention" />
+        {hasPendingQuestion(item) && (
+          <CircleHelp size={12} className="chat-attention" aria-label="Chat needs your answer" />
         )}
+        {['failed', 'interrupted'].includes(item.status) && <span className="chat-error" role="img" aria-label="Chat failed" />}
       </button>
       <DropdownMenuPrimitive.Root>
         <DropdownMenuPrimitive.Trigger asChild>

@@ -1018,6 +1018,7 @@ export function Workspace({
                   accepted: Boolean(queueData?.design?.selected || planAccepted),
                   build: queueData?.native_build,
                   executing,
+                  mode: run?.mode ?? mode,
                 }).map((step) => (
                   <span key={step.label} data-state={step.state}>
                     {step.state === 'done' ? (

@@ -21,6 +21,8 @@ import { Button } from '@/components/ui/button';
 import { ContextUsage, AgentMemory } from '../agent-memory';
 import { ActivitySummary, AgentActivity } from '../agent-activity';
 import { AgentScheduler } from '../agent-scheduler';
+import { AgentSpecialists } from '../agent-specialists';
+import { BriefChips } from './brief-chips';
 import { PipelineTrace } from '../pipeline-trace';
 import { type WorkspaceState } from './use-workspace-state';
 
@@ -138,7 +140,7 @@ export function Inspector(props: InspectorProps) {
                 }
                 onClick={() => setTab(t)}
               >
-                {t === 'assistant' ? 'Assistant' : t === 'preview' ? 'Properties' : 'Activity'}
+                {t === 'assistant' ? 'Agent' : t === 'preview' ? 'Properties' : 'Activity'}
               </button>
             ))}
             <DropdownMenuPrimitive.Root>
@@ -163,7 +165,7 @@ export function Inspector(props: InspectorProps) {
             <button
               type="button"
               className="studio-inspector-close"
-              aria-label="Collapse assistant panel"
+              aria-label="Collapse agent panel"
               onClick={() => setRight(false)}
             >
               <PanelRightClose size={16} />
@@ -176,6 +178,7 @@ export function Inspector(props: InspectorProps) {
           )}
           {tab !== 'assistant' && (
             <>
+              {tab === 'preview' && <BriefChips run={run} />}
               {activeDrawing && tab === 'preview' ? (
                 <StudioProperties
                   key={activeDrawing.fingerprint + ':' + selectedDesignElement}
@@ -183,7 +186,7 @@ export function Inspector(props: InspectorProps) {
                   selected={selectedDesignElement}
                   onSelect={setSelectedDesignElement}
                   onRequest={askFromCanvas}
-                  onReview={() => focusReview('[aria-label="Validated design preview"]')}
+                  onReview={(run?.mode ?? mode) === 'ask' ? undefined : () => focusReview('[aria-label="Validated design preview"]')}
                 />
               ) : (
                 <>
@@ -353,6 +356,7 @@ export function Inspector(props: InspectorProps) {
                             </div>
                           )}
                           {run?.data.agent_scheduler && <AgentScheduler value={run.data.agent_scheduler} />}
+                          {run && <AgentSpecialists results={run.data.agent_specialists} taskId={run.id} />}
                           <details className="studio-activity-details">
                             <summary>
                               <Workflow size={15} />

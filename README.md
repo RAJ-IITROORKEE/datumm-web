@@ -14,10 +14,15 @@ After starting the production build with `npm start`, run `npm run check:runtime
 
 - `src/components/workspace/use-workspace-state.ts`: all workspace state, effects and commands (`useWorkspaceState`), the `Run` and related types, and the service `api` helper.
 - `src/components/workspace/sidebar.tsx`: left navigation (new chat, search, scheduled tasks, activity, pinned, project and recent lists, row menus, filters) and the collapsed rail.
-- `src/components/workspace/conversation.tsx`: the chat panel and its transcript blocks (brief, task plan, no-plan card, partial outcome, questions, evidence, specialists, scheduler, outcome).
+- `src/components/workspace/conversation.tsx`: the chat panel and its transcript blocks (messages, one process accordion per turn, design and native review cards, errors, budget checkpoint, saved-artifacts link). The question dock and plan checklist render above the composer.
+- `src/components/workspace/turn-process.tsx`: the per-turn process accordion (step, agent or job, tool names and statuses).
+- `src/components/workspace/plan-dock.tsx`: pinned "Plan · n of m" checklist above the composer.
+- `src/components/workspace/brief-chips.tsx`: compact brief chips (footprint, entry, counts) at the top of the Properties tab.
+- `src/components/agent-questions.tsx`: the one-question-at-a-time dock (hosted questions).
 - `src/components/workspace/composer.tsx`: composer area (notices, queue, mode menu, model picker, plugin setup guide, send and stop).
-- `src/components/workspace/inspector.tsx`: right panel tabs (Assistant, Properties, Activity) plus Exports and MCP tools.
+- `src/components/workspace/inspector.tsx`: right panel tabs (Agent, Properties, Activity) plus Exports and MCP tools.
 - `src/lib/sidebar-history.mjs` and `src/lib/workspace-layout.mjs`: pure rules for the chat lists and plan focus, covered by `tests/sidebar-history.test.mjs` and `tests/workspace-layout.test.mjs`.
+- `src/lib/agent-todos.mjs` and `src/lib/question-stepper.mjs`: pure rules for the plan checklist and the question dock, covered by `tests/agent-todos.test.mjs` and `tests/question-stepper.test.mjs`.
 
 ## Deploy
 

@@ -4,7 +4,9 @@ import { cn } from '@/lib/utils';
 import { Conversation, ConversationContent, ConversationScrollButton } from '@/components/ai-elements/conversation';
 import { Message, MessageContent, MessageResponse } from '@/components/ai-elements/message';
 import { PromptContent } from '../prompt-content';
-import { AgentActivity } from '../agent-activity';
+import { TurnProcess } from './turn-process';
+import { PlanDock } from './plan-dock';
+import { deriveTodos } from '@/lib/agent-todos.mjs';
 import { SavedTurnResult } from '../saved-turn-result';
 import { PlanningGoalPanel } from '../planning-goal';
 import { OpenCodeQuestions } from '../opencode-questions';
@@ -13,12 +15,9 @@ import { BuildComparisonCard } from '../build-comparison';
 import { ShieldCheck, Loader2, ArrowUpRight, Expand, Check } from 'lucide-react';
 import { AgentQuestions } from '../agent-questions';
 import { PlanCanvas } from '../plan-canvas';
-import { AgentScheduler } from '../agent-scheduler';
 import { EvidenceResults } from '../evidence-results';
-import { AgentSpecialists } from '../agent-specialists';
 import { DraftAssessmentDetails } from '../draft-assessment';
 import { AgentLimit } from '../agent-memory';
-import { TaskOutcome } from '../task-outcome';
 import { Composer } from './composer';
 import {
   type WorkspaceState,
@@ -27,7 +26,6 @@ import {
   terminal,
   completedDraftTitle,
   reviewCriteria,
-  taskStepCompleted,
 } from './use-workspace-state';
 
 function recoveryGuidance(action?: string) {
@@ -52,135 +50,6 @@ function recoveryGuidance(action?: string) {
 
 function Mark({ large = false }: { large?: boolean }) {
   return <img className={cn('brand-mark', large && 'large')} src="/datumm-mark.png" alt="" aria-hidden="true" />;
-}
-
-function BriefCard(props: Pick<WorkspaceState, 'run'>) {
-  const { run } = props;
-  return (
-    run?.data.agent_interpreted_brief && (
-      <div className="saved-plan-card" aria-label="Interpreted brief">
-        <div className="section-caption">
-          YOUR BRIEF
-          <span>{run.data.agent_interpreted_brief.status === 'fallback' ? 'Literal fallback' : 'Source checked'}</span>
-        </div>
-        <div className="plan-facts">
-          {run.data.agent_interpreted_brief.dimensions.map((d, i) => (
-            <span key={i}>
-              {d.role === 'unknown' ? 'Scope unconfirmed' : d.role} · {d.sourceText}
-              {d.widthMm && d.depthMm ? ` = ${d.widthMm} × ${d.depthMm} mm` : ' · units unconfirmed'}
-            </span>
-          ))}
-        </div>
-        {Object.entries(run.data.agent_interpreted_brief.values)
-          .filter(([key]) => ['bedrooms', 'guestRooms', 'bathrooms', 'entry', 'jurisdiction'].includes(key))
-          .map(([key, fact]) => (
-            <p key={key}>
-              {key.replace('guestRooms', 'Guest rooms')}: {String(fact.value)} · {fact.provenance}
-            </p>
-          ))}
-        {run.data.agent_interpreted_brief.program.livingHall && <p>BHK program includes living/hall and kitchen.</p>}
-        {run.data.agent_interpreted_brief.unresolved.length > 0 && (
-          <p>
-            Still to confirm:{' '}
-            {run.data.agent_interpreted_brief.unresolved.map((k) => k.replaceAll('_', ' ')).join(', ')}.
-          </p>
-        )}
-        {run.data.agent_interpreted_brief.assumptions.map((a) => (
-          <p key={a}>{a}</p>
-        ))}
-        <small>
-          Brief interpretation grants no model write authority.{' '}
-          {run.data.agent_interpreted_brief.policy
-            ? `Interpreter: ${run.data.agent_interpreted_brief.policy.modelId}.`
-            : ''}
-        </small>
-      </div>
-    )
-  );
-}
-
-function TaskPlanCard(props: Pick<WorkspaceState, 'run'>) {
-  const { run } = props;
-  return (
-    run?.data.agent_task_plan && (
-      <div className="agent-evidence-card" aria-label="Agent task plan">
-        <div className="section-caption">TASK PLAN · VERSION {run.data.agent_task_plan.version}</div>
-        <strong>{run.data.agent_task_plan.goal}</strong>
-        <ol>
-          {run.data.agent_task_plan.steps.map((step) => (
-            <li key={step.key}>
-              <span>
-                {taskStepCompleted(run, step) ? '✓ ' : ''}
-                {step.title}
-              </span>
-              <details>
-                <summary>Expected result</summary>
-                {step.expectedResult}
-              </details>
-            </li>
-          ))}
-        </ol>
-        <small>Planning does not authorize model changes.</small>
-      </div>
-    )
-  );
-}
-
-function NoPlanGeometryCard(props: Pick<WorkspaceState, 'run'>) {
-  const { run } = props;
-  return (
-    run &&
-    !run.data.agent_design &&
-    run.mode === 'plan' &&
-    run.data.agent_interpreted_brief &&
-    terminal.has(run.status) && (
-      <div className="saved-plan-card" role="status">
-        <strong>No saved plan geometry</strong>
-        <p>
-          {run.data.error ??
-            run.data.answer ??
-            'This task has not produced a valid layout. Complete the pending clarification or describe the constraint you want to change.'}
-        </p>
-        <Button
-          variant="secondary"
-          onClick={() => document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message DATUMM"]')?.focus()}
-        >
-          Continue this task
-        </Button>
-      </div>
-    )
-  );
-}
-
-function PartialOutcomeCard(props: Pick<WorkspaceState, 'partialGoal' | 'completedGoal' | 'run' | 'outcome'>) {
-  const { partialGoal, completedGoal, run, outcome } = props;
-  return (
-    partialGoal &&
-    run && (
-      <div className="saved-plan-card" role="status" aria-label="Task goal is partially complete">
-        <div className="section-caption">TASK OUTCOME · PARTIAL</div>
-        <strong>{completedGoal ?? 'The requested outcome remains partially complete.'}</strong>
-        <p>{run.data.agent_result?.answer ?? run.data.answer ?? 'Some requested results remain incomplete.'}</p>
-        {run.data.agent_result?.assessment && (
-          <DraftAssessmentDetails
-            assessment={run.data.agent_result.assessment}
-            batchHistory={run.data.agent_result.batchHistory}
-          />
-        )}
-        <small>
-          {outcome?.verified
-            ? 'The recorded native operation is verified; the overall goal still has unmet, unsupported or unverified criteria.'
-            : 'Task processing ended with an incomplete goal; review the evidence and verification limits before continuing.'}
-        </small>
-        {run.data.agent_result?.documentId && run.data.agent_result?.operationId && (
-          <small>
-            Document {run.data.agent_result.documentId.slice(0, 8)} · Operation{' '}
-            {run.data.agent_result.operationId.slice(0, 8)}
-          </small>
-        )}
-      </div>
-    )
-  );
 }
 
 export type ConversationPanelProps = Pick<
@@ -618,6 +487,9 @@ export function ConversationPanel(props: ConversationPanelProps) {
       onAction={nativeAction}
     />
   );
+  const todoItems = deriveTodos({ plan: run?.data.agent_task_plan, todos: nativeTodos, active: executing });
+  const d = run?.data;
+  const hasArtifacts = Boolean(d && (d.agent_design || d.plan || d.agent_draft || d.concept || d.agent_result?.operationId || queueData?.native_build));
   return (
     <main className="main-panel">
       <div className={cn('main-content', hasContent && 'with-messages')}>
@@ -645,8 +517,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                           </MessageContent>
                         </Message>
                       )}
-                      <AgentActivity
-                        compact={true}
+                      <TurnProcess
                         nativeMessages={
                           executing && index === (run.conversation?.length ?? 1) - 1
                             ? run.data.native_messages
@@ -654,9 +525,12 @@ export function ConversationPanel(props: ConversationPanelProps) {
                         }
                         events={traceTurns[index] ?? []}
                         active={executing && index === (run.conversation?.length ?? 1) - 1}
-                        waiting={nativeQuestions.length > 0}
-                        mode={index === (run.conversation?.length ?? 1) - 1 ? run.mode : 'Agent'}
-                        model={index === (run.conversation?.length ?? 1) - 1 ? run.model : 'Saved turn'}
+                        waiting={
+                          nativeQuestions.length > 0 ||
+                          (index === (run.conversation?.length ?? 1) - 1 &&
+                            run.status === 'needs_input' &&
+                            Boolean(run.data.agent_question))
+                        }
                         manifest={
                           savedTurns.find((saved) => saved.conversationIndex === index)?.result?.manifest ??
                           (index === (run.conversation?.length ?? 1) - 1 ? run.data.run_manifest : undefined)
@@ -665,7 +539,17 @@ export function ConversationPanel(props: ConversationPanelProps) {
                           savedTurns.find((saved) => saved.conversationIndex === index)?.result?.evidence ??
                           (index === (run.conversation?.length ?? 1) - 1 ? run.data.run_manifest?.tools : [])
                         }
-                        todos={index === (run.conversation?.length ?? 1) - 1 ? nativeTodos : []}
+                        scheduler={index === (run.conversation?.length ?? 1) - 1 ? run.data.agent_scheduler : undefined}
+                        specialists={index === (run.conversation?.length ?? 1) - 1 ? run.data.agent_specialists : undefined}
+                        evidenceExtra={
+                          index === (run.conversation?.length ?? 1) - 1 && run.data.agent_coverage ? (
+                            <EvidenceResults
+                              coverage={run.data.agent_coverage}
+                              findings={run.data.agent_advice}
+                              research={run.data.agent_research}
+                            />
+                          ) : undefined
+                        }
                       />
                       {turn.answer && (
                         <Message from="assistant">
@@ -742,15 +626,11 @@ export function ConversationPanel(props: ConversationPanelProps) {
                 )}
 
               {executing && (!run || (!run.conversation?.length && messages.length > 0)) && (
-                <AgentActivity
-                  compact={true}
-                  nativeMessages={executing ? run?.data.native_messages : undefined}
+                <TurnProcess
+                  nativeMessages={run?.data.native_messages}
                   events={traceTurns.at(-1) ?? []}
                   active
                   waiting={nativeQuestions.length > 0}
-                  mode={mode}
-                  model={model}
-                  todos={nativeTodos}
                 />
               )}
               {(liveRuntime || desktopPreview) && run && (run.data.planning_goal || planningGoalOpen) && (
@@ -1071,15 +951,6 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   </Button>
                 </div>
               )}
-              <TaskPlanCard run={run} />
-              {run?.status === 'needs_input' && run.data.agent_question && (
-                <AgentQuestions
-                  key={`${run.id}:${run.data.agent_question.id}`}
-                  runId={run.id}
-                  question={run.data.agent_question}
-                  onReply={replyToQuestion}
-                />
-              )}
               {run?.data.agent_draft && (
                 <div
                   className="agent-evidence-card"
@@ -1180,7 +1051,6 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   )}
                 </div>
               )}
-              <NoPlanGeometryCard run={run} />
               {run?.data.agent_design && (
                 <div className="saved-plan-card agent-plan-card" aria-label="Plan review">
                   <div className="section-caption">
@@ -1469,16 +1339,6 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   <small>Native inventory at this revision. Per-element checks and batch history appear below.</small>
                 </div>
               )}
-              <AgentScheduler value={run?.data.agent_scheduler} />
-              {run && (
-                <EvidenceResults
-                  coverage={run.data.agent_coverage}
-                  findings={run.data.agent_advice}
-                  research={run.data.agent_research}
-                />
-              )}
-              {run && <AgentSpecialists results={run.data.agent_specialists} taskId={run.id} />}
-              <BriefCard run={run} />
               {run?.data.plan && previewSvg && (
                 <div className="saved-plan-card">
                   <div className="section-caption">
@@ -1641,7 +1501,6 @@ export function ConversationPanel(props: ConversationPanelProps) {
                 </div>
               )}
 
-              <PartialOutcomeCard partialGoal={partialGoal} completedGoal={completedGoal} run={run} outcome={outcome} />
               {run?.status === 'paused_limit' && (
                 <AgentLimit
                   runId={run.id}
@@ -1811,20 +1670,32 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   <small>This check made no model changes. Review the result before starting another build.</small>
                 </div>
               )}
-              {run && !executing && (
-                <TaskOutcome
-                  task={run}
-                  onArtifacts={() => {
+              {run && !executing && terminal.has(run.status) && hasArtifacts && (
+                <button
+                  type="button"
+                  className="artifacts-link"
+                  onClick={() => {
                     setRight(true);
                     setTab('exports');
                   }}
-                />
+                >
+                  View saved artifacts <ArrowUpRight size={13} />
+                </button>
               )}
             </ConversationContent>
             <ConversationScrollButton aria-label="Jump to latest message" />
           </Conversation>
         )}
 
+        {run?.status === 'needs_input' && run.data.agent_question && (
+          <AgentQuestions
+            key={`${run.id}:${run.data.agent_question.id}`}
+            runId={run.id}
+            question={run.data.agent_question}
+            onReply={replyToQuestion}
+          />
+        )}
+        {todoItems.length > 0 && <PlanDock key={run?.id} items={todoItems} />}
         <Composer {...props} />
       </div>
 

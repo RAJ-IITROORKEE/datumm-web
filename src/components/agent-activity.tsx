@@ -28,7 +28,7 @@ export function activityBatches(events:TaskEvent[]){
  return batches;
 }
 const unavailable=(event:TaskEvent)=>event.stage==='tool_failed'&&/\bNO_PLAN_GEOMETRY\b/.test(event.detail);
-const toolName=(event:TaskEvent)=>event.detail.replace(/^(Reading|Calling|Executing)\s+/,'').split(/[\s:{]/)[0].replace(/^datumm_revit_/,'');
+export const toolName=(event:TaskEvent)=>event.detail.replace(/^(Reading|Calling|Executing)\s+/,'').split(/[\s:{]/)[0].replace(/^datumm_revit_/,'');
 export function stageIcon(event:TaskEvent){
  if(unavailable(event))return CircleHelp;
  if(['tool_failed','failed','interrupted','cancelled'].includes(event.stage))return X;
