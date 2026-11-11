@@ -65,3 +65,11 @@ A pinned "Plan · done of total" checklist above the composer shows the agent's 
 Hosted questions appear in a dock above the composer, one at a time with progress, option chips, an "Other" input, Back and Next, then a review and one submit. The reply path and sessionStorage draft are unchanged.
 
 [[src/components/agent-questions.tsx#AgentQuestions]] uses the pure rules in `src/lib/question-stepper.mjs`. Only a real pending question shows the sidebar attention icon ([[src/lib/workflow-state.ts#hasPendingQuestion]]); failed chats show a small error dot. Ask chats and chats without a plan hide the build part of the pipeline bar and the "Review design" button. The question and plan docks share one `composer-dock` block in normal flow above the composer, no wider than it. "Review design" needs a renderable plan. Below 850px the sidebar starts closed and a plan canvas keeps a 280px minimum height.
+
+## Admin console
+
+`/admin` is a dark-only console for runtime agent configuration, gated on the server by the signed-in primary email and enforced again by the backend by Clerk subject.
+
+`src/app/admin/layout.tsx` returns 404 unless the verified primary email is in `ADMIN_EMAILS` (pure rule `isAdminEmail` in `src/lib/admin-access.mjs`, default the owner). Pages call `/api/service/admin/...`, which the proxy maps to the backend `/v1/admin/...`; a 404 shows "Backend not deployed yet" and a 403 "Backend admin access not configured".
+
+Config sections (Agent, Web search, Skills, MCP servers) edit one shared config document with dirty state, validation from `src/lib/admin-config.mjs` mirroring `AppConfig`, and a revision-checked save; a 409 asks for a reload. MCP servers are stored only and not yet connected to the agent. Knowledge polls while any source is indexing. The Plugin page reads `public/downloads/release.json`.

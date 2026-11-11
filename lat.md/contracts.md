@@ -81,3 +81,19 @@ The pinned checklist maps saved plan progress or native to-dos to done, running,
 ## Question stepper
 
 The question dock blocks Next on a missing required answer, can skip optional ones, reviews before one submit, and builds the exact reply payload the service already accepts.
+
+## Admin email gate
+
+The admin console is reachable only when the primary email matches the comma list in ADMIN_EMAILS, case-insensitively, falling back to the owner address when the list is unset or blank.
+
+## Admin config validation
+
+The config editor blocks saving values outside the backend AppConfig bounds: models, effort, run USD limit, parallel chats, limits, web search, skills and MCP servers, including duplicate ids and non-https MCP URLs.
+
+## Admin dirty state
+
+Dirty state compares configs independent of key order, and domain chips are normalised to a bare lowercase host.
+
+## Admin proxy routes
+
+The service proxy opens only the admin config, audit, overview and knowledge source routes, mapped to backend v1 admin paths, and rejects every other admin path.
