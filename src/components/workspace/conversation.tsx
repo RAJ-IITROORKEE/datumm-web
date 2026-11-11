@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Conversation, ConversationContent, ConversationScrollButton } from '@/components/ai-elements/conversation';
 import { Message, MessageContent, MessageResponse } from '@/components/ai-elements/message';
 import { PromptContent } from '../prompt-content';
-import { TurnProcess } from './turn-process';
+import { TurnProcess, turnProcessVisible } from './turn-process';
 import { PlanDock } from './plan-dock';
 import { deriveTodos } from '@/lib/agent-todos.mjs';
 import { SavedTurnResult } from '../saved-turn-result';
@@ -517,50 +517,46 @@ export function ConversationPanel(props: ConversationPanelProps) {
                           </MessageContent>
                         </Message>
                       )}
-                      <TurnProcess
-                        nativeMessages={
-                          executing && index === (run.conversation?.length ?? 1) - 1
-                            ? run.data.native_messages
-                            : turn.nativeMessages
-                        }
-                        events={traceTurns[index] ?? []}
-                        active={executing && index === (run.conversation?.length ?? 1) - 1}
-                        waiting={
-                          nativeQuestions.length > 0 ||
-                          (index === (run.conversation?.length ?? 1) - 1 &&
-                            run.status === 'needs_input' &&
-                            Boolean(run.data.agent_question))
-                        }
-                        manifest={
-                          savedTurns.find((saved) => saved.conversationIndex === index)?.result?.manifest ??
-                          (index === (run.conversation?.length ?? 1) - 1 ? run.data.run_manifest : undefined)
-                        }
-                        evidence={
-                          savedTurns.find((saved) => saved.conversationIndex === index)?.result?.evidence ??
-                          (index === (run.conversation?.length ?? 1) - 1 ? run.data.run_manifest?.tools : [])
-                        }
-                        scheduler={index === (run.conversation?.length ?? 1) - 1 ? run.data.agent_scheduler : undefined}
-                        specialists={index === (run.conversation?.length ?? 1) - 1 ? run.data.agent_specialists : undefined}
-                        evidenceExtra={
-                          index === (run.conversation?.length ?? 1) - 1 && run.data.agent_coverage ? (
-                            <EvidenceResults
-                              coverage={run.data.agent_coverage}
-                              findings={run.data.agent_advice}
-                              research={run.data.agent_research}
+                      {(() => {
+                        const last = index === (run.conversation?.length ?? 1) - 1;
+                        const saved = savedTurns.find((row) => row.conversationIndex === index);
+                        const process = {
+                          nativeMessages: executing && last ? run.data.native_messages : turn.nativeMessages,
+                          events: traceTurns[index] ?? [],
+                          active: executing && last,
+                          waiting: nativeQuestions.length > 0 || (last && run.status === 'needs_input' && Boolean(run.data.agent_question)),
+                          manifest: saved?.result?.manifest ?? (last ? run.data.run_manifest : undefined),
+                          evidence: saved?.result?.evidence ?? (last ? run.data.run_manifest?.tools : []),
+                          scheduler: last ? run.data.agent_scheduler : undefined,
+                          specialists: last ? run.data.agent_specialists : undefined,
+                          stepTitles: Object.fromEntries((run.data.agent_task_plan?.steps ?? []).map((row) => [row.key, row.title])),
+                        };
+                        if (!turn.answer && !turnProcessVisible(process)) return null;
+                        return (
+                          <Message from="assistant">
+                            <div className="assistant-label">
+                              <Mark /> DATUMM
+                            </div>
+                            <TurnProcess
+                              {...process}
+                              evidenceExtra={
+                                last && run.data.agent_coverage ? (
+                                  <EvidenceResults
+                                    coverage={run.data.agent_coverage}
+                                    findings={run.data.agent_advice}
+                                    research={run.data.agent_research}
+                                  />
+                                ) : undefined
+                              }
                             />
-                          ) : undefined
-                        }
-                      />
-                      {turn.answer && (
-                        <Message from="assistant">
-                          <div className="assistant-label">
-                            <Mark /> DATUMM
-                          </div>
-                          <MessageContent>
-                            <MessageResponse>{turn.answer}</MessageResponse>
-                          </MessageContent>
-                        </Message>
-                      )}
+                            {turn.answer && (
+                              <MessageContent>
+                                <MessageResponse>{turn.answer}</MessageResponse>
+                              </MessageContent>
+                            )}
+                          </Message>
+                        );
+                      })()}
                       {index === designTurn && designReview}
                       {index === nativeTurn && nativeReview}
                       {index < (run.conversation?.length ?? 1) - 1 && index !== designTurn && (
@@ -626,12 +622,17 @@ export function ConversationPanel(props: ConversationPanelProps) {
                 )}
 
               {executing && (!run || (!run.conversation?.length && messages.length > 0)) && (
-                <TurnProcess
-                  nativeMessages={run?.data.native_messages}
-                  events={traceTurns.at(-1) ?? []}
-                  active
-                  waiting={nativeQuestions.length > 0}
-                />
+                <Message from="assistant">
+                  <div className="assistant-label">
+                    <Mark /> DATUMM
+                  </div>
+                  <TurnProcess
+                    nativeMessages={run?.data.native_messages}
+                    events={traceTurns.at(-1) ?? []}
+                    active
+                    waiting={nativeQuestions.length > 0}
+                  />
+                </Message>
               )}
               {(liveRuntime || desktopPreview) && run && (run.data.planning_goal || planningGoalOpen) && (
                 <PlanningGoalPanel
@@ -1053,128 +1054,12 @@ export function ConversationPanel(props: ConversationPanelProps) {
               )}
               {run?.data.agent_design && (
                 <div className="saved-plan-card agent-plan-card" aria-label="Plan review">
-                  <div className="section-caption">
-                    DIMENSIONED PLAN · {run.data.agent_design.candidates.length} ALTERNATIVES{' '}
-                    <span>Concept geometry</span>
-                  </div>
-                  <div className="plan-actions" role="group" aria-label="Concept alternatives">
-                    {run.data.agent_design.candidates.map((candidate, index) => (
-                      <Button
-                        key={candidate.planId}
-                        variant={run.currentPlanRef?.planId === candidate.planId ? 'default' : 'secondary'}
-                        aria-pressed={run.currentPlanRef?.planId === candidate.planId}
-                        disabled={busy}
-                        onClick={() => void reviewAlternative(candidate)}
-                      >
-                        Alternative {index + 1}
-                      </Button>
-                    ))}
-                  </div>
-                  {drawingLoading && <p role="status">Loading the saved exact drawing…</p>}
-                  {drawingError && (
-                    <div className="error-card" role="alert">
-                      {drawingMissing
-                        ? 'Saved plan geometry is unavailable. Request a change in this task.'
-                        : 'Geometry is saved; the drawing could not be loaded.'}{' '}
-                      {drawingError}
-                      <Button
-                        variant="secondary"
-                        disabled={drawingLoading}
-                        onClick={() => setDrawingRetry((n) => n + 1)}
-                      >
-                        Retry exact drawing
-                      </Button>
-                    </div>
-                  )}
-                  {designVersion && (
-                    <>
-                      {drawingError && <p role="status">Last valid drawing retained for reference.</p>}
-                      {!drawingCurrent && (
-                        <p role="status">
-                          Older drawing v{designVersion.version} retained while the current version loads.
-                        </p>
-                      )}
-                      <div className={compareVersion ? 'plan-comparison' : ''}>
-                        {compareVersion && (
-                          <PlanCanvas
-                            canvasInputEnabled={canvasInputEnabled}
-                            persistentProperties={persistentProperties}
-                            key={'compare' + compareVersion.planId + compareVersion.version}
-                            drawing={compareVersion}
-                            label="Previous / comparison plan"
-                            readOnly
-                          />
-                        )}
-                        <PlanCanvas
-                          canvasInputEnabled={canvasInputEnabled}
-                          persistentProperties={persistentProperties}
-                          key={designVersion.planId + designVersion.version}
-                          drawing={designVersion}
-                          onStyleChange={setDrawingStyle}
-                          onAsk={askFromCanvas}
-                        />
-                      </div>
-                      <div className="plan-actions">
-                        <Button
-                          variant="secondary"
-                          disabled={busy || !drawingCurrent}
-                          onClick={() => void compareDrawing()}
-                        >
-                          Compare saved versions
-                        </Button>
-                        {compareVersion && (
-                          <Button variant="secondary" onClick={() => setCompareVersion(null)}>
-                            Close comparison
-                          </Button>
-                        )}
-                        <a
-                          href={`/api/service/runs/${run.id}/export/svg?planId=${designVersion.planId}&version=${designVersion.version}&style=${drawingStyle}`}
-                          download
-                        >
-                          SVG
-                        </a>
-                        <a
-                          href={`/api/service/runs/${run.id}/export/preview-png?planId=${designVersion.planId}&version=${designVersion.version}&style=${drawingStyle}`}
-                          download
-                        >
-                          PNG
-                        </a>
-                        <a
-                          href={`/api/service/runs/${run.id}/export/plan-pdf?planId=${designVersion.planId}&version=${designVersion.version}&style=${drawingStyle}`}
-                          download
-                        >
-                          Plan PDF
-                        </a>
-                      </div>
-                    </>
-                  )}
-                  {!designVersion && !drawingLoading && !drawingError && (
-                    <p role="status">
-                      No drawing is available for this saved geometry. Retry the exact version or request changes in
-                      this task.
-                    </p>
-                  )}
-                  {designDiff && <p role="status">{designDiff}</p>}
-                  <details>
-                    <summary>Assumptions · {reviewAssumptions.length}</summary>
-                    <ul>
-                      {reviewAssumptions.map((item, index) => (
-                        <li key={index}>{item}</li>
-                      ))}
-                    </ul>
-                  </details>
-                  <details>
-                    <summary>Search checks and limits</summary>
-                    <ul>
-                      {run.data.agent_design.diagnostics.map((item, index) => (
-                        <li key={index}>{item}</li>
-                      ))}
-                    </ul>
-                  </details>
-                  <p>
-                    Review this exact version and its assumptions. Acceptance saves your design choice; native changes
-                    still require exact proposal approval.
+                  <p className="plan-card-line">
+                    {run.data.agent_design.candidates.length}{' '}
+                    {run.data.agent_design.candidates.length === 1 ? 'alternative' : 'alternatives'} ready · Plan v
+                    {run.currentPlanRef?.version ?? designVersion?.version ?? run.data.agent_design.candidates[0]?.version ?? 1}
                   </p>
+                  {drawingError && <p role="status">The drawing could not be loaded. Open the details to retry.</p>}
                   <div className="plan-actions">
                     <Button
                       variant="secondary"
@@ -1183,6 +1068,15 @@ export function ConversationPanel(props: ConversationPanelProps) {
                       }
                     >
                       Request changes
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setRight(true);
+                        setTab('exports');
+                      }}
+                    >
+                      View details <ArrowUpRight size={13} />
                     </Button>
                     {!planAccepted ? (
                       <Button
@@ -1687,15 +1581,19 @@ export function ConversationPanel(props: ConversationPanelProps) {
           </Conversation>
         )}
 
-        {run?.status === 'needs_input' && run.data.agent_question && (
-          <AgentQuestions
-            key={`${run.id}:${run.data.agent_question.id}`}
-            runId={run.id}
-            question={run.data.agent_question}
-            onReply={replyToQuestion}
-          />
+        {((run?.status === 'needs_input' && run.data.agent_question) || todoItems.length > 0) && (
+          <div className="composer-dock">
+            {run?.status === 'needs_input' && run.data.agent_question && (
+              <AgentQuestions
+                key={`${run.id}:${run.data.agent_question.id}`}
+                runId={run.id}
+                question={run.data.agent_question}
+                onReply={replyToQuestion}
+              />
+            )}
+            {todoItems.length > 0 && <PlanDock key={run?.id} items={todoItems} />}
+          </div>
         )}
-        {todoItems.length > 0 && <PlanDock key={run?.id} items={todoItems} />}
         <Composer {...props} />
       </div>
 

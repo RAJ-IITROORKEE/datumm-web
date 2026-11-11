@@ -70,7 +70,7 @@ type InspectorProps = Pick<
   | 'mcpTools'
   | 'refresh'
   | 'workspaceReady'
-> & { conversationPanel: React.ReactNode };
+> & { conversationPanel: React.ReactNode; planDetails: React.ReactNode };
 
 export function Inspector(props: InspectorProps) {
   const {
@@ -84,6 +84,7 @@ export function Inspector(props: InspectorProps) {
     setTab,
     studioView,
     conversationPanel,
+    planDetails,
     activeDrawing,
     selectedDesignElement,
     setSelectedDesignElement,
@@ -186,7 +187,7 @@ export function Inspector(props: InspectorProps) {
                   selected={selectedDesignElement}
                   onSelect={setSelectedDesignElement}
                   onRequest={askFromCanvas}
-                  onReview={(run?.mode ?? mode) === 'ask' ? undefined : () => focusReview('[aria-label="Validated design preview"]')}
+                  onReview={!hasRenderablePlan || (run?.mode ?? mode) === 'ask' ? undefined : () => focusReview('[aria-label="Validated design preview"]')}
                 />
               ) : (
                 <>
@@ -418,6 +419,7 @@ export function Inspector(props: InspectorProps) {
                         </div>
                       ) : tab === 'exports' ? (
                         <div className="inspector-body">
+                          {planDetails}
                           <div className="section-caption">
                             RUN ARTIFACTS <Download size={14} />
                           </div>
