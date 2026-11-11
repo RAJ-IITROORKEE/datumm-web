@@ -29,7 +29,7 @@ resources, not application dependencies or live DATUMM agent capabilities.
 5. Use accessibility, React and writing checks when the corresponding artifact exists.
 6. REA instructions are installed, but its MCP server/analysis engines are not
    configured by this task. A visible reference website can be mapped with the
-   built-in browser. Confirm that “Modulo” means morluto before deeper REA work.
+   built-in browser. The user confirmed that “Modulo” means morluto/REA.
 
 ## Scope and provenance
 

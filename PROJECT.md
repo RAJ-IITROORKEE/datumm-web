@@ -66,9 +66,9 @@ These are planning hypotheses derived from the brief and initial view. Confirm o
 
 ## Reference investigation
 
-Reference named by the user: “EffectUI.com.” Candidate from the existing browser context: affectUI, <https://www.affectui.com/screens/app-shell-flat>. Exact site/screens and access remain to be confirmed by the user.
+Confirmed by the user on 12 November: affectUI, <https://www.affectui.com/screens/app-shell-flat>, is the starting reference. Additional screens and the detailed reproduction priorities will be supplied in the next planning discussion.
 
-Reverse-engineering name given: “Modulo.” Candidate: morluto/REA, already present globally and now included as repository guidance. This interpretation remains provisional. Browser observation is sufficient for reference interaction mapping; REA server/native analysis tools are not required just to inspect a website.
+Confirmed by the user on 12 November: “Modulo” meant morluto/REA, already present globally and now included as repository guidance. Browser observation is sufficient for reference interaction mapping; REA server/native analysis tools are not required just to inspect a website.
 
 For each user-selected reference screen, inspect the visible UI in the Codex browser and record:
 
