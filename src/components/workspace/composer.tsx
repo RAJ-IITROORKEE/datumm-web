@@ -325,7 +325,7 @@ export function Composer(props: ComposerProps) {
                   }
                 }}
               >
-                Open active chat
+                Open the blocking chat
               </Button>
             )}
             <button aria-label="Dismiss error" onClick={() => setError('')}>

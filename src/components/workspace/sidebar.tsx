@@ -2,7 +2,6 @@ import { pinnedChats, recentChats } from '@/lib/sidebar-history.mjs';
 import { cn } from '@/lib/utils';
 import {
   Pin,
-  MessageSquare,
   CircleHelp,
   Ellipsis,
   Archive,
@@ -22,7 +21,9 @@ import {
   LogOut,
   ArrowUpRight,
 } from 'lucide-react';
-import { hasPendingQuestion, workflowState } from '@/lib/workflow-state';
+import { workflowState } from '@/lib/workflow-state';
+import { ChatRow } from './chat-row';
+import { ProjectCreate } from './project-create';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { PanelResize } from '../panel-resize';
 import { useUser, useClerk, Show, SignInButton } from '@clerk/nextjs';
@@ -149,6 +150,14 @@ type SidebarProps = Pick<
   | 'setHistoryView'
   | 'setDeletePhrase'
   | 'setDeleteAllOpen'
+  | 'projectsSupported'
+  | 'chatMenuUnsupported'
+  | 'unreadIds'
+  | 'renameChat'
+  | 'moveChat'
+  | 'createProject'
+  | 'archiveProject'
+  | 'projects'
 >;
 
 export function Sidebar(props: SidebarProps) {
@@ -191,71 +200,42 @@ export function Sidebar(props: SidebarProps) {
     setHistoryView,
     setDeletePhrase,
     setDeleteAllOpen,
+    projectsSupported,
+    chatMenuUnsupported,
+    unreadIds,
+    renameChat,
+    moveChat,
+    createProject,
+    archiveProject,
+    projects,
   } = props;
+  const showProjects = desktopAvailable || projectsSupported,
+    hosted = !desktopAvailable;
+  const movable = hosted && projectsSupported && !chatMenuUnsupported.includes('move') && historyView !== 'archived';
   const chatRow = (item: Run) => (
-    <div key={item.id} className={cn('history-row', runId === item.id && 'selected')}>
-      <button className="history-item" disabled={mediaBusy || actionBusy} onClick={() => selectRun(item)}>
-        {item.pinned_at ? <Pin size={14} /> : <MessageSquare size={14} />}
-        <span title={item.title}>{item.title}</span>
-        {['queued', 'running'].includes(item.status) && workflowState(item).kind === 'in_progress' && (
-          <span className="chat-running" aria-label="Chat running" />
-        )}
-        {hasPendingQuestion(item) && (
-          <CircleHelp size={12} className="chat-attention" aria-label="Chat needs your answer" />
-        )}
-        {['failed', 'interrupted'].includes(item.status) && <span className="chat-error" role="img" aria-label="Chat failed" />}
-      </button>
-      <DropdownMenuPrimitive.Root>
-        <DropdownMenuPrimitive.Trigger asChild>
-          <button
-            className="icon-button task-menu-trigger"
-            aria-label={`Options for ${item.title}`}
-            data-run-id={item.id}
-            disabled={actionBusy}
-            onClick={(event) => {
-              dialogTrigger.current = event.currentTarget;
-            }}
-          >
-            <Ellipsis size={16} />
-          </button>
-        </DropdownMenuPrimitive.Trigger>
-        <DropdownMenuPrimitive.Portal>
-          <DropdownMenuPrimitive.Content className="action-menu" align="start" sideOffset={5}>
-            <DropdownMenuPrimitive.Item onSelect={() => void updateHistory(item, item.pinned_at ? 'unpin' : 'pin')}>
-              <Pin size={14} />
-              {item.pinned_at ? 'Unpin' : 'Pin chat'}
-            </DropdownMenuPrimitive.Item>
-            <DropdownMenuPrimitive.Item
-              onSelect={() => void updateHistory(item, item.archived_at ? 'unarchive' : 'archive')}
-            >
-              <Archive size={14} />
-              {item.archived_at ? 'Restore chat' : 'Archive'}
-            </DropdownMenuPrimitive.Item>
-            <DropdownMenuPrimitive.Item
-              onSelect={() => {
-                selectRun(item);
-                setProjectContextOpen(true);
-              }}
-            >
-              <FolderOpen size={14} />
-              Projects & local files
-            </DropdownMenuPrimitive.Item>
-            <DropdownMenuPrimitive.Separator />
-            <DropdownMenuPrimitive.Item
-              className="danger-item"
-              onSelect={() => {
-                dialogTrigger.current = document.querySelector<HTMLButtonElement>(`button[data-run-id="${item.id}"]`);
-                setDeleteTarget(item);
-              }}
-            >
-              <Trash2 size={14} />
-              Delete chat
-            </DropdownMenuPrimitive.Item>
-          </DropdownMenuPrimitive.Content>
-        </DropdownMenuPrimitive.Portal>
-      </DropdownMenuPrimitive.Root>
-    </div>
+    <ChatRow
+      key={item.id}
+      item={item}
+      selected={runId === item.id}
+      busy={mediaBusy || actionBusy}
+      unread={unreadIds.has(item.id)}
+      dialogTrigger={dialogTrigger}
+      onSelect={() => selectRun(item)}
+      onHistory={(action) => void updateHistory(item, action)}
+      onDelete={() => {
+        dialogTrigger.current = document.querySelector<HTMLButtonElement>(`button[data-run-id="${item.id}"]`);
+        setDeleteTarget(item);
+      }}
+      onProjects={() => {
+        selectRun(item);
+        setProjectContextOpen(true);
+      }}
+      onRename={chatMenuUnsupported.includes('rename') ? undefined : (title) => renameChat(item, title)}
+      moveTargets={movable ? projects.filter((project) => !project.archived_at) : undefined}
+      onMove={movable ? (projectId) => void moveChat(item, projectId) : undefined}
+    />
   );
+  const knownProjectIds = new Set(projects.map((project) => project.id));
   return (
     <>
       {left && viewportReady && (
@@ -319,18 +299,24 @@ export function Sidebar(props: SidebarProps) {
                 {pinnedChats(filteredChats).map(chatRow)}
               </section>
             )}
-            {desktopAvailable && (
+            {showProjects && (
               <section className="project-groups">
                 <div className="sidebar-section">
                   <FolderOpen size={13} />
                   <span>Projects</span>
-                  <button
-                    className="icon-button"
-                    aria-label="Projects & local files"
-                    onClick={() => setProjectContextOpen(true)}
-                  >
-                    <Plus size={15} />
-                  </button>
+                  {hosted ? (
+                    historyView !== 'archived' && !chatMenuUnsupported.includes('projects') && (
+                      <ProjectCreate disabled={actionBusy} onCreate={createProject} />
+                    )
+                  ) : (
+                    <button
+                      className="icon-button"
+                      aria-label="Projects & local files"
+                      onClick={() => setProjectContextOpen(true)}
+                    >
+                      <Plus size={15} />
+                    </button>
+                  )}
                 </div>
                 {orderedProjects.map((project) => (
                   <section key={project.id} className="project-group">
@@ -348,6 +334,9 @@ export function Sidebar(props: SidebarProps) {
                       >
                         {collapsedProjects.includes(project.id) ? <Folder size={16} /> : <FolderOpen size={16} />}
                         <span title={project.title}>{project.title}</span>
+                        <small className="project-count" aria-label={`${runs.filter((item) => item.projectId === project.id).length} chats`}>
+                          {runs.filter((item) => item.projectId === project.id).length}
+                        </small>
                       </button>
                       <DropdownMenuPrimitive.Root>
                         <DropdownMenuPrimitive.Trigger asChild>
@@ -357,10 +346,12 @@ export function Sidebar(props: SidebarProps) {
                         </DropdownMenuPrimitive.Trigger>
                         <DropdownMenuPrimitive.Portal>
                           <DropdownMenuPrimitive.Content className="action-menu">
-                            <DropdownMenuPrimitive.Item onSelect={() => newTask(project.id)}>
-                              <Plus size={14} />
-                              New chat in project
-                            </DropdownMenuPrimitive.Item>
+                            {!project.archived_at && (
+                              <DropdownMenuPrimitive.Item onSelect={() => newTask(project.id)}>
+                                <Plus size={14} />
+                                New chat in project
+                              </DropdownMenuPrimitive.Item>
+                            )}
                             <DropdownMenuPrimitive.Item
                               onSelect={() => {
                                 setRenameTitle(project.title);
@@ -368,7 +359,7 @@ export function Sidebar(props: SidebarProps) {
                                   kind: 'project',
                                   id: project.id,
                                   title: project.title,
-                                  revision: project.revision,
+                                  revision: project.revision ?? 1,
                                 });
                               }}
                             >
@@ -387,6 +378,12 @@ export function Sidebar(props: SidebarProps) {
                             >
                               Move to top
                             </DropdownMenuPrimitive.Item>
+                            {hosted && !chatMenuUnsupported.includes('projects') && (
+                              <DropdownMenuPrimitive.Item onSelect={() => void archiveProject(project)}>
+                                <Archive size={14} />
+                                {project.archived_at ? 'Restore project' : 'Archive project'}
+                              </DropdownMenuPrimitive.Item>
+                            )}
                           </DropdownMenuPrimitive.Content>
                         </DropdownMenuPrimitive.Portal>
                       </DropdownMenuPrimitive.Root>
@@ -437,7 +434,7 @@ export function Sidebar(props: SidebarProps) {
                   </DropdownMenuPrimitive.Portal>
                 </DropdownMenuPrimitive.Root>
               </div>
-              {recentChats(filteredChats, desktopAvailable, defaultProject).map(chatRow)}
+              {recentChats(filteredChats, showProjects, defaultProject, knownProjectIds).map(chatRow)}
             </section>
             {!filteredChats.length && (
               <p className="empty-history">
