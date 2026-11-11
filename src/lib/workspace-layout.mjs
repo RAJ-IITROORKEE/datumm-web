@@ -4,11 +4,12 @@
  */
 
 /**
- * A conversation alone never opens the studio; it needs plan geometry.
- * @param {unknown} activeDrawing
+ * A conversation alone never opens the studio; it needs plan geometry: rooms or a non-empty SVG.
+ * @param {{ graph?: { rooms?: unknown[] } } | null | undefined} activeDrawing
  * @param {unknown} previewSvg
  */
-export const isRenderablePlan = (activeDrawing, previewSvg) => Boolean(activeDrawing || previewSvg);
+export const isRenderablePlan = (activeDrawing, previewSvg) =>
+  Boolean(activeDrawing?.graph?.rooms?.length) || (typeof previewSvg === 'string' && previewSvg.trim() !== '');
 
 /**
  * Focus the sole conversation before a plan exists, otherwise the plan target.

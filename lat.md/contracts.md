@@ -40,6 +40,14 @@ The actual proxy forwards questions, cancellation, queue edits and design review
 
 Process events carrying a parent step and an agent nest step, agent, tool calls; events without them keep the flat grouping so older backends render as before.
 
+## Stage spans
+
+Hosted stage events group into flat steps: each stage start to complete span is a step, and its actions, research and lookups are child rows. See `stageSpans` in `src/lib/turn-nesting.mjs`.
+
+## Poll intervals
+
+The open chat polls fast only while active, slowly while waiting and not at all once settled; the chat list polls fast only while a chat runs; hidden pages skip ticks and failures back off. See `settledPoll` in `src/lib/settled-poll.mjs`.
+
 ## Unread chats
 
 A chat is unread only when it settled with a task version newer than the one last seen while another chat was open; first sight never marks a chat unread.

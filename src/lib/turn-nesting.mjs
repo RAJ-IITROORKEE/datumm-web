@@ -23,3 +23,29 @@ export function nestProcess(events) {
   }
   return { steps, rest };
 }
+
+const CHILD = /^(agent_action|research|evidence_lookup\w*)$/;
+
+/**
+ * Flat step list for hosted turns that send no `parentStepId`: each
+ * `agent_stage_start` ... `agent_stage_complete` span is one step, titled by the
+ * start event, with its action / research / evidence-lookup events as child rows.
+ * A span with no complete event is still running.
+ * @template {{ index: number; stage: string; detail?: string; at?: string; agent?: { name?: string } }} E
+ * @param {E[]} events
+ * @returns {{ id: string; title: string; done: boolean; children: E[] }[]}
+ */
+export function stageSpans(events) {
+  const spans = [];
+  let open = null;
+  for (const event of [...events].sort((a, b) => a.index - b.index)) {
+    if (event.stage === 'agent_stage_start') {
+      open = { id: String(event.index), title: event.detail?.trim() || `Step ${spans.length + 1}`, done: false, children: [] };
+      spans.push(open);
+    } else if (event.stage === 'agent_stage_complete') {
+      if (open) open.done = true;
+      open = null;
+    } else if (open && CHILD.test(event.stage)) open.children.push(event);
+  }
+  return spans;
+}

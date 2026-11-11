@@ -4,8 +4,14 @@ import {isRenderablePlan,reviewFocus} from '../src/lib/workspace-layout.mjs';
 
 test('conversation content cannot open a studio without renderable geometry',()=>{
  for(const executing of [false,true])assert.equal(isRenderablePlan(null,null),false,'a conversation alone is never a plan (executing='+executing+')');
- assert.equal(isRenderablePlan({graph:{}},null),true);
+ assert.equal(isRenderablePlan({graph:{rooms:[{}]}},null),true);
  assert.equal(isRenderablePlan(null,'<svg/>'),true);
+});
+
+test('an empty plan is not renderable: no rooms and a blank svg',()=>{
+ assert.equal(isRenderablePlan({graph:{rooms:[]}},'  '),false);
+ assert.equal(isRenderablePlan({graph:{rooms:[{key:'a'}]}},''),true);
+ assert.equal(isRenderablePlan(undefined,'<svg/>'),true);
 });
 
 test('review focuses the sole primary conversation before a plan exists',()=>{

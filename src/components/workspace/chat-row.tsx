@@ -30,17 +30,25 @@ export function ChatRow({
   const [editing, setEditing] = useState(false),
     [title, setTitle] = useState(item.title),
     input = useRef<HTMLInputElement>(null),
-    skipRestore = useRef(false);
+    skipRestore = useRef(false),
+    settled = useRef(false);
   useEffect(() => {
     if (editing) {
+      settled.current = false;
       input.current?.focus();
       input.current?.select();
     }
   }, [editing]);
+  // Commit once (Enter or blur); a failed rename reopens the field with what was typed.
   const commit = async () => {
+    if (settled.current) return;
+    settled.current = true;
     const next = title.trim();
     setEditing(false);
-    if (next && next !== item.title && onRename) await onRename(next);
+    if (next && next !== item.title && onRename && !(await onRename(next))) {
+      setTitle(next);
+      setEditing(true);
+    }
   };
   const running = ['queued', 'running'].includes(item.status) && workflowState(item).kind === 'in_progress';
   return (
@@ -53,7 +61,7 @@ export function ChatRow({
           value={title}
           maxLength={120}
           onChange={(event) => setTitle(event.target.value)}
-          onBlur={() => setEditing(false)}
+          onBlur={() => void commit()}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
               event.preventDefault();
@@ -61,6 +69,7 @@ export function ChatRow({
             }
             if (event.key === 'Escape') {
               event.preventDefault();
+              settled.current = true;
               setEditing(false);
             }
           }}

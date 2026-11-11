@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 
-/** Hosted "New project": a "+" that opens a one-line name field (Enter creates, Escape cancels). */
+/** Hosted "New project": a "+" that opens a full-width name field below the label (Enter creates at once and reopens with the text if that fails, Escape cancels). */
 export function ProjectCreate({
   disabled,
   onCreate,
@@ -12,10 +12,27 @@ export function ProjectCreate({
   onCreate: (title: string) => Promise<boolean>;
 }) {
   const [open, setOpen] = useState(false),
-    [title, setTitle] = useState('');
+    [title, setTitle] = useState(''),
+    busy = useRef(false);
   const close = () => {
     setOpen(false);
     setTitle('');
+  };
+  const create = () => {
+    const name = title.trim();
+    if (!name || busy.current) return;
+    busy.current = true;
+    close();
+    void onCreate(name)
+      .then((ok) => {
+        if (!ok) {
+          setTitle(name);
+          setOpen(true);
+        }
+      })
+      .finally(() => {
+        busy.current = false;
+      });
   };
   if (!open)
     return (
@@ -44,9 +61,9 @@ export function ProjectCreate({
           event.preventDefault();
           close();
         }
-        if (event.key === 'Enter' && title.trim()) {
+        if (event.key === 'Enter') {
           event.preventDefault();
-          void onCreate(title).then((ok) => ok && close());
+          create();
         }
       }}
     />

@@ -46,7 +46,9 @@ The inspector tab is "Agent". Each agent turn shows the message, then one collap
 
 The chat plan review is a compact card: one summary line, Accept this plan, Request changes and View details. [[src/components/workspace/plan-details.tsx#PlanDetails]] holds alternatives, comparison, exports, assumptions and limits in the Exports tab; the plan preview is never duplicated in the transcript.
 
-Each turn renders as the DATUMM label, then the process accordion ("Working…" or "Worked for N s · n steps"), then the answer. Events with `agent` and `parentStepId` nest step, agent, tool calls through `src/lib/turn-nesting.mjs`.
+Each turn renders as the DATUMM label, then the process accordion ("Working…" or "Worked for N s · n steps"), then the answer. Events with `agent` and `parentStepId` nest step, agent, tool calls through `src/lib/turn-nesting.mjs`. Hosted lead turns send neither, so each `agent_stage_start` to `agent_stage_complete` span becomes one step with its action, research and evidence-lookup events as child rows; a turn starts at `queued` or `command_accepted`.
+
+The workspace polls sparingly: the open chat every 1.5 s only while queued, running or reconciling, every 20 s while waiting for input or approval, never once settled; the chat list every 6 s while a chat runs, else 30 s; config, devices and projects on load, after changes and every 60 s. Hidden tabs skip ticks, errors back off to 60 s, and a failing 404 or 405 hides rename, move or projects only when that feature's own route answered it. "Review design" shows only for a non-Ask chat with real plan geometry (rooms or a non-empty SVG).
 
 ### Chat list
 
