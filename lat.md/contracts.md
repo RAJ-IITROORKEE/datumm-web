@@ -44,6 +44,14 @@ Process events carrying a parent step and an agent nest step, agent, tool calls;
 
 Hosted stage events group into flat steps: each stage start to complete span is a step, and its actions, research and lookups are child rows. See `stageSpans` in `src/lib/turn-nesting.mjs`.
 
+## Step notes
+
+A hosted step is titled by the first progress note inside its stage span (80 characters) and summarised by its last note; the running line shows the latest note, else the latest step title. See `latestNote` in `src/lib/turn-nesting.mjs`.
+
+## Share helpers
+
+Share links, tokens and the public shared-chat payload are validated by pure helpers: unsafe URLs and non-SVG plans are dropped, and the plan is only shown as an image data URI. See `src/lib/share.mjs`.
+
 ## Poll intervals
 
 The open chat polls fast only while active, slowly while waiting and not at all once settled; the chat list polls fast only while a chat runs; hidden pages skip ticks and failures back off. See `settledPoll` in `src/lib/settled-poll.mjs`.
@@ -68,7 +76,7 @@ Signed-out visitors see a non-dismissible Clerk sign-in dialog instead of the wo
 
 ## Agent plan checklist
 
-The pinned checklist maps saved plan progress or native to-dos to done, running, failed and pending items, and an active turn always has one running step.
+The pinned checklist maps saved plan progress or native to-dos to done, running, failed and pending items, and an active turn always has one running step. Ask turns without a plan use their stage spans as steps.
 
 ## Question stepper
 

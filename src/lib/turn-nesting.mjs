@@ -26,26 +26,54 @@ export function nestProcess(events) {
 
 const CHILD = /^(agent_action|research|evidence_lookup\w*)$/;
 
+const clip = (text, max = 80) => {
+  const value = typeof text === 'string' ? text.trim().replace(/\s+/g, ' ') : '';
+  return value.length > max ? `${value.slice(0, max - 1).trimEnd()}…` : value;
+};
+
 /**
  * Flat step list for hosted turns that send no `parentStepId`: each
- * `agent_stage_start` ... `agent_stage_complete` span is one step, titled by the
- * start event, with its action / research / evidence-lookup events as child rows.
- * A span with no complete event is still running.
- * @template {{ index: number; stage: string; detail?: string; at?: string; agent?: { name?: string } }} E
+ * `agent_stage_start` ... `agent_stage_complete` span is one step with its action /
+ * research / evidence-lookup events as child rows. Title: the first `note` inside the
+ * span (80 chars), else the start event's detail. `summary`: the span's last note when
+ * it differs from the first. A span with no complete event is still running.
+ * @template {{ index: number; stage: string; detail?: string; note?: string; at?: string; agent?: { name?: string } }} E
  * @param {E[]} events
- * @returns {{ id: string; title: string; done: boolean; children: E[] }[]}
+ * @returns {{ id: string; title: string; summary: string; done: boolean; children: E[] }[]}
  */
 export function stageSpans(events) {
   const spans = [];
   let open = null;
+  let notes = [];
+  const close = () => {
+    if (!open) return;
+    if (notes.length) open.title = clip(notes[0]);
+    if (notes.length > 1) open.summary = clip(notes.at(-1), 140);
+    open = null;
+  };
   for (const event of [...events].sort((a, b) => a.index - b.index)) {
     if (event.stage === 'agent_stage_start') {
-      open = { id: String(event.index), title: event.detail?.trim() || `Step ${spans.length + 1}`, done: false, children: [] };
+      close();
+      notes = [];
+      open = { id: String(event.index), title: clip(event.detail) || `Step ${spans.length + 1}`, summary: '', done: false, children: [] };
       spans.push(open);
     } else if (event.stage === 'agent_stage_complete') {
       if (open) open.done = true;
-      open = null;
-    } else if (open && CHILD.test(event.stage)) open.children.push(event);
+      close();
+    } else if (open) {
+      if (clip(event.note)) notes.push(event.note);
+      if (CHILD.test(event.stage)) open.children.push(event);
+    }
   }
+  close();
   return spans;
+}
+
+/** Latest progress note of a running turn, else the title of the latest step. */
+export function latestNote(events, spans = stageSpans(events)) {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const note = clip(events[i].note, 160);
+    if (note) return note;
+  }
+  return spans.at(-1)?.title ?? '';
 }

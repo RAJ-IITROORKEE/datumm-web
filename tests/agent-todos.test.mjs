@@ -27,3 +27,10 @@ test('no plan and no todos yields nothing',()=>{
  assert.deepEqual(deriveTodos({active:true}),[]);
  assert.equal(todoSummary([]).allDone,false);
 });
+
+test('Ask turns without a plan use stage spans as the checklist',()=>{
+ const spans=[{id:'1',title:'Read',done:true},{id:'5',title:'Answer',done:false}];
+ assert.deepEqual(deriveTodos({spans,active:true}).map(i=>i.status),['done','running']);
+ assert.deepEqual(deriveTodos({spans,active:false}).map(i=>i.status),['done','done']);
+ assert.equal(deriveTodos({plan,spans}).length,3);
+});
