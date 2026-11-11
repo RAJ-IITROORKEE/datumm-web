@@ -29,6 +29,9 @@ After starting the production build with `npm start`, run `npm run check:runtime
 - `src/lib/settled-poll.mjs`: the polling loop (skips hidden tabs, backs off on errors) and the interval rules `openChatPollMs` / `listPollMs`, covered by `tests/settled-poll.test.mjs`.
 - `src/lib/hosted-command.mjs`: strict v2 envelope and the new-chat pre-check (parallel Ask/Plan up to three), covered by `tests/hosted-command.test.mjs`.
 - `src/lib/agent-todos.mjs` and `src/lib/question-stepper.mjs`: pure rules for the plan checklist and the question dock, covered by `tests/agent-todos.test.mjs` and `tests/question-stepper.test.mjs`.
+- `src/app/admin/`: the dark-only `/admin` console. `layout.tsx` is the server gate (verified primary email in `ADMIN_EMAILS`, comma list, default the owner, else 404), `admin.css` pins the dark tokens, and each section is a one-line page.
+- `src/components/admin/`: `admin-shell.tsx` (collapsible sidebar, mobile sheet, breadcrumb), `use-admin.tsx` (proxy calls, 404/403/409 states, config load and revision-checked save), `form.tsx` (fields, chips, config page with save bar), `config-sections.tsx` (Agent, Web search, Skills, MCP servers), `data-sections.tsx` (Overview, Knowledge, Plugin, Audit log).
+- `src/lib/admin-access.mjs` and `src/lib/admin-config.mjs`: pure email gate and config validation, covered by `tests/admin-access.test.mjs`, `tests/admin-config.test.mjs` and `tests/admin-proxy.test.mjs`. Set `ADMIN_EMAILS` in Vercel to add admins; the backend still requires the Clerk subject in `ADMIN_SUBJECTS`.
 
 ## Deploy
 

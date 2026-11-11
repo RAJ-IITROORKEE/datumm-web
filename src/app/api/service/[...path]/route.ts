@@ -2,7 +2,7 @@ import { planPdf } from '@/lib/plan-pdf';
 import { backend } from '@/lib/backend';
 import { requestBody } from '@/lib/request-body';
 export const maxDuration=240;
-const allowed=/^(?:config|tools|devices(?:\/[a-zA-Z0-9-]+(?:\/(?:context|control|agent-control|tools))?)?|device-authorizations\/[a-zA-Z0-9_-]+(?:\/approve)?|pairing|runs(?:\/[a-zA-Z0-9-]+(?:\/(?:events|resume|reply|access|cancel|pause|continue|recover|pin|archive|export\/(?:json|analysis-json|report-json|csv|elements-csv|svg|preview-png|preview-jpeg|plan-pdf|md|pdf|docx|xlsx|concept|native-png|native-jpeg|handoff|plan)))?)?|variable\/(?:briefs\/[a-zA-Z0-9-]+\/(?:alternatives|selection)|plans\/[a-zA-Z0-9-]+\/versions\/[0-9]+|diff))$/;
+const allowed=/^(?:admin\/(?:config|audit|overview|knowledge\/sources(?:\/[a-zA-Z0-9-]{1,64}(?:\/reindex)?)?)|config|tools|devices(?:\/[a-zA-Z0-9-]+(?:\/(?:context|control|agent-control|tools))?)?|device-authorizations\/[a-zA-Z0-9_-]+(?:\/approve)?|pairing|runs(?:\/[a-zA-Z0-9-]+(?:\/(?:events|resume|reply|access|cancel|pause|continue|recover|pin|archive|export\/(?:json|analysis-json|report-json|csv|elements-csv|svg|preview-png|preview-jpeg|plan-pdf|md|pdf|docx|xlsx|concept|native-png|native-jpeg|handoff|plan)))?)?|variable\/(?:briefs\/[a-zA-Z0-9-]+\/(?:alternatives|selection)|plans\/[a-zA-Z0-9-]+\/versions\/[0-9]+|diff))$/;
 function boundedRasterSvg(svg:string):Buffer|null{
  const root=svg.match(/<svg\b[^>]*>/i)?.[0];
  const viewBox=root?.match(/\bviewBox\s*=\s*["']([^"']+)["']/i)?.[1];
@@ -67,4 +67,4 @@ async function proxy(request:Request,context:{params:Promise<{path:string[]}>}){
   return Response.json({detail:phase==='raster'?'Preview image conversion failed. The SVG remains available.':'Orchestrator unavailable. Check your connection.'},{status:503});
  }
 }
-export {proxy as GET,proxy as POST,proxy as DELETE};
+export {proxy as GET,proxy as POST,proxy as PUT,proxy as DELETE};
