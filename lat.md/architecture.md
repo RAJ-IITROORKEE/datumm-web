@@ -30,7 +30,7 @@ Signed-out visitors see only a modal sign-in gate. Browser sign-out and account 
 
 Sidebar project grouping follows desktop capability, independently of Studio layout. Browsers list all unpinned hosted chats even when their stored default-project identifiers cannot be resolved through desktop-only project metadata.
 
-Chat-first center: the conversation owns the center until the current chat has renderable plan geometry (a drawing or saved SVG, `hasRenderablePlan` in workspace.tsx). Then the studio canvas takes the center and the conversation moves to the side assistant panel; switching chats re-evaluates this.
+Chat-first center: the conversation owns the center until the current chat has renderable plan geometry (a drawing or saved SVG, decided by `isRenderablePlan` in `src/lib/workspace-layout.mjs`). Then the studio canvas takes the center and the conversation moves to the side assistant panel; switching chats re-evaluates this.
 
 ## Chat presentation
 

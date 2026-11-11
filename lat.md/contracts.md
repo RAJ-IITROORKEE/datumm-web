@@ -34,7 +34,7 @@ The actual proxy forwards questions, cancellation, queue edits and design review
 
 ## Browser sidebar history
 
-Hosted chats with project identifiers remain visible without desktop project groups. The actual sidebar predicates preserve pinned separation, desktop grouping and the server's newest-first order.
+Hosted chats with project identifiers remain visible without desktop project groups. The list rules in `src/lib/sidebar-history.mjs` preserve pinned separation, desktop grouping and the server's newest-first order.
 
 ## Plugin setup guide
 

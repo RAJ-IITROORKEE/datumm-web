@@ -8,6 +8,17 @@ Copy `.env.example` to an ignored `.env.local`, configure the existing Clerk ins
 
 After starting the production build with `npm start`, run `npm run check:runtime` for anonymous browser/API boundary checks. A different running origin can be passed after `--`. These checks do not prove authenticated backend or live Revit acceptance.
 
+## Code map
+
+`src/components/workspace.tsx` composes the Studio from the files below. State stays in one hook; each panel receives it as props.
+
+- `src/components/workspace/use-workspace-state.ts`: all workspace state, effects and commands (`useWorkspaceState`), the `Run` and related types, and the service `api` helper.
+- `src/components/workspace/sidebar.tsx`: left navigation (new chat, search, scheduled tasks, activity, pinned, project and recent lists, row menus, filters) and the collapsed rail.
+- `src/components/workspace/conversation.tsx`: the chat panel and its transcript blocks (brief, task plan, no-plan card, partial outcome, questions, evidence, specialists, scheduler, outcome).
+- `src/components/workspace/composer.tsx`: composer area (notices, queue, mode menu, model picker, plugin setup guide, send and stop).
+- `src/components/workspace/inspector.tsx`: right panel tabs (Assistant, Properties, Activity) plus Exports and MCP tools.
+- `src/lib/sidebar-history.mjs` and `src/lib/workspace-layout.mjs`: pure rules for the chat lists and plan focus, covered by `tests/sidebar-history.test.mjs` and `tests/workspace-layout.test.mjs`.
+
 ## Deploy
 
 Use the repository root as a Next.js Vercel project, Node.js 22 or newer, build command `npm run build`, and default output directory. Configure `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, and server-only `ORCHESTRATOR_URL` in Vercel.
