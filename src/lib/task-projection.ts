@@ -1,5 +1,5 @@
 /** Shared chat/inspector projection. A gap waits for replay or a full snapshot. */
-export type TaskEvent = {schemaVersion?:2;eventId?:string;sequence?:number;taskId?:string;index:number;stage:string;detail:string;at:string};
+export type TaskEvent = {schemaVersion?:2;eventId?:string;sequence?:number;taskId?:string;index:number;stage:string;detail:string;at:string;agent?:{id:string;role?:string;name?:string};parentStepId?:string};
 export type TaskSnapshot = {id:string;taskVersion?:number;eventCursor?:number;events:TaskEvent[]};
 export type Projection<T extends TaskSnapshot> = {snapshot:T|null;events:TaskEvent[];cursor:number;pending:TaskEvent[]};
 export function emptyProjection<T extends TaskSnapshot>():Projection<T>{return {snapshot:null,events:[],cursor:0,pending:[]};}
