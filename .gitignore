@@ -19,3 +19,5 @@ Thumbs.db
 .vercel
 
 .npm-cache/
+__pycache__/
+*.py[cod]
