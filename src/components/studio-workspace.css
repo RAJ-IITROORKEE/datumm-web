@@ -415,7 +415,8 @@
 @keyframes chat-pulse{50%{opacity:.35;transform:scale(.75)}}
 .history-rename{flex:1;min-width:0;width:100%;min-height:30px;margin:2px 0;padding:4px 8px;border:1px solid var(--trace-accent);border-radius:7px;background:var(--background);color:var(--foreground);font-size:12px}
 .history-rename:focus-visible{outline:2px solid var(--trace-accent);outline-offset:2px}
-.project-new{margin-left:auto;max-width:150px}
+.project-groups>.sidebar-section{flex-wrap:wrap}
+.project-new{flex:1 0 100%;order:3;max-width:none;margin:6px 0 0;text-transform:none;letter-spacing:0}
 .project-count{margin-left:auto;font-size:10px;color:var(--muted-foreground)}
 .project-group-toggle .project-count{flex:none}
 /* The question and plan docks sit in normal flow above the composer, no wider than it. */

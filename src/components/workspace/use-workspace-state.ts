@@ -18,7 +18,7 @@ import {planBuildStep} from '@/lib/plan-build-flow';
 import {FileJson, LayoutTemplate, FileSpreadsheet, Download} from 'lucide-react';
 import {DefaultChatTransport} from 'ai';
 import {useChat} from '@ai-sdk/react';
-import {settledPoll} from '@/lib/settled-poll.mjs';
+import {settledPoll,openChatPollMs,listPollMs} from '@/lib/settled-poll.mjs';
 import {advanceSeen,isUnread} from '@/lib/chat-seen.mjs';
 import {type ReplyPayload, type AgentQuestion} from '../agent-questions';
 import {hasPromptContent, splitViewportPrompt, appendViewportPrompt} from '../prompt-content';
@@ -84,7 +84,7 @@ export async function api<T>(path:string,method='GET',body?:unknown):Promise<T>{
  if(!response.ok){
   const detail=data&&typeof data==='object'&&'detail' in data?data.detail:null;
    const failure=new Error(typeof detail==='string'?detail:detail&&typeof detail==='object'&&'message' in detail&&typeof detail.message==='string'?detail.message:detail&&typeof detail==='object'&&'error' in detail&&typeof detail.error==='string'?detail.error:'The request could not be completed.');
-  Object.assign(failure,{status:response.status});throw failure;
+  Object.assign(failure,{status:response.status,path});throw failure;
  }
  return data as T;
 
@@ -315,7 +315,9 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  const reviewAssumptions=Array.from(new Set([...(run?.data.agent_design?.assumptions??[]),...(designVersion?.graph.assumptions??[])]));
  const planAccepted=Boolean(drawingCurrent&&run?.acceptance?.plan.planId===designVersion?.planId&&run?.acceptance?.plan.version===designVersion?.version&&run?.acceptance?.plan.fingerprint===designVersion?.fingerprint);
  const buildStep=run?.data.agent_design?planBuildStep(run,drawingCurrent&&!drawingError?designVersion:null,placementTask===run.id&&Boolean(confirmedPlacement)):null;
+ const designOwner=useRef('');
  useEffect(()=>{
+  if(designOwner.current!==(run?.id??'')){designOwner.current=run?.id??'';setDesignVersion(null);}
   const ref=run?.currentPlanRef;if(!run?.data.agent_design||ref?.source!=='variable')return;
   let cancelled=false;setDrawingLoading(true);setDrawingError('');setDrawingMissing(false);setCompareVersion(null);
   void api<VariableVersion>(`variable/plans/${ref.planId}/versions/${ref.version}${drawingRetry?'?retryRender=true':''}`).then(value=>{
@@ -328,8 +330,9 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  const conceptImageLabel=conceptImageAlternative>=0?`Plan alternative ${conceptImageAlternative+1}`:conceptBinding?`Saved plan version ${conceptBinding.version}`:'Illustrative only';
  const conceptMatchesSelected=Boolean(conceptBinding&&selectedDesignCandidate&&conceptBinding.planId===selectedDesignCandidate.planId&&conceptBinding.version===selectedDesignCandidate.version&&conceptBinding.fingerprint===selectedDesignCandidate.fingerprint);
    const previewSvg=plannedCandidate?.svg??(drawingCurrent&&designVersion?designVersion.svg:queueData?.native_build?.svg??run?.data.compiled?.svg??run?.data.agent_draft?.previewSvg??run?.data.agent_design?.previewSvg??run?.data.snapshot?.svg);
- const activeDrawing=plannedCandidate?candidateDrawing(plannedCandidate):designVersion;
- const hasRenderablePlan=isRenderablePlan(activeDrawing,previewSvg);
+ // Drawing state belongs to the open chat: with no chat open nothing is renderable.
+ const activeDrawing=plannedCandidate?candidateDrawing(plannedCandidate):run?designVersion:null;
+ const hasRenderablePlan=Boolean(run)&&isRenderablePlan(activeDrawing,previewSvg);
  const previewExportQuery=run?.data.agent_design&&designVersion&&run.data.agent_design.candidates.some(c=>c.planId===designVersion.planId&&c.version===designVersion.version)?`?planId=${encodeURIComponent(designVersion.planId)}&version=${designVersion.version}`:'';
  const previewCounts=run?.data.compiled?.counts??run?.data.agent_inspection?.counts??run?.data.inventory?.counts??{};
  const previewRooms=run?.data.compiled?.areas??(run?.data.agent_design&&designVersion&&selectedDesignCandidate?.planId===designVersion.planId&&selectedDesignCandidate.version===designVersion.version&&selectedDesignCandidate.fingerprint===designVersion.fingerprint?designVersion.graph.rooms.map(r=>({name:r.name,expectedAreaM2:Math.max(0,r.rect[2]-r.rect[0]-designVersion.graph.wallThicknessMm)*Math.max(0,r.rect[3]-r.rect[1]-designVersion.graph.wallThicknessMm)/1_000_000})):null)??run?.data.agent_design?.previewRooms??run?.data.inventory?.rooms.map(r=>({name:r.name,expectedAreaM2:r.areaM2}))??[];
@@ -389,11 +392,13 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   const busy=executing||actionBusy||mediaBusy;
   const queueMessage=liveRuntime&&Boolean(run)&&(executing||promptQueue.length>0);
 
+ // A refused first prompt never created a task: take its optimistic bubble back (the text returns to the composer).
+ const dropOptimistic=(text:string)=>setMessages(list=>{const i=list.map(m=>m.role==='user'&&m.parts.some(p=>p.type==='text'&&p.text===text)).lastIndexOf(true);return i<0?list:list.filter((_,k)=>k!==i);});
  useEffect(()=>{
   if(!chatError)return;
   const pending=pendingSubmission.current;
    if(!pending)return;
-  if(pending&&!pending.runStarted)setPrompt(current=>current||pending.text);
+  if(pending&&!pending.runStarted){setPrompt(current=>current||pending.text);if(!currentRun.current)dropOptimistic(pending.text);}
   pendingSubmission.current=null;
   if(pending?.runStarted){
    recoverLiveView(pending.taskId||currentRun.current?.id);return;
@@ -443,19 +448,25 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   return()=>document.removeEventListener('keydown',closeDrawer);
  },[left,right]);
 
+ const refreshRuns=useCallback(async()=>{
+   if(window.desktop&&!desktopPreview&&!testIdentity&&!['signed-in','expired-offline'].includes(accountStatus?.state??''))return true;
+   const epoch=accountEpoch.current;
+   try{const history=await api<Run[]>('runs'+(historyView==='archived'?'?archived=true':''));if(epoch===accountEpoch.current){setRuns(history);setConnected(true);}return true;}
+   catch{if(epoch===accountEpoch.current)setConnected(false);return false;}
+ },[historyView,desktopPreview,accountStatus?.state,testIdentity]);
  const refresh=useCallback(async()=>{
-   if(window.desktop&&!desktopPreview&&!testIdentity&&!['signed-in','expired-offline'].includes(accountStatus?.state??''))return;
+   if(window.desktop&&!desktopPreview&&!testIdentity&&!['signed-in','expired-offline'].includes(accountStatus?.state??''))return true;
    const epoch=accountEpoch.current;
    try{const [configuration,list,history,tools]=await Promise.all([api<RuntimeConfig>('config'),api<Device[]>('devices'),api<Run[]>('runs'+(historyView==='archived'?'?archived=true':'')),Promise.resolve<McpTool[]>([])]);
-    if(epoch!==accountEpoch.current)return;
+    if(epoch!==accountEpoch.current)return true;
     setRuntimeConfig(configuration);setMcpTools(tools);
    void api<ProjectRow[]>('projects'+(!desktopAvailable&&historyView==='archived'?'?archived=true':'')).then(value=>{if(epoch===accountEpoch.current&&Array.isArray(value)){setProjects(value);setProjectsSupported(true);}}).catch(failure=>{if(epoch===accountEpoch.current&&!desktopAvailable&&notSupported(failure))setProjectsSupported(false);});
 
    setConnected(true);setModels(configuration.models);if(!modelPreferenceInitialized.current){const taskFromUrl=new URLSearchParams(window.location.search).get('task');if(!taskFromUrl){setModel(configuration.defaultModel??'openai/gpt-6-luna');setReasoningEffort(configuration.defaultReasoningEffort??'high');}modelPreferenceInitialized.current=true;}setDevices(list);setRuns(history);
 
    setDeviceId(previous=>previous||list.find(d=>d.online)?.id||'');
-
-  }catch{if(epoch===accountEpoch.current)setConnected(false);}finally{if(epoch===accountEpoch.current)setWorkspaceReady(true);}
+   return true;
+  }catch{if(epoch===accountEpoch.current)setConnected(false);return false;}finally{if(epoch===accountEpoch.current)setWorkspaceReady(true);}
 
  },[historyView,desktopPreview,accountStatus?.state,testIdentity]);
 
@@ -484,7 +495,18 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   if(currentRun.current?.id===selectedId)setRun(updated);
  };
 
-  useEffect(()=>settledPoll(refresh,6000),[refresh]);
+  // One stable loop: chat list every 6 s while a chat runs (else 30 s); config, devices and projects every 60 s.
+  const loopRefs=useRef({refresh,refreshRuns,runs});loopRefs.current={refresh,refreshRuns,runs};
+  const firstRefresh=useRef(true);
+  useEffect(()=>{
+   let last=0;
+   return settledPoll(()=>{
+    if(Date.now()-last>=60000){last=Date.now();return loopRefs.current.refresh();}
+    return loopRefs.current.refreshRuns();
+   },()=>listPollMs(loopRefs.current.runs));
+  },[]);
+  // The loop covers the first load; later identity changes (archive filter, account) reload at once.
+  useEffect(()=>{if(firstRefresh.current){firstRefresh.current=false;return;}void refresh();},[refresh]);
  useEffect(()=>{try{const value=JSON.parse(localStorage.getItem('datumm-seen-versions')??'{}');if(value&&typeof value==='object'&&!Array.isArray(value))setSeen(value);}catch{}},[]);
  useEffect(()=>{setSeen(previous=>{const next=advanceSeen(previous,runs,runId);if(next!==previous){try{localStorage.setItem('datumm-seen-versions',JSON.stringify(next));}catch{}}return next;});},[runs,runId]);
   const providerChanged=(value:ProviderStatus,applied=false)=>{
@@ -515,15 +537,12 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   window.history.replaceState(null,'',url);
  },[runId]);
 
+ const openPollMs=openChatPollMs(run?.id===runId?run.status:undefined);
  useEffect(()=>{
-
-  if(!runId)return;
-
-  let live=true;const tick=async()=>{try{const value=await api<Run>('runs/'+runId);if(live){setRun(value);}}catch{}};
-
-  const stop=settledPoll(tick,1500);return()=>{live=false;stop();};
-
- },[runId]);
+  if(!runId||openPollMs===null)return;
+  let live=true;const tick=async()=>{const value=await api<Run>('runs/'+runId);if(live)setRun(value);};
+  const stop=settledPoll(tick,openPollMs);return()=>{live=false;stop();};
+ },[runId,openPollMs]);
 
  const replyToQuestion=async(payload:ReplyPayload|{question_id:string;answer:string})=>{
   if(!run||replying.current)throw new Error('Your answer is already being sent.');
@@ -608,6 +627,7 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   }catch(failure){
     if(!isCurrent())return;
     if(!pendingSubmission.current?.runStarted&&!preserveDraft)setPrompt(text);
+    if(!pendingSubmission.current?.runStarted&&!currentRun.current)dropOptimistic(text);
    const known=chatStartFailure(failure);
     setBlockedChat(known?.blockingTask?{id:known.blockingTask.id,message:known.message}:null);
    if(known?.state==='rejected')submissionKey.current=null;
@@ -768,11 +788,18 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  const setControl=async(device:Device)=>{setActionBusy(true);setError('');try{await api('devices/'+device.id+'/control',device.fullControl?'DELETE':'POST');await refresh();}catch(e){setError((e as Error).message);}finally{setActionBusy(false);}};
 
  const organizeDone=async(item:Run)=>{try{const saved=await api<Run>(`tasks/${item.id}/history/done`,item.data.organized_done?'DELETE':'POST',{expectedTaskVersion:item.taskVersion});if(runId===item.id)setRun(saved);await refresh();}catch(e){setError((e as Error).message);}};
- const guarded=async(feature:string,action:()=>Promise<unknown>)=>{setActionBusy(true);setError('');try{await action();await refresh();return true;}catch(failure){if(notSupported(failure))setChatMenuUnsupported(previous=>[...previous,feature]);else setError((failure as Error).message);return false;}finally{setActionBusy(false);}};
- const renameChat=(item:Run,title:string)=>guarded('rename',async()=>{await api(`tasks/${item.id}/title`,'POST',{title:title.trim(),expectedTaskVersion:item.taskVersion});if(runId===item.id)setRun(await api<Run>('tasks/'+item.id));});
- const moveChat=(item:Run,projectId:string|null)=>guarded('move',async()=>{await api(`tasks/${item.id}/project`,'POST',{projectId,expectedTaskVersion:item.taskVersion});if(runId===item.id)setRun(await api<Run>('tasks/'+item.id));});
- const createProject=(title:string)=>guarded('projects',()=>api('projects','POST',{title:title.trim()}));
- const archiveProject=(project:ProjectRow)=>guarded('projects',()=>api(`projects/${project.id}/history/archive`,project.archived_at?'DELETE':'POST',{expectedRevision:project.revision??1}));
+ // A feature counts as unsupported (until reload) only when its own route answers 404/405; any other failure is an error.
+ const guarded=async(feature:string,route:RegExp,action:()=>Promise<unknown>,waitForRefresh=true)=>{setActionBusy(true);setError('');try{await action();if(waitForRefresh)await refresh();else void refresh();return true;}catch(failure){if(notSupported(failure)&&route.test((failure as {path?:string}).path??''))setChatMenuUnsupported(previous=>previous.includes(feature)?previous:[...previous,feature]);else setError((failure as Error).message);return false;}finally{setActionBusy(false);}};
+ const renameChat=async(item:Run,title:string)=>{
+  const set=(value:string)=>{setRuns(list=>list.map(row=>row.id===item.id?{...row,title:value}:row));const open=currentRun.current;if(open?.id===item.id)setRun({...open,title:value});};
+  set(title.trim());
+  const ok=await guarded('rename',/^tasks[/][^/]+[/]title$/,async()=>{await api(`tasks/${item.id}/title`,'POST',{title:title.trim(),expectedTaskVersion:item.taskVersion});void api<Run>('tasks/'+item.id).then(saved=>{if(currentRun.current?.id===saved.id)setRun(saved);}).catch(()=>{});},false);
+  if(!ok)set(item.title);
+  return ok;
+ };
+ const moveChat=(item:Run,projectId:string|null)=>guarded('move',/^tasks[/][^/]+[/]project$/,async()=>{await api(`tasks/${item.id}/project`,'POST',{projectId,expectedTaskVersion:item.taskVersion});if(runId===item.id)setRun(await api<Run>('tasks/'+item.id));});
+ const createProject=(title:string)=>guarded('projects',/^projects([/]|$)/,()=>api('projects','POST',{title:title.trim()}));
+ const archiveProject=(project:ProjectRow)=>guarded('projects',/^projects([/]|$)/,()=>api(`projects/${project.id}/history/archive`,project.archived_at?'DELETE':'POST',{expectedRevision:project.revision??1}));
  const updateHistory=async(item:Run,action:'pin'|'unpin'|'archive'|'unarchive')=>{setActionBusy(true);setError('');try{await api(`tasks/${item.id}/history/${action.includes('pin')?'pin':'archive'}`,action==='pin'||action==='archive'?'POST':'DELETE',{expectedTaskVersion:item.taskVersion});if(runId===item.id)setRun(await api<Run>('tasks/'+item.id));await refresh();}catch(e){setError((e as Error).message);}finally{setActionBusy(false);}};
  const removeTask=async()=>{if(!deleteTarget)return;setActionBusy(true);setError('');try{await api(`tasks/${deleteTarget.id}/history/delete`,'DELETE',{expectedTaskVersion:deleteTarget.taskVersion});if(runId===deleteTarget.id)newTask();setDeleteTarget(null);await refresh();}catch(e){setError((e as Error).message);}finally{setActionBusy(false);}};
  const removeAllTasks=async()=>{if(deletePhrase!=='DELETE')return;setActionBusy(true);setError('');try{await api<{deleted:number}>('runs','DELETE');newTask();setDeleteAllOpen(false);setDeletePhrase('');await refresh();}catch(e){setError((e as Error).message);}finally{setActionBusy(false);}};
