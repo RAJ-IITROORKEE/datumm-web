@@ -31,7 +31,8 @@ export default async function SharedChat({ params }: { params: Promise<{ token: 
         {view.messages.map((message, index) => (
           <article key={index} data-role={message.role}>
             <strong>{message.role === 'user' ? 'You' : 'DATUMM'}</strong>
-            <MessageResponse>{message.text}</MessageResponse>
+            {/* No remote images on a public page: they would act as tracking pixels for viewers. */}
+            <MessageResponse disallowedElements={['img']}>{message.text}</MessageResponse>
           </article>
         ))}
       </section>
