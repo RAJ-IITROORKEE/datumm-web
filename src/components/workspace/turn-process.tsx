@@ -2,13 +2,14 @@
 
 import type { ReactNode } from 'react';
 import { Collapsible } from 'radix-ui';
-import { Check, ChevronDown, CircleHelp, Loader2, Users, X } from 'lucide-react';
+import { Check, ChevronDown, Loader2, Users, X } from 'lucide-react';
 import { Reasoning } from '../ai-elements/reasoning';
 import { MessageResponse } from '../ai-elements/message';
 import { activityBatches, toolName, type RunManifest, type ToolEvidence } from '../agent-activity';
 import type { SchedulerView } from '../agent-scheduler';
 import type { SpecialistResult } from '../agent-specialists';
 import type { TaskEvent } from '@/lib/task-projection';
+import { nestProcess } from '@/lib/turn-nesting.mjs';
 
 type Status = 'running' | 'done' | 'failed';
 type Row = { key: string; name: string; status: Status; team?: boolean };
@@ -65,8 +66,7 @@ function stepRows(batch: TaskEvent[]): Row[] {
   return rows;
 }
 
-/** One collapsed accordion per agent turn: step, then agent or job, then tool calls. */
-export function TurnProcess({ events, active, waiting, manifest, evidence = [], nativeMessages = [], scheduler, specialists, evidenceExtra }: {
+type Props = {
   events: TaskEvent[];
   active: boolean;
   waiting: boolean;
@@ -76,26 +76,39 @@ export function TurnProcess({ events, active, waiting, manifest, evidence = [], 
   scheduler?: SchedulerView | null;
   specialists?: SpecialistResult[];
   evidenceExtra?: ReactNode;
-}) {
-  const live = active && !waiting;
-  const batches = activityBatches(events).map((batch) => ({ batch, rows: stepRows(batch) })).filter((step) => step.rows.length > 0);
+  /** Plan step key to title, for nested steps. */
+  stepTitles?: Record<string, string>;
+};
+
+function summarize({ events, active, waiting, manifest, evidence = [], nativeMessages = [], scheduler, specialists }: Props) {
+  const nested = nestProcess(events);
+  const batches = activityBatches(nested.rest).map((batch) => ({ batch, rows: stepRows(batch) })).filter((step) => step.rows.length > 0);
   const children = manifest?.children ?? [];
   const jobs = scheduler?.steps ?? [];
   const team = specialists ?? [];
   const toolEvents = events.filter((event) => event.stage === 'tool_completed' || event.stage === 'tool_failed').length;
-  const steps = Math.max(evidence.length, toolEvents) || batches.length;
-  const public_ = nativeMessages.filter((row) => active || row.finish !== 'stop').map((row) => <div key={row.id} className="activity-update"><MessageResponse>{row.text}</MessageResponse></div>);
+  const steps = Math.max(evidence.length, toolEvents) || batches.length + nested.steps.length;
+  const updates = nativeMessages.filter((row) => active || row.finish !== 'stop');
+  const live = active && !waiting;
+  return { nested, batches, children, jobs, team, steps, updates, live, visible: Boolean(steps || children.length || jobs.length || team.length || live || waiting || updates.length) };
+}
+
+/** True when the turn has anything to show, so the agent label is not left on its own. */
+export const turnProcessVisible = (props: Props) => summarize(props).visible;
+
+/** One collapsed accordion per agent turn: step, then agent, then tool calls (flat steps when the backend sends no agent data). */
+export function TurnProcess(props: Props) {
+  const { events, manifest, evidence = [], evidenceExtra, waiting, stepTitles = {} } = props;
+  const { nested, batches, children, jobs, team, steps, updates, live } = summarize(props);
+  const public_ = updates.map((row) => <div key={row.id} className="activity-update"><MessageResponse>{row.text}</MessageResponse></div>);
   if (!steps && !children.length && !jobs.length && !team.length && !live && !waiting) return <>{public_}</>;
   const times = events.map((event) => Date.parse(event.at)).filter(Number.isFinite);
   const elapsedMs = manifest?.elapsedMs ?? (times.length > 1 ? Math.max(...times) - Math.min(...times) : null);
   const seconds = elapsedMs != null && elapsedMs >= 1000 ? `${Math.round(elapsedMs / 1000)} s` : null;
   const stepText = `${steps} ${steps === 1 ? 'step' : 'steps'}`;
-  const current = batches.at(-1)?.rows.findLast((row) => row.status === 'running')?.name;
   const failed = batches.some((step) => step.rows.some((row) => row.status === 'failed'));
-  const summary = waiting ? (
-    <><CircleHelp size={13} className="turn-process-lead" aria-hidden="true" />Waiting for your input</>
-  ) : live ? (
-    <><Loader2 size={13} className="spin turn-process-lead" aria-hidden="true" /><span>Working{current ? ` · ${current}` : ''}{steps ? ` · ${stepText}` : ''}</span></>
+  const summary = live ? (
+    <><Loader2 size={13} className="spin turn-process-lead" aria-hidden="true" /><span>Working…</span></>
   ) : (
     <>{`Worked${seconds ? ` for ${seconds}` : ''}${steps ? ` · ${stepText}` : ''}${failed ? ' · some failed' : ''}`}</>
   );
@@ -106,12 +119,25 @@ export function TurnProcess({ events, active, waiting, manifest, evidence = [], 
   return (
     <>
       {public_}
-      <Reasoning isStreaming={live} forceOpen={waiting} summary={summary} className="turn-process">
+      <Reasoning isStreaming={live} summary={summary} className="turn-process">
         <div className="turn-process-tree">
           {batches.map(({ batch, rows }, i) => {
             const status: Status = rows.some((row) => row.status === 'failed') ? 'failed' : rows.some((row) => row.status === 'running') ? 'running' : 'done';
             const title = [...new Set(rows.map((row) => row.name))].slice(0, 3).join(', ') || `Step ${i + 1}`;
             return <Node key={batch[0].eventId ?? batch[0].index} title={title} status={status} count={rows.length} open={live && i === batches.length - 1}><Rows rows={rows} /></Node>;
+          })}
+          {nested.steps.map((step, i) => {
+            const rows = step.agents.map((agent) => ({ agent, rows: stepRows(agent.events) }));
+            const status: Status = rows.some((row) => row.rows.some((r) => r.status === 'failed')) ? 'failed' : rows.some((row) => row.rows.some((r) => r.status === 'running')) ? 'running' : 'done';
+            const title = stepTitles[step.id] ?? (/^[\w.-]{1,24}$/.test(step.id) ? label(step.id) : `Step ${i + 1}`);
+            return (
+              <Node key={`n-${step.id}`} title={title} status={status} count={step.agents.length} open={live && status === 'running'}>
+                {rows.map(({ agent, rows: tools }) => {
+                  const agentStatus: Status = tools.some((r) => r.status === 'failed') ? 'failed' : tools.some((r) => r.status === 'running') ? 'running' : 'done';
+                  return <Node key={agent.id} title={agent.name} status={agentStatus} count={tools.length} open={agentStatus === 'running'}><Rows rows={tools} /></Node>;
+                })}
+              </Node>
+            );
           })}
           {agents.map((agent) => <Node key={agent.key} title={agent.title} status={agent.status} count={agent.tools.length}>{agent.tools.length > 0 && <Rows rows={agent.tools} />}</Node>)}
           {jobs.length > 0 && <Node title="Background jobs" status={jobs.some((job) => job.status === 'running') ? 'running' : 'done'} count={jobs.length}><Rows rows={jobs.map((job) => ({ key: job.stepId, name: label(job.stepId), status: toStatus(job.status === 'blocked' ? 'running' : job.status) }))} /></Node>}

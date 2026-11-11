@@ -42,6 +42,7 @@ import { ProjectContext } from './project-context';
 import { useWorkspaceState, api, type Run } from './workspace/use-workspace-state';
 import { Sidebar } from './workspace/sidebar';
 import { ConversationPanel } from './workspace/conversation';
+import { PlanDetails } from './workspace/plan-details';
 import { Inspector } from './workspace/inspector';
 
 export function Workspace({
@@ -1055,7 +1056,7 @@ export function Workspace({
           </details>
         )}
 
-        <Inspector {...w} conversationPanel={conversationPanel} />
+        <Inspector {...w} conversationPanel={conversationPanel} planDetails={<PlanDetails {...w} />} />
 
         <Dialog open={deviceDialog} onOpenChange={setDeviceDialog}>
           <DialogContent className="device-dialog" onCloseAutoFocus={restoreDialogFocus}>

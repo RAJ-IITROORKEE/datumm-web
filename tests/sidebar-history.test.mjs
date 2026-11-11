@@ -11,3 +11,8 @@ test('Studio history shows hosted project chats without desktop project groups',
     assert.deepEqual(Array.from(pinnedChats(filteredChats),row=>row.id),['pinned-chat']);
   }
 });
+
+test('hosted project groups keep chats of unlisted projects in Recent',()=>{
+  const chats=[{id:'grouped',projectId:'p1'},{id:'orphan',projectId:'gone'},{id:'plain'}];
+  assert.deepEqual(Array.from(recentChats(chats,true,undefined,new Set(['p1'])),row=>row.id),['orphan','plain']);
+});

@@ -12,13 +12,17 @@ Empty desktop metadata is omitted from hosted requests while idempotency, versio
 
 ## Reject unsupported sources
 
-Project identifiers and nonempty or malformed attachment collections fail before dispatch so the UI cannot silently omit user evidence.
+Nonempty or malformed attachment collections fail before dispatch so the UI cannot silently omit user evidence. A project identifier is forwarded on the envelope so a chat can start inside a hosted project.
 
 ## Blocked new chat
 
 Running work and native-context or Build requests blocked by a pending review preserve the prompt and return the saved chat identity without cancelling or approving it.
 
 Independent Ask and Plan requests may pass a pending review. The backend remains authoritative for inferred Revit context and concurrent execution.
+
+## Parallel Ask and Plan
+
+Independent Ask and Plan chats may start while fewer than three chats run; a third running chat refuses the next one with the blocking chat named, and Revit-context or Build requests still wait for every active chat.
 
 ## Native preview encoding
 
@@ -32,9 +36,19 @@ A running production build presents Studio without native window controls, rejec
 
 The actual proxy forwards questions, cancellation, queue edits and design review to v2, rejects native task routes, and preserves existing Azure run routing and request bodies.
 
+## Process nesting
+
+Process events carrying a parent step and an agent nest step, agent, tool calls; events without them keep the flat grouping so older backends render as before.
+
+## Unread chats
+
+A chat is unread only when it settled with a task version newer than the one last seen while another chat was open; first sight never marks a chat unread.
+
 ## Browser sidebar history
 
-Hosted chats with project identifiers remain visible without desktop project groups. The list rules in `src/lib/sidebar-history.mjs` preserve pinned separation, desktop grouping and the server's newest-first order.
+Hosted chats with project identifiers remain visible without desktop project groups.
+
+Chats of unlisted projects stay in Recent when hosted groups are shown. The list rules in `src/lib/sidebar-history.mjs` preserve pinned separation, desktop grouping and the server's newest-first order.
 
 ## Plugin setup guide
 

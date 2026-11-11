@@ -11,8 +11,9 @@ test('strict hosted envelope retains command identity and omits empty local meta
 });
 
 // @lat: [[contracts#Hosted contract tests#Reject unsupported sources]]
-test('rejects unsupported project and source data before dispatch',()=>{
-  for(const metadata of [{projectId:'project-1'},{attachmentIds:['source-1']},{attachmentIds:'source-1'}])assert.throws(()=>hostedCommand(metadata,{type:'submit'}),/Projects and file attachments/);
+test('rejects unsupported source data before dispatch and forwards a project id',()=>{
+  for(const metadata of [{attachmentIds:['source-1']},{attachmentIds:'source-1'}])assert.throws(()=>hostedCommand(metadata,{type:'submit'}),/file attachments/i);
+  assert.equal(hostedCommand({idempotencyKey:'k',projectId:'project-1'},{}).projectId,'project-1');
   assert.equal(hostedCommand({idempotencyKey:'new-request'},{}).expectedTaskVersion,0);
 });
 
@@ -30,18 +31,28 @@ test('an existing approval blocks new chat creation without posting or changing 
   assert.equal(envelope.command.prompt,'Web connection verified.');
 });
 
-test('independent Ask and Plan may pass a pending approval, but not a running task',async()=>{
+// @lat: [[contracts#Hosted contract tests#Parallel Ask and Plan]]
+test('independent Ask and Plan overlap below three running chats and are refused at three',async()=>{
   for (const mode of ['ask','plan']) {
     const calls=[];
-    const request=async(path,init)=>{calls.push(path);return path.includes('?')?Response.json([{id:'build',title:'Pending',status:'awaiting_approval'}]):Response.json({id:'new'});};
+    const request=async(path)=>{calls.push(path);return path.includes('?')?Response.json([{id:'build',title:'Pending',status:'awaiting_approval'},{id:'r1',title:'One',status:'running'},{id:'r2',title:'Two',status:'queued'}]):Response.json({id:'new'});};
     const result=await postHostedCommand(request,undefined,{command:{type:'submit',mode,modelContextRequirement:'auto'}});
     assert.equal(result.status,200);
     assert.deepEqual(calls,['/v2/tasks?active=true','/v2/tasks']);
   }
-  const request=async()=>Response.json([{id:'build',title:'Pending',status:'awaiting_approval'},{id:'running',title:'Running',status:'running'}]);
+  const request=async()=>Response.json([1,2,3].map(n=>({id:'run-'+n,title:'Run '+n,status:'running'})));
   const result=await postHostedCommand(request,undefined,{command:{type:'submit',mode:'ask',modelContextRequirement:'auto'}});
   assert.equal(result.status,409);
-  assert.equal((await result.json()).detail.blockingTask.id,'running');
+  const {detail}=await result.json();
+  assert.equal(detail.blockingTask.id,'run-1');
+  assert.match(detail.error,/3 chats running/);
+});
+
+test('Revit-context and Build requests stay blocked by any running chat',async()=>{
+  for(const command of [{type:'submit',mode:'ask',modelContextRequirement:'read'},{type:'submit',mode:'build',modelContextRequirement:'auto'}]){
+    const request=async()=>Response.json([{id:'ask',title:'Ask',status:'running'}]);
+    assert.equal((await postHostedCommand(request,undefined,{command})).status,409);
+  }
 });
 
 test('Revit-context and Build requests remain blocked by a pending proposal',async()=>{
