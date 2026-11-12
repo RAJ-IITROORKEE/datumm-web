@@ -9,6 +9,7 @@ import {MessageResponse} from '../ai-elements/message';
 import {parseReviewReport} from '@/lib/review-report.mjs';
 import {AdminPreview,SettingsPreview} from './admin-preview';
 import {ReviewPreview} from './review-preview';
+import {ActivityPreview} from './activity-preview';
 
 const reviewReport = parseReviewReport({schemaVersion:1,runId:'synthetic-execution',documentId:'synthetic-model',revision:12,planVersion:3,sourceKind:'measured',source:'Synthetic retained Revit quantity pages',scope:'document',status:'completed',coverage:'partial',summary:'Illustrative quantity report for UI testing.',boqRows:[{recordType:'quantity',category:'Walls',count:12,centerlineLengthMm:48500,centerlineLengthKnownCount:12},{recordType:'quantity',category:'Doors',count:5}],elements:[{id:'fixture-wall-1',category:'Walls',name:'Living partition',heightMm:3000},{id:'fixture-door-1',category:'Doors',name:'Entrance door',hostId:'fixture-wall-1'}],limitations:['Synthetic development fixture. No model was inspected.','Only retained pages are included.'],artifacts:[]});
 
@@ -49,11 +50,11 @@ function PreviewWorkspace() {
 }
 
 export function UxPreview() {
-  const [surface,setSurface]=useState<'workspace'|'onboarding'|'report'|'large'|'lifecycle'|'stream'|'diagram'|'admin'|'settings'|'review'>('workspace');
+  const [surface,setSurface]=useState<'workspace'|'onboarding'|'report'|'large'|'lifecycle'|'stream'|'diagram'|'admin'|'settings'|'review'|'activity'>('workspace');
   const [failSave,setFailSave]=useState(false);
   return <><nav aria-label="Development fixtures" style={{minHeight:64,padding:16,display:'flex',flexWrap:'wrap',gap:20,borderBottom:'1px solid var(--separator)',alignItems:'center'}}><strong>Development preview</strong><span>Illustrative content · no agent or Revit execution</span><button onClick={()=>setSurface('workspace')}>Workspace fixture</button><button onClick={()=>setSurface('onboarding')}>Onboarding fixture</button><button onClick={()=>setSurface('report')}>BOQ fixture</button><button onClick={()=>setSurface('large')}>Large BOQ</button><button onClick={()=>setSurface('lifecycle')}>Report lifecycle</button><button onClick={()=>setSurface('stream')}>Streaming fixture</button><button onClick={()=>setSurface('diagram')}>Broken diagram</button><a href="/">Actual workspace</a></nav>
-    <div style={{display:'flex',gap:20,padding:'8px 16px',borderBottom:'1px solid var(--separator)'}}><button onClick={()=>setSurface('settings')}>Settings fixture</button><button onClick={()=>setSurface('admin')}>Admin fixture</button><button onClick={()=>setSurface('review')}>Review fixture</button></div>
-    {surface==='review'?<ReviewPreview onClose={()=>setSurface('workspace')}/>:surface==='admin'?<AdminPreview onClose={()=>setSurface('workspace')}/>:surface==='settings'?<SettingsPreview onClose={()=>setSurface('workspace')}/>:surface==='workspace'?<OutputWorkspaceProvider scopeKey="development-fixture"><PreviewWorkspace/></OutputWorkspaceProvider>
+    <div style={{display:'flex',gap:20,padding:'8px 16px',borderBottom:'1px solid var(--separator)',flexWrap:'wrap'}}><button onClick={()=>setSurface('settings')}>Settings fixture</button><button onClick={()=>setSurface('admin')}>Admin fixture</button><button onClick={()=>setSurface('review')}>Review fixture</button><button onClick={()=>setSurface('activity')}>Activity fixture</button></div>
+    {surface==='activity'?<ActivityPreview onClose={()=>setSurface('workspace')}/>:surface==='review'?<ReviewPreview onClose={()=>setSurface('workspace')}/>:surface==='admin'?<AdminPreview onClose={()=>setSurface('workspace')}/>:surface==='settings'?<SettingsPreview onClose={()=>setSurface('workspace')}/>:surface==='workspace'?<OutputWorkspaceProvider scopeKey="development-fixture"><PreviewWorkspace/></OutputWorkspaceProvider>
     :surface==='report'||surface==='large'?<div style={{height:'calc(100dvh - 64px)'}}><ReviewReportView key={surface} report={surface==='large'?largeReport:reviewReport} fixture onClose={()=>setSurface('workspace')}/></div>
     :surface==='lifecycle'?<ReportLifecycleFixture onClose={()=>setSurface('workspace')}/>
     :surface==='stream'?<OutputWorkspaceProvider scopeKey="stream-fixture"><StreamingFixture/></OutputWorkspaceProvider>

@@ -38,8 +38,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { workflowState } from '@/lib/workflow-state';
 import { ContextUsage } from './agent-memory';
-import { ActivitySummary, AgentActivity } from './agent-activity';
-import { PipelineTrace } from './pipeline-trace';
+import { ActivityPanel } from './workspace/activity-panel';
+import activityStyles from './workspace/activity-shell.module.css';
 import { AgentScheduler } from './agent-scheduler';
 import { PlanCanvas } from './plan-canvas';
 import installerRelease from '../../public/downloads/release.json';
@@ -842,7 +842,6 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
                   <h2>Your workspace, in motion</h2>
                   <p>Open a run to inspect its conversation, tools and recorded result.</p>
                 </div>
-                <ContextUsage usage={activityView?.usage} busy={activityView?.active} />
               </div>
               <div className="studio-filter-tabs" role="group" aria-label="Filter activity">
                 {[
@@ -896,41 +895,10 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
                     </div>
                   )}
                 </div>
-                <aside className="studio-activity-detail" aria-label="Selected activity details">
+                <aside className={activityStyles.detail} aria-label="Selected activity details">
                   {activityRun && activityView ? (
                     <>
-                      <h3>{activityRun.title}</h3>
-                      <p>{workflowState(activityRun).next}</p>
-                      <span className="studio-status" data-state={workflowState(activityRun).kind}>
-                        {workflowState(activityRun).label}
-                      </span>
-                      <dl>
-                        <div>
-                          <dt>Mode</dt>
-                          <dd>{activityRun.mode}</dd>
-                        </div>
-                        <div>
-                          <dt>Model</dt>
-                          <dd>{activityRun.model}</dd>
-                        </div>
-                        <div>
-                          <dt>Tool results</dt>
-                          <dd>{activityView.evidence.length}</dd>
-                        </div>
-                      </dl>
-                      <ActivitySummary events={activityView.events} />
-                      <AgentActivity
-                        nativeMessages={activityView.active ? activityView.nativeMessages : undefined}
-                        events={activityView.events}
-                        active={activityView.active}
-                        waiting={activityView.waiting}
-                        mode={activityRun.mode}
-                        model={activityRun.model}
-                        todos={activityView.todos}
-                        manifest={activityView.manifest}
-                        evidence={activityView.evidence}
-                        showFeed={false}
-                      />
+                      <ActivityPanel key={activityRun.id} run={activityRun} runId={activityRun.id} currentActivity={activityView} executing={activityView.active} desktopAvailable={desktopAvailable} mode={activityRun.mode} model={activityRun.model} eventDetail={event => event.detail} />
                       <Button
                         variant="secondary"
                         disabled={mediaBusy || actionBusy}
@@ -939,10 +907,9 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
                         Open chat
                         <ArrowUpRight size={14} />
                       </Button>
-                      {desktopAvailable && <PipelineTrace taskId={activityRun.id} />}
                     </>
                   ) : (
-                    <p>Select a task to inspect its recorded work.</p>
+                    <p className={activityStyles.empty}>Select a task to inspect its recorded work.</p>
                   )}
                 </aside>
               </div>

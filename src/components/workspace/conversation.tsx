@@ -516,7 +516,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                 (run.conversation?.length || messages.length === 0) &&
                 (run.conversation?.length ? run.conversation : [{ prompt: run.title, answer: run.data.answer }]).map(
                   (turn, index) => (
-                    <div key={index} className="conversation-turn" data-conversation-index={index}>
+                    <div key={`${run.id}:${index}`} className="conversation-turn" data-conversation-index={index}>
                       {turn.prompt && (
                         <Message from="user">
                           <MessageContent>
@@ -633,6 +633,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                     <Mark /> DATUMM
                   </div>
                   <TurnProcess
+                    key={`${run?.id ?? 'pending'}:live:${traceTurns.length}`}
                     nativeMessages={run?.data.native_messages}
                     events={traceTurns.at(-1) ?? []}
                     active

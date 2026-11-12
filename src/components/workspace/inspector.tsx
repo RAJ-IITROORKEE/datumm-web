@@ -11,19 +11,14 @@ import {
   ShieldCheck,
   Box,
   Layers3,
-  Workflow,
   ChevronDown,
   FolderOpen,
   RotateCcw,
 } from 'lucide-react';
 import { StudioProperties } from '../studio-properties';
 import { Button } from '@/components/ui/button';
-import { ContextUsage, AgentMemory } from '../agent-memory';
-import { ActivitySummary, AgentActivity } from '../agent-activity';
-import { AgentScheduler } from '../agent-scheduler';
-import { AgentSpecialists } from '../agent-specialists';
+import { ActivityPanel } from './activity-panel';
 import { BriefChips } from './brief-chips';
-import { PipelineTrace } from '../pipeline-trace';
 import { type WorkspaceState } from './use-workspace-state';
 
 type InspectorProps = Pick<
@@ -329,80 +324,7 @@ export function Inspector(props: InspectorProps) {
                         </div>
                       ) : tab === 'activity' ? (
                         <div className="inspector-body studio-activity-inspector">
-                          <div className="studio-page-heading">
-                            <div>
-                              <h2>{run?.title ?? 'Task activity'}</h2>
-                              <p>One task. Actual runtime steps and recorded outcomes.</p>
-                            </div>
-                            <ContextUsage usage={currentActivity?.usage} busy={executing} />
-                          </div>
-                          {currentActivity?.events.length ? (
-                            <ActivitySummary events={currentActivity.events} />
-                          ) : (
-                            <div className="studio-empty studio-activity-empty">
-                              <p>No runtime events were recorded for this turn.</p>
-                            </div>
-                          )}
-                          {run?.data.agent_scheduler && <AgentScheduler value={run.data.agent_scheduler} />}
-                          {run && <AgentSpecialists results={run.data.agent_specialists} taskId={run.id} />}
-                          <details className="studio-activity-details">
-                            <summary>
-                              <Workflow size={15} />
-                              View pipeline details
-                              <ChevronDown size={14} />
-                            </summary>
-                            <div>
-                              {desktopAvailable && runId && <PipelineTrace taskId={runId} />}
-                              {run?.data.agent_memory && (
-                                <AgentMemory
-                                  memory={run.data.agent_memory}
-                                  metrics={run.data.agent_context}
-                                  runId={run.id}
-                                />
-                              )}
-                              <AgentActivity
-                                nativeMessages={executing ? currentActivity?.nativeMessages : undefined}
-                                events={currentActivity?.events ?? []}
-                                active={executing}
-                                waiting={currentActivity?.waiting ?? false}
-                                mode={run?.mode ?? mode}
-                                model={run?.model ?? model}
-                                todos={currentActivity?.todos ?? []}
-                                manifest={currentActivity?.manifest}
-                                evidence={currentActivity?.evidence ?? []}
-                                showFeed={false}
-                              />
-                              <div className="section-caption">
-                                RUN TIMELINE <span>{currentActivity?.events.length ?? 0} events</span>
-                              </div>
-                              {currentActivity?.events.length ? (
-                                <ol className="timeline">
-                                  {currentActivity.events.map((e, i) => (
-                                    <li key={e.eventId ?? e.index}>
-                                      <span
-                                        className={cn(
-                                          'timeline-dot',
-                                          i === currentActivity.events.length - 1 && executing && 'live',
-                                        )}
-                                      />
-                                      <strong>
-                                        {e.stage === 'paused_limit'
-                                          ? 'Analysis checkpoint'
-                                          : e.stage.replaceAll('_', ' ')}
-                                      </strong>
-                                      <p>{eventDetail(e)}</p>
-                                      <small>{e.at ? new Date(e.at).toLocaleTimeString() : ''}</small>
-                                    </li>
-                                  ))}
-                                </ol>
-                              ) : (
-                                <div className="inspector-empty">
-                                  <Workflow size={26} />
-                                  <p>No additional timeline details were recorded.</p>
-                                </div>
-                              )}
-                            </div>
-                          </details>
+                          <ActivityPanel key={runId ?? run?.id ?? 'no-task'} run={run} runId={runId} currentActivity={currentActivity} executing={executing} desktopAvailable={desktopAvailable} mode={mode} model={model} eventDetail={eventDetail} />
                         </div>
                       ) : tab === 'exports' ? (
                         <div className="inspector-body">

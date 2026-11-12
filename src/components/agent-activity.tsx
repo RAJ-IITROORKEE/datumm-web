@@ -1,12 +1,11 @@
 import { ArrowRight, Brain, Check, ChevronDown, CircleHelp, FileArchive, FileText, Search, Square, Users, Workflow, Wrench, X } from 'lucide-react';
 
 import {MessageResponse} from './ai-elements/message';
-import {Reasoning} from './ai-elements/reasoning';
-import {Tool,ToolContent,ToolHeader,ToolInput,ToolOutput,toolStatus} from './ai-elements/tool';
 import type { TaskEvent } from '@/lib/task-projection';
 import type { ContextUsageData } from './agent-memory';
 import { PublicResearchEvidence, PdfReviewEvidence, CompanionReviewEvidence } from './evidence-results';
 import { activityStateLabel } from '@/lib/process-activity.mjs';
+import styles from './agent-activity.module.css';
 
 
 
@@ -44,11 +43,11 @@ export function stageIcon(event:TaskEvent){
  return event.stage.startsWith('tool_')?Wrench:ArrowRight;
 }
 
-export function ActivitySummary({events}:{events:TaskEvent[]}){
+export function ActivitySummary({events,eventDetail}:{events:TaskEvent[];eventDetail?:(event:TaskEvent)=>string}){
  const rows=events.filter(event=>stages[event.stage]||['queued','running','answer','completed'].includes(event.stage));
- return <ol className="studio-activity-steps" aria-label="Task activity">{rows.map(event=>{
-  const Icon=stageIcon(event),label=event.stage==='completed'?'Turn settled':event.stage==='answer'?'Answer ready':stages[event.stage]??event.stage.replaceAll('_',' '),detail=event.stage==='model_turn'?event.detail.match(/step \d+/)?.[0]??'Model step':event.stage==='queued'?'Task queued':event.stage==='running'?'Task started':event.stage==='answer'?'Response saved':event.stage==='completed'?'Model response finished':event.detail;
-  return <li key={event.eventId??event.index}><Icon size={15} aria-hidden="true"/><span><strong>{label}</strong><small>{detail}</small></span>{event.at&&Number.isFinite(Date.parse(event.at))&&<time dateTime={event.at}>{new Date(event.at).toLocaleTimeString()}</time>}</li>;
+ return <ol className={styles.activitySummary} aria-label="Task activity">{rows.map(event=>{
+  const Icon=stageIcon(event),label=event.stage==='completed'?'Turn settled':event.stage==='answer'?'Answer ready':event.stage==='model_turn'?'Model step':stages[event.stage]??event.stage.replaceAll('_',' '),detail=event.stage==='model_turn'?event.detail.match(/step \d+/)?.[0]??'Step number not recorded':eventDetail?eventDetail(event):event.stage==='queued'?'Task queued':event.stage==='running'?'Task started':event.stage==='answer'?'Response saved':event.stage==='completed'?'Model response finished':event.detail;
+  return <li key={event.eventId??event.index} data-stage={event.stage}><Icon size={15} aria-hidden="true"/><span><strong>{label}</strong><small>{detail}</small></span>{event.at&&Number.isFinite(Date.parse(event.at))&&<time dateTime={event.at}>{new Date(event.at).toLocaleTimeString()}</time>}</li>;
  })}</ol>;
 }
 export function ActivityFeed({events,active,waiting,compact=false}:{events:TaskEvent[];active:boolean;waiting:boolean;compact?:boolean}){
@@ -95,62 +94,73 @@ export function latestTaskActivity(task:{id:string;status:string;conversation?:u
 
 
 
-export function OpenCodeTodos({todos}:{todos:ActivityTodo[]}){
-
- if(!todos.length)return null;
-
- return <ol className="native-todos" aria-label="OpenCode task progress">{todos.map((todo,index)=><li key={index} data-status={todo.status}>{todo.status==='completed'?<Check className="todo-marker" size={15} aria-hidden="true"/>:todo.status==='in_progress'?<span className="todo-marker todo-ongoing" aria-hidden="true"/>:<Square className="todo-marker" size={15} aria-hidden="true"/>}<span>{todo.content}<small>{todo.status.replaceAll('_',' ')} · {todo.priority} priority</small></span></li>)}</ol>;
-
+const stateNames:Record<string,string>={
+ completed:'Completed',complete:'Completed',done:'Completed',succeeded:'Completed',
+ failed:'Failed',error:'Failed',cancelled:'Stopped',interrupted:'Interrupted',
+ queued:'Queued',pending:'Pending',running:'Running',in_progress:'Running',
+ waiting:'Waiting for input',waiting_for_input:'Waiting for input',needs_input:'Waiting for input',
+ awaiting_approval:'Waiting for approval',blocked:'Blocked',partial:'Partially complete',
+ stale:'Source changed',skipped:'Skipped',paused_limit:'Paused at task limit',paused_recovery:'Recovery required',
+ reconciling:'Checking operation status',
+};
+const duration=(value:number|null|undefined)=>typeof value==='number'&&Number.isFinite(value)&&value>=0?`${(value/1000).toFixed(1)}s`:undefined;
+const amount=(value:number|undefined)=>typeof value==='number'&&Number.isFinite(value)?`$${value.toFixed(4)}`:'Not recorded';
+const safeEventDetail=(event:TaskEvent)=>event.stage==='model_turn'?`Model step · ${event.detail.match(/step \d+/)?.[0]??'step number not recorded'}`:event.detail||stages[event.stage];
+/** A recorded tool state does not become a success when the containing task stops. */
+function recordedState(state:string|undefined,active:boolean){
+ const pending=['running','in_progress','pending','queued'].includes(state??'');
+ const label=!active&&pending?'Outcome unconfirmed':stateNames[state??'']??'Unknown status';
+ const tone=['failed','error'].includes(state??'')?'failed':['completed','complete','done','succeeded'].includes(state??'')?'completed':pending&&active?'active':'recorded';
+ return {label,tone,unconfirmed:!active&&pending};
 }
-
-
-
-export function AgentActivity({events,nativeMessages=[],active=false,waiting=false,mode,model,evidence=[],todos=[],manifest,showFeed=true,compact=false}:{events:TaskEvent[];nativeMessages?:{id:string;text:string;finish:string|null}[];active?:boolean;waiting?:boolean;mode:string;model:string;evidence?:ToolEvidence[];todos?:ActivityTodo[];manifest?:RunManifest;showFeed?:boolean;compact?:boolean}){
-
+function EvidenceBlock({label,value}:{label:string;value:unknown}){
+ const raw=typeof value==='string'?value:JSON.stringify(value,null,2);
+ return <section className={styles.evidenceBlock}><h4>{label}</h4>{value===undefined?<p className={styles.note}>{label==='Arguments'?'Arguments were not recorded.':'No result was recorded.'}</p>:<pre tabIndex={0} aria-label={`${label} details`}>{raw}</pre>}</section>;
+}
+function RecordedTool({call,active}:{call:ToolEvidence;active:boolean}){
+ const state=recordedState(call.status,active),elapsed=duration(call.elapsedMs),Icon=state.tone==='failed'?X:state.tone==='completed'?Check:Wrench;
+ return <li className={styles.tool} data-state={state.tone}><details>
+  <summary className={styles.toolSummary}><Icon size={15} aria-hidden="true"/><span className={styles.toolName}>{call.tool||'Unnamed tool'}</span><span className={styles.state}>{state.label}</span>{elapsed&&<span className={styles.metric}>{elapsed}</span>}<ChevronDown className={styles.chevron} size={14} aria-hidden="true"/></summary>
+  <div className={styles.toolBody}>
+   {state.unconfirmed&&<p className={styles.note}>Last reported {stateNames[call.status]?.toLowerCase()}. No final tool outcome was recorded.</p>}
+   <EvidenceBlock label="Arguments" value={call.arguments}/><EvidenceBlock label={state.tone==='failed'?'Error / result':'Result'} value={call.result}/>
+   <details className={styles.technical}><summary>Tool identity <ChevronDown className={styles.chevron} size={14} aria-hidden="true"/></summary><dl className={styles.facts}><div><dt>Call ID</dt><dd>{call.callId||'Not recorded'}</dd></div><div><dt>Session</dt><dd>{call.sessionId??'Not recorded'}</dd></div><div><dt>Agent role</dt><dd>{call.role??'Not recorded'}</dd></div><div><dt>Recorded status</dt><dd>{call.status||'Not recorded'}</dd></div><div><dt>Duration</dt><dd>{elapsed??'Not recorded'}</dd></div></dl></details>
+  </div>
+ </details></li>;
+}
+export function OpenCodeTodos({todos}:{todos:ActivityTodo[]}){
+ if(!todos.length)return null;
+ return <ol className={styles.todos} aria-label="Recorded task progress">{todos.map((todo,index)=><li key={index} data-status={todo.status}>{todo.status==='completed'?<Check size={15} aria-hidden="true"/>:<Square size={15} aria-hidden="true"/>}<span>{todo.content}<small>{stateNames[todo.status]??'Unknown status'} · {todo.priority} priority</small></span></li>)}</ol>;
+}
+export function AgentActivity({events,nativeMessages=[],active=false,waiting=false,mode,model,evidence=[],todos=[],manifest,status:taskStatus,showFeed=true,compact=false}:{events:TaskEvent[];nativeMessages?:{id:string;text:string;finish:string|null}[];active?:boolean;waiting?:boolean;mode:string;model:string;evidence?:ToolEvidence[];todos?:ActivityTodo[];manifest?:RunManifest;status?:string;showFeed?:boolean;compact?:boolean}){
  const rows=events.filter(event=>stages[event.stage]);
-
- const meaningful=rows.some(row=>!['model_turn','assistant_update','failed','cancelled','interrupted'].includes(row.stage))||evidence.length>0||todos.length>0||Boolean(manifest?.children?.length);
- const publicText=<>{nativeMessages.filter(row=>active||row.finish!=='stop').map(row=><div key={row.id} className="activity-update"><MessageResponse isAnimating={active&&!waiting&&!row.finish}>{row.text}</MessageResponse></div>)}</>;
- if(!meaningful)return active&&nativeMessages.length?(compact?<div className="activity-compact">{publicText}<div className="orchestration-live" role="status"><WorkingIndicator/><span className="activity-shimmer">Working</span></div></div>:publicText):active?<div className={compact?'orchestration-live activity-compact':'orchestration-live'} role="status"><WorkingIndicator/><span className="activity-shimmer">Working</span></div>:null;
-
- const latest=rows.at(-1);
- const completed=evidence.filter(call=>call.status==='completed').length,failed=evidence.filter(call=>call.status==='failed').length;
-
-  const steps=Math.max(evidence.length,rows.filter(row=>row.stage==='tool_completed'||row.stage==='tool_failed').length)||rows.filter(row=>!['model_turn','assistant_update'].includes(row.stage)).length;
-  const stepLabel=`${steps} ${steps===1?'step':'steps'}`,live=active&&!waiting;
-  const current=latest&&latest.stage.startsWith('tool_')?toolName(latest).replaceAll('_',' '):'';
-  const summary=waiting?'Waiting for your input':live?<span className="activity-shimmer">{current?`Working · ${current}`:'Working'}</span>:<>{activityStateLabel(manifest?.state,false,false)} · {stepLabel}{failed?` · ${failed} failed`:''}{manifest?.elapsedMs!=null?` · ${(manifest.elapsedMs/1000).toFixed(1)}s`:''}</>;
-  const content=<>{publicText}<Reasoning isStreaming={live} forceOpen={waiting} summary={summary}>{showFeed&&<ActivityFeed events={events} active={active} waiting={waiting} compact={compact}/>}<section className="orchestration-trace" aria-label="Agent orchestration">
-
-   <div className="orchestration-heading"><strong>{active?(waiting?'Waiting for your input':'DATUMM working'):'Recorded activity'}</strong><span>{completed} tool results{failed?` · ${failed} failed`:``}{manifest?.elapsedMs!=null?` · ${(manifest.elapsedMs/1000).toFixed(1)}s`:``}</span>{todos.length>0&&<span>{todos.filter(todo=>todo.status==='completed').length}/{todos.length} tasks completed</span>}</div>
-
-   <OpenCodeTodos todos={todos}/>
-
-   {manifest&&<details className="orchestration-evidence"><summary>Main agent · {manifest.model} · {manifest.state}</summary><p>Parent session {manifest.sessionId??'not recorded'} / {manifest.elapsedMs===null||manifest.elapsedMs===undefined?'elapsed time unavailable while running':(manifest.elapsedMs/1000).toFixed(1)+'s'} · {manifest.budget?.calls??'unknown'} shared metered calls · ${manifest.budget?.reservedUsd.toFixed(4)??'unknown'} reserved</p><small>Waiting for input, interruption and failure remain explicit; idle does not imply completion.</small></details>}
-
-   {Boolean(manifest?.children?.length)&&<details className="orchestration-evidence"><summary>Recorded specialists · {manifest!.children.length}</summary>{manifest!.children.map(child=><details key={child.sessionId}><summary>{child.role} · {child.model} · {child.state}</summary><p>{child.calls} total metered calls · ${child.reservedUsd.toFixed(4)} reserved · {child.knownCostCalls?`$${child.reportedUsd.toFixed(4)} reported${child.knownCostCalls<child.calls?' · partial':''}`:'Reported cost unavailable'} · {child.state==='running'?'running':`${(child.elapsedMs/1000).toFixed(1)}s`}</p><small>Native session {child.sessionId} · shared task budget · read-only</small>{child.result&&<pre>{child.result}</pre>}</details>)}</details>}
-
-   {(rows.length>0||evidence.length>0)&&<details className="orchestration-background"><summary><ChevronDown size={14} aria-hidden="true"/><span>Background activity</span><small>{rows.length} recorded steps</small></summary><div className="orchestration-background-content">
-
-  <ol className="orchestration-steps">{rows.map(event=>{
-
-   const failed=['tool_failed','failed','interrupted'].includes(event.stage),thought=event.stage==='model_turn',input=event.stage.startsWith('question_');
-
-   const Icon=failed?X:input?CircleHelp:event.stage==='tool_completed'||event.stage==='approved'||event.stage==='batch_verified'?Check:ArrowRight;
-
-    return <li key={event.eventId??event.index} data-stage={event.stage}><details><summary><Icon size={13} aria-hidden="true"/><span>{thought?`${stages[event.stage]} · ${event.detail.match(/step \d+/)?.[0]??'reasoning step'}`:event.stage.startsWith('tool_')||event.stage.startsWith('specialist_')||event.stage==='compaction_completed'?event.detail:stages[event.stage]}</span></summary><div className="orchestration-detail">{event.detail}<small>{event.at&&new Date(event.at).toLocaleTimeString()} · Recorded runtime activity{thought?'; private chain-of-thought is not exposed.':'.'}</small></div></details></li>;
-
-  })}</ol>
-
-   {evidence.length>0&&<div className="orchestration-evidence" aria-label={`Tool calls · ${evidence.length}`}>{evidence.map(call=>{const status=toolStatus(call.status);return <Tool key={call.callId}><ToolHeader name={`${call.role?call.role+' · ':''}${call.tool}`} status={status} meta={call.elapsedMs!=null?`${(call.elapsedMs/1000).toFixed(1)}s`:undefined}/><ToolContent><ToolInput input={call.arguments}/><ToolOutput output={call.result} failed={status==='failed'}/></ToolContent></Tool>;})}</div>}
-
-   </div></details>}
-
-  <footer className="orchestration-footer"><Square size={12} aria-hidden="true"/><strong>{manifest?.mode??mode}</strong><details className="activity-runtime"><summary>Runtime details</summary><span>{manifest?.model??model}</span></details>{active&&<span className="orchestration-live" role="status" aria-live="polite">{waiting?<CircleHelp size={12}/>:<WorkingIndicator/>}{waiting?'Waiting for you':<span className="activity-shimmer">{latest?.stage==='tool_running'?'Calling tool':'Working'}</span>}</span>}</footer>
-
- </section></Reasoning><PublicResearchEvidence evidence={evidence}/><PdfReviewEvidence evidence={evidence}/><CompanionReviewEvidence evidence={evidence}/></>;
-  return compact?<div className="activity-compact">{content}</div>:content;
-
+ const lifecycle=taskStatus??manifest?.state,ended=['completed','failed','error','cancelled','interrupted','paused_limit','paused_recovery','partial','stale','blocked'].includes(lifecycle??'');
+ const isActive=active&&!ended,isWaiting=waiting&&!ended;
+ const publicMessages=nativeMessages.filter(row=>isActive||row.finish!=='stop');
+ const meaningful=rows.length>0||evidence.length>0||todos.length>0||Boolean(manifest)||Boolean(taskStatus);
+ if(!meaningful&&!isActive&&!isWaiting&&!publicMessages.length)return null;
+ const live=isActive&&!isWaiting&&lifecycle!=='queued',latest=rows.at(-1),completed=evidence.filter(call=>recordedState(call.status,active).tone==='completed').length,failed=Math.max(evidence.filter(call=>recordedState(call.status,isActive).tone==='failed').length,rows.filter(row=>row.stage==='tool_failed').length);
+ const steps=Math.max(evidence.length,rows.filter(row=>row.stage==='tool_completed'||row.stage==='tool_failed').length)||rows.filter(row=>!['model_turn','assistant_update'].includes(row.stage)).length;
+ const elapsed=duration(manifest?.elapsedMs),current=latest?.stage==='tool_running'?toolName(latest).replaceAll('_',' '):'';
+ const terminal=rows.findLast(row=>['failed','cancelled','interrupted','paused_limit'].includes(row.stage));
+ const status=ended?activityStateLabel(lifecycle==='error'?'failed':lifecycle,false,false):isWaiting?'Waiting for your input':lifecycle==='queued'?'Queued':live?(current?`Working · ${current}`:'Working'):activityStateLabel(lifecycle??terminal?.stage,false,false);
+ return <div className={styles.activity} data-compact={compact||undefined}>
+  {publicMessages.map(row=><div key={row.id} className={styles.publicUpdate}><MessageResponse isAnimating={live&&!row.finish}>{row.text}</MessageResponse></div>)}
+  {meaningful?<details className={styles.disclosure}>
+   <summary className={styles.summary}>{live?<WorkingIndicator/>:isWaiting?<CircleHelp size={15} aria-hidden="true"/>:<Workflow size={15} aria-hidden="true"/>}<span className={styles.summaryLabel}>{status}</span><span className={styles.summaryMeta}>{steps>0&&`${steps} ${steps===1?'step':'steps'}`}{failed>0&&` · ${failed} failed`}{elapsed&&` · ${elapsed}`}</span><ChevronDown className={styles.chevron} size={14} aria-hidden="true"/></summary>
+   <section className={styles.body} aria-label="Recorded agent activity">
+    <header className={styles.heading}><h3>Recorded activity</h3><p>{evidence.length?`${completed} completed tool ${completed===1?'call':'calls'}${failed?` · ${failed} failed`:''}`:'No structured tool calls were recorded.'}</p></header>
+    <OpenCodeTodos todos={todos}/>
+    {evidence.length>0&&<ol className={styles.tools} aria-label={`Tool calls · ${evidence.length}`}>{evidence.map(call=><RecordedTool key={call.callId} call={call} active={isActive}/>)}</ol>}
+    {showFeed&&rows.length>0&&<details className={styles.technical}><summary>Progress updates <ChevronDown className={styles.chevron} size={14} aria-hidden="true"/></summary><ActivityFeed events={events} active={isActive} waiting={isWaiting} compact={compact}/></details>}
+    {manifest&&<details className={styles.technical}><summary><span>Main agent</span><span className={styles.state}>{recordedState(manifest.state,isActive).label}</span>{elapsed&&<span className={styles.metric}>{elapsed}</span>}<ChevronDown className={styles.chevron} size={14} aria-hidden="true"/></summary><dl className={styles.facts}><div><dt>Task</dt><dd>{manifest.taskId}</dd></div><div><dt>Session</dt><dd>{manifest.sessionId??'Not recorded'}</dd></div><div><dt>Model</dt><dd>{manifest.model}</dd></div><div><dt>Recorded state</dt><dd>{manifest.state}</dd></div><div><dt>Duration</dt><dd>{elapsed??'Not recorded'}</dd></div><div><dt>Shared metered calls</dt><dd>{manifest.budget?.calls??'Not recorded'}</dd></div><div><dt>Reserved cost</dt><dd>{amount(manifest.budget?.reservedUsd)}</dd></div></dl></details>}
+    {Boolean(manifest?.children?.length)&&<details className={styles.technical}><summary><span>Recorded specialists</span><span className={styles.metric}>{manifest!.children.length}</span><ChevronDown className={styles.chevron} size={14} aria-hidden="true"/></summary><ol className={styles.specialists}>{manifest!.children.map(child=><li key={child.sessionId}><details className={styles.technical}><summary><span>{child.role}</span><span className={styles.state}>{recordedState(child.state,isActive).label}</span>{duration(child.elapsedMs)&&<span className={styles.metric}>{duration(child.elapsedMs)}</span>}<ChevronDown className={styles.chevron} size={14} aria-hidden="true"/></summary><dl className={styles.facts}><div><dt>Model</dt><dd>{child.model}</dd></div><div><dt>Session</dt><dd>{child.sessionId}</dd></div><div><dt>Recorded state</dt><dd>{child.state}</dd></div><div><dt>Metered calls</dt><dd>{child.calls}</dd></div><div><dt>Reserved cost</dt><dd>{amount(child.reservedUsd)}</dd></div><div><dt>Reported cost</dt><dd>{child.knownCostCalls?`${amount(child.reportedUsd)}${child.knownCostCalls<child.calls?' · partial':''}`:'Not recorded'}</dd></div></dl>{child.result!==undefined&&<EvidenceBlock label="Result" value={child.result}/>}<p className={styles.note}>Shared task budget · read-only specialist</p></details></li>)}</ol></details>}
+    {rows.length>0&&<details className={styles.technical}><summary><span>Recorded events</span><span className={styles.metric}>{rows.length}</span><ChevronDown className={styles.chevron} size={14} aria-hidden="true"/></summary><ol className={styles.events}>{rows.map(event=>{const Icon=stageIcon(event);return <li key={event.eventId??event.index} data-stage={event.stage}><Icon size={14} aria-hidden="true"/><div><p>{safeEventDetail(event)}</p>{event.at&&Number.isFinite(Date.parse(event.at))&&<time dateTime={event.at}>{new Date(event.at).toLocaleTimeString()}</time>}</div></li>;})}</ol><p className={styles.note}>Recorded runtime activity. Private chain-of-thought is not shown.</p></details>}
+    <footer className={styles.footer}><span>{manifest?.mode??mode}</span><details className={styles.runtime}><summary>Runtime details <ChevronDown className={styles.chevron} size={14} aria-hidden="true"/></summary><p>{manifest?.model??model}</p></details></footer>
+   </section>
+  </details>:<div className={styles.live} role="status" aria-live="polite">{isWaiting?<CircleHelp size={15} aria-hidden="true"/>:<WorkingIndicator/>}<span>{status}</span></div>}
+  <PublicResearchEvidence evidence={evidence}/><PdfReviewEvidence evidence={evidence}/><CompanionReviewEvidence evidence={evidence}/>
+ </div>;
 }
 
 

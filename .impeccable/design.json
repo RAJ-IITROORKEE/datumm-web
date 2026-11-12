@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-12T15:57:07.4579057Z",
+  "generatedAt": "2026-11-12T16:19:29.236032Z",
   "title": "Design System: DATUMM",
   "extensions": {
     "colorMeta": {
@@ -491,6 +491,13 @@
       "description": "Compact label/help/control row; the preview is visual and does not save configuration.",
       "html": "<div class=\"ds-admin-row\"><div><label for=\"ds-admin-parallel\">Parallel chats</label><p>1 to 5 chats running at once per owner.</p></div><input id=\"ds-admin-parallel\" type=\"number\" min=\"1\" max=\"5\" value=\"3\" readonly></div>",
       "css": ".ds-admin-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(200px,1.2fr);gap:24px;padding:18px 0;border-top:1px solid var(--separator,#3c3c3e);font-family:var(--font-sans,Inter,sans-serif);color:var(--foreground,#e8e8e9)}.ds-admin-row label{font-size:13px;font-weight:500;line-height:1.5}.ds-admin-row p{font-size:12px;line-height:1.65;color:var(--muted-foreground,#a1a1a6);margin:4px 0 0}.ds-admin-row input{width:100%;min-width:0;height:36px;padding:4px 12px;border:1px solid var(--border,#6f6f70);border-radius:7px;background:var(--background,#1c1c1e);color:inherit;font-size:13px}.ds-admin-row input:focus-visible{outline:2px solid var(--ring,#4fb0fe);outline-offset:2px}@media(max-width:700px){.ds-admin-row{grid-template-columns:minmax(0,1fr);gap:10px}.ds-admin-row input{font-size:16px}}"
+    },
+    {
+      "name": "Compact activity",
+      "kind": "custom",
+      "description": "Flat public activity disclosure; synthetic display only. Expand without approving or executing anything.",
+      "html": "<details class=\"activity\"><summary>Recorded activity <span>12 s</span></summary><div class=\"row\"><span>Read room schedule</span><span>Completed</span></div><p>A recorded tool result does not verify native model changes.</p></details>",
+      "css": ".activity{font:400 12px/1.5 \"Inter Variable\",Inter,system-ui,sans-serif;color:#a1a1a6;max-width:420px}.activity summary{display:flex;align-items:center;gap:8px;min-height:32px;padding:4px;border-radius:5px;cursor:pointer;list-style:none}.activity summary span{margin-left:auto;font-variant-numeric:tabular-nums}.activity summary:hover{background:#252527;color:#e8e8e9}.activity summary:focus-visible{outline:2px solid #4fb0fe;outline-offset:2px}.activity .row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:10px 4px;border-top:1px solid #3c3c3e}.activity p{margin:8px 4px;font-size:12px} "
     }
   ],
   "narrative": {

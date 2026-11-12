@@ -1,0 +1,146 @@
+.process {
+  min-width: 0;
+  margin: 5px 0 9px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.trigger,
+.nodeTrigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  padding: 4px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trigger:hover,
+.nodeTrigger:hover {
+  background: var(--secondary);
+  color: var(--foreground);
+}
+
+.trigger:focus-visible,
+.nodeTrigger:focus-visible {
+  outline: 2px solid var(--trace-accent);
+  outline-offset: 2px;
+}
+
+.trigger > svg,
+.nodeTrigger > svg,
+.rows li > svg,
+.leaf > svg { flex: none; }
+
+.summary,
+.rowName {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.lifecycle {
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+.metadata,
+.rowState {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.failure,
+.process[data-status='failed'] > .trigger,
+.node[data-status='failed'] > .nodeTrigger,
+.leaf[data-status='failed'],
+.rows li[data-status='failed'] { color: var(--trace-error); }
+
+.chevron { transition: transform 160ms ease-out; }
+.trigger[data-state='open'] > .chevron,
+.nodeTrigger[data-state='open'] > .chevron { transform: rotate(180deg); }
+.content { padding: 3px 0 2px 22px; }
+
+.tree {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.nodeContent {
+  margin: 2px 0 6px 10px;
+  padding-left: 12px;
+  border-left: 1px solid var(--separator, var(--border));
+}
+
+.rows {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 3px 0;
+  list-style: none;
+}
+
+.rows li,
+.leaf {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px;
+}
+
+.rows li > svg,
+.leaf > svg {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.rowState {
+  max-width: 45%;
+  text-align: right;
+}
+
+.note,
+.footnote {
+  margin: 4px 4px 8px;
+  overflow-wrap: anywhere;
+  color: var(--muted-foreground);
+}
+
+.footnote { margin-top: 10px; font-size: 11px; }
+.spinner { animation: turn 1s linear infinite; }
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes turn { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; }
+  .chevron { transition: none; }
+}
+
+@media (pointer: coarse) {
+  .trigger,
+  .nodeTrigger { min-height: 44px; }
+}
