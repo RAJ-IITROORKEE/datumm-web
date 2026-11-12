@@ -43,9 +43,13 @@ AI Elements is copied from the already installed, provenance-recorded snapshot;
 its own `PROVENANCE.md` notes that it is legacy guidance. No component installer,
 model gateway setup or frontend framework upgrade is part of this installation.
 
-Keep upstream licenses. No skill scripts that download/run design helper binaries
-or configure external servers have been run as part of installation. Skill use
-must remain within the user's current task and available tool instructions.
+Keep upstream licenses. Initial skill installation did not execute helper binaries.
+During subsequent user-authorized setup, Impeccable's launcher/context and doctor
+were run, and `hooks on` installed the project Codex hook. The hook configuration
+is in `.codex/hooks.json` and `.impeccable/config.json`; local consent remains
+gitignored. Codex may require initial trust through `/hooks` and a settings/session
+reload before automatic checks run. No external REA server was configured.
+Skill use remains within the user's current task and available tool instructions.
 
 Discovery: <https://skills.sh/>. Exact source repositories/paths are in the lock
 file. Source popularity informed discovery; it is not a guarantee of correctness.

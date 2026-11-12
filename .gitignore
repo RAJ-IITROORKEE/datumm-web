@@ -21,3 +21,5 @@ Thumbs.db
 .npm-cache/
 __pycache__/
 *.py[cod]
+.impeccable/config.local.json
+.impeccable/hook.cache.json

@@ -32,9 +32,9 @@ Use typed records for complete schedules and exports instead of parsing a prose 
 
 Recommended response pattern: result summary → artifact card → assumptions/issues → suggested next action. A BOQ should include element/category, description, quantity, unit and source identity where available. Rates/currency/amounts are optional later data, not invented to populate a table. The user explicitly does not require formulas.
 
-## Agent update interaction — proposal for next discussion
+## Agent update interaction — approved direction D9
 
-The user asks for a change in chat, optionally attaching selected rows/output context. The agent prepares a new revision; display a concise change summary and preserve access to the prior revision. Decide next whether all schedule revisions need an explicit “Use this revision” action or whether non-native output updates can become current automatically. Neither behavior is approved yet. Updating a report must never imply applying changes in Revit.
+The user approved making completed non-native sheet/BOQ revisions current automatically, with a concise change summary and previous revisions available. Updating a report must never imply applying changes in Revit; native changes still require explicit approval. Proposed detail: the user requests changes in chat, optionally attaching selected rows/output context; retain the last completed version until the new revision succeeds. Exact revision and failure contracts remain to specify.
 
 ## Implementation considerations for later
 
@@ -43,6 +43,6 @@ The user asks for a change in chat, optionally attaching selected rows/output co
 - Bind streaming status explicitly; suppress incomplete-data exports until completion. Long schedules should use a bounded preview or dedicated output view rather than unbounded chat growth.
 - Use a controlled renderer allowlist; do not execute arbitrary JSX/HTML/scripts emitted by the model. Preserve link/image restrictions and validate diagram data. Handle malformed diagrams with readable fallback and retry, not a broken conversation.
 - Export authoritative rows with correct units, encoding and quoting; handle spreadsheet formula injection from untrusted cell text even though DATUMM has no formula feature.
-- Add math, custom charts, PDF/XLSX report generation or live collaboration only after separate scope decisions. A custom chart in the playground does not make it an existing DATUMM feature.
+- Add math, custom charts or live collaboration only after separate scope decisions. Existing upstream PDF/DOCX/XLSX report export routes must be preserved and verified; new report-generation behavior is separate scope. See [integration evidence](integration-contracts.md) before assuming a new export service is needed. A custom chart in the playground does not make it an existing DATUMM feature.
 
 Acceptance examples: stream an incomplete table/fence without breaking layout; complete without text change and enable controls; reload an identical artifact; export commas/newlines/Unicode safely; inspect a large schedule; recover a malformed diagram; distinguish stale source version; verify public-share authorization. Use meaningful tests when implementation exists.

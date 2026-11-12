@@ -34,7 +34,7 @@ The user identifies the current agent harness as hosted OpenCode on AWS. Older r
 | Revit connection | Device status, install/pair/connect, active document, supported operations, disconnect/reconnect | Connector and active model identity |
 | Native changes | Preview, exact approval, execution status, verification, failure/recovery | Server/connector authority; never infer approval from UI navigation |
 | Settings | Account, appearance, accessibility, notifications, model defaults, connections, help | Distinguish user/project/org/system settings |
-| User management | Profile, sessions, account lifecycle; potential organizations/roles | Existing identity and authorization capabilities; team scope undecided |
+| User management | Individual profile, sessions, account lifecycle | Existing identity and authorization capabilities; organizations/team roles deferred by D10 |
 | Billing | Plan comparison, checkout/portal, invoices, upgrades, cancellation and failure states | Provider, pricing, entitlements and webhook source of truth undecided |
 | Usage | Requests/tokens/cost or credits, quotas, time ranges, attribution, limits and freshness | Authoritative metering; never present estimated spend as billed spend |
 | Admin | Runtime configuration, knowledge, release management and audit | Existing admin gates and backend permissions |
@@ -66,7 +66,7 @@ These are planning hypotheses derived from the brief and initial view. Confirm o
 
 ## Reference investigation
 
-Confirmed by the user on 12 November: affectUI, <https://www.affectui.com/screens/app-shell-flat>, is the starting reference, including its initial colors and typography. The component map and approved decisions D1–D8 are in [PLAN.md](PLAN.md). Streamdown is the approved direction for structured reports, tables, diagrams and agent-updated review schedules/BOQs; no spreadsheet formula engine or direct cell editing is required. Onboarding starts with Google sign-in, then name/domain and multiple use cases, an optional Revit connector step with Skip for now, and the workspace; see [onboarding specification](docs/ux/onboarding.md).
+Confirmed by the user on 12 November: affectUI, <https://www.affectui.com/screens/app-shell-flat>, is the starting reference, including its initial colors and typography. The component map and approved decisions D1–D10 are in [PLAN.md](PLAN.md). Streamdown is the approved direction for structured reports, tables, diagrams and agent-updated review schedules/BOQs; no spreadsheet formula engine or direct cell editing is required. Non-native sheet/BOQ revisions become current automatically with change summaries and history. Initial account scope is individual users; organization invitations/team roles are deferred. Onboarding starts with Google sign-in, then name/domain and multiple use cases, an optional Revit connector step with Skip for now, and the workspace; see [onboarding specification](docs/ux/onboarding.md).
 
 Confirmed by the user on 12 November: “Modulo” meant morluto/REA, already present globally and now included as repository guidance. Browser observation is sufficient for reference interaction mapping; REA server/native analysis tools are not required just to inspect a website.
 
@@ -131,7 +131,7 @@ Proposed planning artifacts (create when their evidence exists):
 2. Primary launch user: individual architect, BIM engineer, small studio or organization?
 3. Which journeys are mandatory for the first web release, and which can wait?
 4. Exact spacing, responsive behavior and accessibility adjustments within the agreed affectUI visual foundation?
-5. Which settings belong to users, projects or organizations? Is team management needed before collaboration?
+5. Which settings belong to users or projects? Organization invitations/team roles are deferred by D10.
 6. Billing provider, plans, charging unit, quotas and source of usage data?
 7. Which AWS OpenCode endpoints/events and capabilities are deployed today?
 8. What should phone access support initially: chat, approval, status, plan viewing or full editing?
@@ -145,4 +145,6 @@ Exclude development skills, planning documents and captures from deployment uplo
 
 Current artifacts: [PLAN.md](PLAN.md), [PRODUCT.md](PRODUCT.md), [current state](docs/ux/current-state.md), [reference evidence](docs/ux/reference-observations.md), [structured outputs](docs/ux/structured-output.md) and [phase handoff](docs/ux/HANDOFF.md).
 
-Next action: continue small decision rounds for output revisions and onboarding; complete selected reference behavior and integration contracts before approving development. No application implementation, billing integration, harness migration, push, merge or deployment is part of this planning checkpoint.
+Next action: refine the onboarding taxonomy and individual-account billing/usage; complete selected reference behavior and integration contracts before approving development. Output revision behavior is already approved. No application implementation, billing integration, harness migration, push, merge or deployment is part of this planning checkpoint.
+
+Latest tooling instruction: use GPT-6.1 Sol at high reasoning for parallel sub-agents. Workspace, integration/output and onboarding/account planning were delegated with separate document ownership. Impeccable's project hook was installed and its doctor check returned no findings after updating PRODUCT.md to the current schema. No new skill download was necessary; the repository skill was already installed. Hook execution itself still depends on Codex loading/trusting the manifest.

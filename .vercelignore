@@ -13,6 +13,8 @@ PROJECT.md
 PLAN.md
 PRODUCT.md
 DESIGN.md
+.impeccable/
+.codex/
 docs/ux/
 __pycache__/
 *.py[cod]

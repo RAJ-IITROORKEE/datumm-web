@@ -15,6 +15,8 @@ Branch: `codex/ui-ux-foundation-2026-11-12`. Read [PROJECT.md](PROJECT.md) for b
 | D6 | Structured reports, tables with CSV export, Mermaid diagrams, larger previews beside chat | Improve the existing Streamdown renderer; preserve drawing as a separate right-workspace view. |
 | D7 | Review sheets; agent updates them; no formulas needed | Schedules and BOQs support design and Revit export work. No direct spreadsheet cell editing or formula engine in this release. |
 | D8 | Google sign-in first → name/domain → multiple use cases → optional Revit connector → workspace | Connector step has Skip for now. See [onboarding specification](docs/ux/onboarding.md); option taxonomy remains proposed. |
+| D9 | Non-native sheet/BOQ revisions become current automatically, with change summary and history | Keep prior revisions accessible; native Revit changes still require explicit approval. |
+| D10 | Individual accounts first | Defer organization invitations/team roles; preserve existing restricted administrator functions. |
 
 Product framing from the user: **a Cursor for Revit**. The web workspace supports architectural reasoning and review; native modifications still require exact approval and verified execution.
 
@@ -55,13 +57,13 @@ Evidence levels: **I** = specific interaction tested; **P** = preview/docs inspe
 | Markdown outputs | [GFM tables](https://streamdown.ai/docs/gfm), [interactivity](https://streamdown.ai/docs/interactivity), [Mermaid](https://streamdown.ai/docs/plugins/mermaid), [custom components](https://streamdown.ai/docs/components), [playground](https://streamdown.ai/playground) | P + I in playground | D6–D7; see [output contract](docs/ux/structured-output.md). |
 | First-run journey | [Onboarding](https://www.affectui.com/screens/onboarding), [stepper form](https://www.affectui.com/components/stepper-form), [setup guide](https://www.affectui.com/components/setup-guide), [assistant home](https://www.affectui.com/screens/assistant-home) | C | D8 step order approved; option taxonomy, detailed behavior and auth/connector contracts to verify. |
 | Settings | [Preferences](https://www.affectui.com/screens/settings-preferences), [profile](https://www.affectui.com/screens/settings-profile), [models](https://www.affectui.com/screens/settings-models), [security](https://www.affectui.com/screens/settings-security) | P / C / C / C | Separate personal preferences from workspace/admin permissions. |
-| Members | [Members](https://www.affectui.com/screens/settings-members) | C | User management requested broadly; org roles/invites still undecided. |
+| Members | [Members](https://www.affectui.com/screens/settings-members) | C | Deferred by D10; initial release focuses on individual accounts and existing admin gates. |
 | Billing and usage | [Subscription](https://www.affectui.com/screens/settings-subscription), [usage](https://www.affectui.com/screens/agent-usage), [usage meter](https://www.affectui.com/components/usage-meter), [pricing plans](https://www.affectui.com/blocks/pricing-plans) | C | Requested coverage; billing provider, quotas and authoritative metering unresolved. |
 | Admin | [General settings](https://www.affectui.com/screens/settings-general), [integrations](https://www.affectui.com/screens/integrations), [permissions](https://www.affectui.com/screens/agent-permissions), [activity](https://www.affectui.com/screens/agent-activity) | C | Adapt to actual DATUMM admin functions. Stored MCP configuration must not imply active tools. |
 
 ## Proposed delivery phases
 
-1. **Discovery and decisions (current):** preserve D1–D8, inspect remaining selected references, refine onboarding, output review lifecycle and account scope with the user. Keep evidence distinct from recommendation.
+1. **Discovery and decisions (current):** preserve D1–D10, inspect remaining selected references, refine onboarding and account scope with the user. Keep evidence distinct from recommendation.
 2. **Visual and interaction specification:** verify affectUI tokens, spacing, weights, focus, scroll and responsive behavior; create agreed DESIGN.md and wireframes. User's Revit screenshot is still pending.
 3. **Capability contracts:** verify AWS OpenCode API/events, reconnect/cancel semantics, artifact schemas, native authority, model catalog, roles and metering. Mark every control existing / backend addition / future.
 4. **Shell and chat slice:** layout, navigation, shared composer, answer rendering and compact activity. Preserve saved conversations and existing acceptance/approval flows.
@@ -88,7 +90,7 @@ Particular checks for the agreed work:
 
 ## Future parallel implementation handoff
 
-The user requests **GPT-6.1 Terra** sub-agents during the later approved implementation. Do not dispatch them during discovery. Assign non-overlapping files after the shell/token/event contracts are stable; one owner integrates shared files.
+The user's latest instruction selects **GPT-6.1 Sol, high reasoning** for parallel sub-agents, replacing the earlier Terra preference. Three planning agents were dispatched for workspace, integration/output contracts and onboarding/account packets. Application implementation still awaits plan approval. Assign non-overlapping files; one owner integrates shared files.
 
 Every packet must contain:
 
@@ -102,13 +104,25 @@ Every packet must contain:
 
 Candidate packet boundaries: shell; composer/answer; activity; viewer review; structured outputs; onboarding/settings; commercial/admin. Resolve shared ownership before running in parallel. Keep the master plan compact; workers read only the relevant evidence and packet rather than the whole transcript.
 
+### Source-backed planning packets
+
+| Packet | Read for | Readiness |
+| --- | --- | --- |
+| [Workspace W-A–W-E](docs/ux/packets/workspace.md) | Shell, Focus drawing, composer/context, activity, viewer/annotations; exact file ownership and state/acceptance matrices | Written; remaining layout interactions and browser-local annotation policy need review. |
+| [Integration I1–I6](docs/ux/integration-contracts.md) | Existing proxy/export/event/native contracts, Streamdown renderer, typed outputs and D9 revision behavior | Written; deployed API fixtures and missing revision contracts need verification. |
+| [Onboarding and account](docs/ux/packets/onboarding-account.md) | Google/profile/use-case/optional connector flow, account persistence, settings/admin/usage boundaries | Written; taxonomy, profile storage and live authorization flow need verification. |
+
+Cross-packet ownership: W-D and I4 describe the **same activity workstream**, not two concurrent owners. W-A and I6 share one shell integrator. I2 owns MessageResponse; W-C owns composer presentation; conversation and workspace hook insertion points remain integrator-only. Account and integration workers request shared proxy/type changes from one integration owner. Freeze the file ledger before future parallel source edits.
+
+The next approval-ready milestone is the agreed wireframe/interaction specification plus verified service contracts. These source-backed packets do not claim the entire reference catalog or deployed backend has been tested. Do not invent endpoints or treat existing export menu entries as evidence that every upstream format works.
+
 ## Next decisions
 
 Ask in small rounds before adding details to committed scope:
 
-- Output lifecycle: how the user requests an update, reviews differences and selects the current revision.
+- Output lifecycle: define revision data and failure recovery around approved D9 automatic-current behavior.
 - Onboarding: review proposed domain/use-case options and define the first workspace starter suggestions after the agreed D8 flow.
 - Revit connection and supported versions/units; launch user and phone behavior.
-- Teams, roles, billing, quotas and admin boundaries.
+- Individual-account billing, quotas and admin boundaries; organizations/team roles are deferred by D10.
 
 Update [phase handoff](docs/ux/HANDOFF.md) after every planning phase. A future approval of implementation must identify the approved plan revision and unresolved exclusions.

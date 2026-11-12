@@ -2,6 +2,8 @@
 
 12 November 2026. D8 approved: **Google sign-in → name and professional domain → select multiple use cases → optional Revit connector → main workspace**. Application implementation has not started.
 
+D10: individual accounts first. Do not add organization creation, invitations or team-role selection to onboarding in this release.
+
 ## Agreed requirements
 
 - Offer Google sign-in first.
