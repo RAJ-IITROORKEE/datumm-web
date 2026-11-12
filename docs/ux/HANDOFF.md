@@ -2,6 +2,22 @@
 
 Updated 12 November 2026. Branch `codex/ui-ux-foundation-2026-11-12`.
 
+## Latest acceptance and recovery checkpoint
+
+Continued the approved release-verification phase using GPT-6.1 Sol high agents for draft recovery, onboarding hardening and independent acceptance review. The next local reliability slice is implemented:
+
+- Signed-in text drafts recover by account and task/project in this browser for seven days, with bounded storage and explicit memory-only feedback when storage fails or limits apply. Uploads and recognizable credentials are excluded from persistence; this is not a credential detector or cloud draft sync. Unconfigured/preview sessions remain memory-only. Admission clears only the captured submitted revision. Newer local edits survive; another owner's newer persisted draft cannot be removed or moved by a late response.
+- Service bootstrap failure now explains why the workspace is disconnected and offers Retry connection. Existing text and saved view stay available. Same-task background updates preserve the current report snapshot, tab, details and focus; reopening reloads saved execution evidence.
+- Onboarding explains missing fields/interests, focuses the relevant field or error, prevents duplicate pending saves, and keeps Unicode entries after failure. Inputs use 16px text on narrow screens. Display and global Escape handling respect the active layer.
+
+Browser acceptance used the Codex in-app browser. Actual local workspace: desktop, 390px and 320px, unavailable-service retry preserving the exact typed draft, Settings/Billing/Activity navigation, keyboard expansion of Pro details and disabled paid actions. Synthetic development fixtures: unchanged-text streaming completion enables export; malformed Mermaid exposes source and Retry; a 1,200-row BOQ renders 200 preview rows but downloads all 1,200; same-task report updates preserve Elements/source details without a new fetch or stolen focus; unavailable report recovery; report ArrowRight/Home/Escape; Unicode onboarding failure/retry, required interests and optional connector Skip. Display Escape restored its trigger and left Focus drawing active. Full real inspector nesting remains a source-inspected guard, not a witnessed failure.
+
+Independent [acceptance review](acceptance-audit.md) identified and verified correction of stale-owner draft confirmation and provisional-identity transfer races. Persistence tests cover exact revisions, identical re-edits, account isolation, expiry, limits, unavailable storage and interleaved owners. Browser draft reload under a configured account remains live acceptance work; the local environment has no Clerk/orchestrator credentials. Successful service reconnect, actual Google saves, connector authorization, measured/verified Revit exports and native execution are not claimed by synthetic fixtures.
+
+Final checks: **88 tests passed**, TypeScript passed, final production build passed, and all 11 production runtime smoke checks passed (app/pricing, configuration/auth gates, rejected writes/unsupported routes, invalid connector recovery and production-404 dev fixture). The temporary production server was stopped afterward. Captures are ignored under `artifacts/ux/`: `service-recovery-desktop.jpg`, `diagram-recovery.jpg`, `onboarding-save-recovery.jpg`, `onboarding-validation-mobile.jpg`, `billing-keyboard-mobile.jpg`, `report-acceptance-desktop.jpg`. The existing design sidecar was refreshed for current field states without replacing DESIGN.md. Source-only Impeccable detection found no primary issues; five advisory notes concern local onboarding type/focus-radius values, not measured accessibility. Doctor's sole remaining advisory is an unset future marketing build preference; app work remains code-first.
+
+Next plan dependency: connected-environment acceptance with real Google/profile, streaming/reconnect, Revit connector and measured reports. Immutable BOQ revisions and paid subscriptions still need authoritative backend contracts. No push, merge or deployment is included in this checkpoint.
+
 ## Latest integration checkpoint
 
 Implemented `/connect?request=...` from the actual Revit connector contract. Sign-in preserves the request; loading only reviews it. A deliberate Allow action authorizes the computer through the existing endpoint. Connector start/token claiming and native model approvals remain separate. Invalid/expired/already-approved/unavailable requests have explicit recovery. No real device was authorized during this task.

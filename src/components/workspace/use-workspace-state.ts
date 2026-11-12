@@ -1,5 +1,6 @@
 import {isRenderablePlan,reviewFocus,openWorkspaceView} from '@/lib/workspace-layout.mjs';
-import {useState, useRef, useEffect, useCallback, useMemo} from 'react';
+import {useState, useRef, useEffect, useCallback, useMemo, type SetStateAction} from 'react';
+import {createPromptDraftStore, type PromptDraftStore, type PromptDraftStatus} from '@/lib/prompt-drafts.mjs';
 import {type AuthStatus, type ProviderStatus} from '@/lib/desktop-contract';
 import {accountAdmissionState} from '../account-admission';
 import {type ReasoningEffort} from '../model-picker';
@@ -90,7 +91,7 @@ export async function api<T>(path:string,method='GET',body?:unknown):Promise<T>{
 
 }
 
-export function useWorkspaceState({authConfigured,desktopPreview=false}:{authConfigured:boolean;desktopPreview?:boolean}){
+export function useWorkspaceState({authConfigured,accountKey,desktopPreview=false}:{authConfigured:boolean;accountKey?:string;desktopPreview?:boolean}){
 
  const [desktopAvailable,setDesktopAvailable]=useState(false),[settingsOpen,setSettingsOpen]=useState(false);
  const [accountStatus,setAccountStatus]=useState<AuthStatus>(),[accountStatusError,setAccountStatusError]=useState(''),[accountActionError,setAccountActionError]=useState(''),[accountBusy,setAccountBusy]=useState(false),[accountWorkspaceSubject,setAccountWorkspaceSubject]=useState<string>();
@@ -122,7 +123,16 @@ export function useWorkspaceState({authConfigured,desktopPreview=false}:{authCon
  const signedDesktopAccount=desktopAvailable&&!desktopPreview&&accountStatus?.kind==='hosted-auth'&&['signed-in','expired-offline'].includes(accountStatus.state)?accountStatus:undefined;
  const accountExpired=desktopAvailable&&!desktopPreview&&!testIdentity&&accountStatus?.state==='expired-offline';
 
- const [mode,setMode]=useState<Mode>('plan'),[prompt,setPrompt]=useState(''),[model,setModel]=useState('openai/gpt-6-luna'),[reasoningEffort,setReasoningEffort]=useState<ReasoningEffort>('high');
+ const [mode,setMode]=useState<Mode>('plan'),[prompt,setPromptValue]=useState(''),[model,setModel]=useState('openai/gpt-6-luna'),[reasoningEffort,setReasoningEffort]=useState<ReasoningEffort>('high');
+ const promptValue=useRef(''),promptDrafts=useRef<PromptDraftStore>(createPromptDraftStore());
+ const draftOwner=useRef<{account:string|null|undefined;source:string}>({account:undefined,source:'new'});
+ const [draftSaveStatus,setDraftSaveStatus]=useState<PromptDraftStatus>('memory');
+ const displayPrompt=useCallback((text:string)=>{promptValue.current=text;setPromptValue(text);},[]);
+ const setPrompt=useCallback((value:SetStateAction<string>)=>{
+  const text=typeof value==='function'?value(promptValue.current):value;
+  setDraftSaveStatus(promptDrafts.current.set(draftOwner.current.source,text));
+  displayPrompt(text);
+ },[displayPrompt]);
  const modelPreferenceInitialized=useRef(false);
  const [useCurrentModel,setUseCurrentModel]=useState(false);
  const [buildSetupOpen,setBuildSetupOpen]=useState(false);
@@ -171,7 +181,7 @@ export function useWorkspaceState({authConfigured,desktopPreview=false}:{authCon
  const currentRun=useRef(run);currentRun.current=run;
  const setRun=(value:Run|null)=>setProjection(previous=>value?reduceProjection(previous,{snapshot:value}):emptyProjection<Run>());
 
- const [error,setError]=useState(''),[connected,setConnected]=useState(false);
+ const [error,setError]=useState(''),[connected,setConnected]=useState(false),[serviceError,setServiceError]=useState('');
   const [blockedChat,setBlockedChat]=useState<{id:string;message:string}|null>(null);
  const [connectionNotice,setConnectionNotice]=useState('');
  const [sourceDrafts,setSourceDrafts]=useState<Record<string,ComposerSource[]>>({}),[mediaBusy,setMediaBusy]=useState(false);
@@ -274,8 +284,24 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  const reviewEpoch=useRef(0);
  const canvasTrigger=useRef<HTMLButtonElement|null>(null);
  const dialogTrigger=useRef<HTMLElement|null>(null);
- const pendingSubmission=useRef<{text:string;runStarted:boolean;taskId?:string;sourceKey:string}|null>(null);
- const recoveryEpoch=useRef(0),promptDrafts=useRef<Record<string,string>>({});
+ const pendingSubmission=useRef<{text:string;runStarted:boolean;taskId?:string;sourceKey:string;draftStore:PromptDraftStore;draftRevision?:string}|null>(null);
+ const recoveryEpoch=useRef(0);
+ const draftAccountKey=desktopAvailable
+  ? !desktopPreview&&admittedSubject&&accountWorkspaceSubject===admittedSubject?'desktop:'+admittedSubject:null
+  : !desktopPreview&&authConfigured&&accountKey?'web:'+accountKey:null;
+ useEffect(()=>{
+  if(draftOwner.current.account!==draftAccountKey){
+   if(draftOwner.current.account!==undefined){pendingSubmission.current=null;submissionKey.current=null;recoveryEpoch.current++;}
+   promptDrafts.current=createPromptDraftStore({accountKey:draftAccountKey,storage:()=>window.localStorage});
+  }
+  draftOwner.current={account:draftAccountKey,source:sourceKey};
+  displayPrompt(promptDrafts.current.get(sourceKey));
+  setDraftSaveStatus(promptDrafts.current.status(sourceKey));
+ },[draftAccountKey,sourceKey,displayPrompt]);
+ const confirmPromptDraft=(key:string,text:string,store:PromptDraftStore,revision:string|undefined)=>{
+  const result=store.confirm(key,text,revision);
+  if(promptDrafts.current===store&&draftOwner.current.source===key){setDraftSaveStatus(result);if(promptValue.current===text)displayPrompt(store.get(key));}
+ };
  const recoverLiveView=(taskId?:string)=>{const epoch=recoveryEpoch.current;setError('');setConnectionNotice('Checking the saved task after the live stream ended…');if(taskId)void api<Run>('tasks/'+encodeURIComponent(taskId)).then(task=>{if(recoveryEpoch.current===epoch){setRun(task);setConnectionNotice(savedTaskConnectionNotice(task));}}).catch(()=>{if(recoveryEpoch.current===epoch)setConnectionNotice('Saved task updates are unavailable. Check the connection before retrying; this message was already admitted.');});};
  const openCanvas=(trigger:HTMLButtonElement)=>{canvasTrigger.current=trigger;setStudioView('workspace');setRight(false);setCanvasOpen(true);};
  const restoreDialogFocus=(event:Event)=>{event.preventDefault();const trigger=dialogTrigger.current?.isConnected?dialogTrigger.current:document.querySelector<HTMLElement>('button[aria-label="Show sidebar"],button[aria-label="Account settings"],[aria-label="Search tasks"]');trigger?.focus();};
@@ -370,7 +396,13 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
 
   if(!pendingSubmission.current)return;
   if(part.type==='data-run'){
-   if(pendingSubmission.current){pendingSubmission.current.runStarted=true;pendingSubmission.current.taskId=(part.data as {id:string}).id;const key=pendingSubmission.current.sourceKey;setSourceDrafts(previous=>({...previous,[key]:[]}));}
+   if(pendingSubmission.current){
+    const pending=pendingSubmission.current,taskId=(part.data as {id:string}).id,key=pending.sourceKey;
+    pending.runStarted=true;pending.taskId=taskId;
+    confirmPromptDraft(key,pending.text,pending.draftStore,pending.draftRevision);
+    if((key==='new'||key.startsWith('new:'))&&key!==taskId)pending.draftStore.move(key,taskId);
+    setSourceDrafts(previous=>({...previous,[key]:[]}));
+   }
    submissionKey.current=null;
    setRunId((part.data as {id:string}).id);
   }
@@ -437,7 +469,7 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
 
  useEffect(()=>{
   const closeDrawer=(event:KeyboardEvent)=>{
-   if(event.key!=='Escape'||event.defaultPrevented||document.querySelector('[role="dialog"][data-state="open"]'))return;
+   if(event.key!=='Escape'||event.defaultPrevented||Array.from(document.querySelectorAll('[role="dialog"]')).some(dialog=>dialog.getClientRects().length>0))return;
    if(left&&window.matchMedia('(max-width:850px)').matches){
     event.preventDefault();setLeft(false);requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>('button[aria-label="Show sidebar"]')?.focus());return;
    }
@@ -460,14 +492,14 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
    const epoch=accountEpoch.current;
    try{const [configuration,list,history,tools]=await Promise.all([api<RuntimeConfig>('config'),api<Device[]>('devices'),api<Run[]>('runs'+(historyView==='archived'?'?archived=true':'')),Promise.resolve<McpTool[]>([])]);
     if(epoch!==accountEpoch.current)return true;
-    setRuntimeConfig(configuration);setMcpTools(tools);
+    setRuntimeConfig(configuration);setMcpTools(tools);setServiceError('');
    void api<ProjectRow[]>('projects'+(!desktopAvailable&&historyView==='archived'?'?archived=true':'')).then(value=>{if(epoch===accountEpoch.current&&Array.isArray(value)){setProjects(value);setProjectsSupported(true);}}).catch(failure=>{if(epoch===accountEpoch.current&&!desktopAvailable&&notSupported(failure))setProjectsSupported(false);});
 
    setConnected(true);setModels(configuration.models);if(!modelPreferenceInitialized.current){const taskFromUrl=new URLSearchParams(window.location.search).get('task');if(!taskFromUrl){setModel(configuration.defaultModel??'openai/gpt-6-luna');setReasoningEffort(configuration.defaultReasoningEffort??'high');}modelPreferenceInitialized.current=true;}setDevices(list);setRuns(history);
 
    setDeviceId(previous=>previous||list.find(d=>d.online)?.id||'');
    return true;
-  }catch{if(epoch===accountEpoch.current)setConnected(false);return false;}finally{if(epoch===accountEpoch.current)setWorkspaceReady(true);}
+  }catch{if(epoch===accountEpoch.current){setConnected(false);setServiceError('DATUMM could not load the workspace service. Check your connection and retry. Your draft is preserved.');}return false;}finally{if(epoch===accountEpoch.current)setWorkspaceReady(true);}
 
  },[historyView,desktopPreview,accountStatus?.state,testIdentity]);
 
@@ -478,10 +510,10 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   let active=true;
   accountEpoch.current++;
   if(accountWorkspaceSubject){
-   setRuns([]);setProjects([]);setRun(null);setRunId('');setMessages([]);setPrompt('');setNewProject('');setMode('plan');setSourceDrafts({});setSavedSources([]);setSelectedSourceId('');
+   setRuns([]);setProjects([]);setRun(null);setRunId('');setMessages([]);displayPrompt('');setNewProject('');setMode('plan');setSourceDrafts({});setSavedSources([]);setSelectedSourceId('');
    setUseCurrentModel(false);setDesignVersion(null);setDesignDiff('');setCompareVersion(null);setInspectedDesignFingerprint('');setDesignHighlights([]);setSelectedDesignElement('');setPlanningGoalOpen(false);
-   promptDrafts.current={};placementDrafts.current.clear();notificationStates.current.clear();pendingSubmission.current=null;submissionKey.current=null;queueRetry.current=null;commandRetry.current.clear();commandExpected.current=null;recoveryEpoch.current++;
-   modelPreferenceInitialized.current=false;setError('');setConnectionNotice('');
+   placementDrafts.current.clear();notificationStates.current.clear();pendingSubmission.current=null;submissionKey.current=null;queueRetry.current=null;commandRetry.current.clear();commandExpected.current=null;recoveryEpoch.current++;
+   modelPreferenceInitialized.current=false;setError('');setServiceError('');setConnectionNotice('');
    const url=new URL(window.location.href);url.searchParams.delete('task');window.history.replaceState(null,'',url);
   }
   setWorkspaceReady(false);setConnected(false);void stop();
@@ -547,6 +579,7 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
 
  const replyToQuestion=async(payload:ReplyPayload|{question_id:string;answer:string})=>{
   if(!run||replying.current)throw new Error('Your answer is already being sent.');
+  const replyDraftStore=promptDrafts.current,replyDraft=prompt,replySource=sourceKey,replyDraftRevision=replyDraftStore.revision(sourceKey),replyEpoch=recoveryEpoch.current;
   replying.current=true;setActionBusy(true);setError('');
   try{
    try{await taskCommand({type:'answer',questionId:payload.question_id,questionVersion:('question_version' in payload?payload.question_version:undefined)??run.data.agent_question?.version??1,...('answer' in payload?{answer:payload.answer}:{answers:payload.answers})});}
@@ -556,8 +589,10 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
     const current=await api<Run>(`runs/${run.id}`).catch(()=>null);
     if(current?.data.agent_reply_receipt?.questionId!==payload.question_id)throw failure;
    }
-   setPrompt('');
+   if('answer' in payload&&payload.answer.trim()===replyDraft.trim())confirmPromptDraft(replySource,replyDraft,replyDraftStore,replyDraftRevision);
+   if(replyEpoch!==recoveryEpoch.current)return;
    const current=await api<Run>(`runs/${run.id}`).catch(()=>null);
+   if(replyEpoch!==recoveryEpoch.current)return;
    setRun(current??{...run,status:'queued',data:{...run.data,agent_question:undefined}});
   }finally{replying.current=false;setActionBusy(false);}
  };
@@ -576,7 +611,7 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
    if(offlineFixture&&text.trim()!==runtimeConfig?.fixturePrompt){
     setError(desktopPreview?'This is the UI-only offline preview. Start npm run preview:desktop for live Ask/Plan, then reopen /preview. Your prompt is preserved.':'OpenCode is not connected. Connect and verify a model in Settings. Your prompt is preserved; Run offline check only validates storage.');return;
    }
-   const preserveDraft=offlineFixture&&text!==prompt;
+   const preserveDraft=text!==prompt;
   // needs_input is authoritative even if the chat transport is closing.
   if(run?.status==='needs_input'&&run.data.agent_question){
    if((run.data.agent_question.questions?.length??1)>1){setError('Answer the question group above, then submit all answers together.');return;}
@@ -584,7 +619,7 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
    catch(failure){setError((failure as Error).message);}return;
   }
    if(queueMessage&&!variableSelection&&run){
-     const queueEpoch=recoveryEpoch.current;
+     const queueEpoch=recoveryEpoch.current,queueDraftStore=promptDrafts.current,queueDraftRevision=queueDraftStore.revision(sourceKey);
     const queuedMode=override??mode;
     if(recipe){setError('Legacy recipes cannot be queued. Native approvals must be reviewed separately.');return;}
     const value={prompt:text.trim(),mode:queuedMode,model,reasoningEffort,deviceId:deviceId||run.device_id||null,attachmentIds:sources.map(row=>row.id)};
@@ -593,8 +628,9 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
     setActionBusy(true);setError('');
     try{
      await api(`tasks/${run.id}/queue`,'POST',{id:queueRetry.current.id,...value});
-      if(queueEpoch!==recoveryEpoch.current){if(promptDrafts.current[sourceKey]===text)promptDrafts.current[sourceKey]='';return;}
-     queueRetry.current=null;setPrompt(current=>current===text?'':current);setSources([]);
+     confirmPromptDraft(sourceKey,text,queueDraftStore,queueDraftRevision);
+      if(queueEpoch!==recoveryEpoch.current)return;
+     queueRetry.current=null;setSources([]);
       const saved=await api<Run>(`tasks/${run.id}`);if(queueEpoch===recoveryEpoch.current)setRun(saved);
      }catch(failure){if(queueEpoch===recoveryEpoch.current)setError((failure as Error).message+' Your prompt is preserved.');}
     finally{setActionBusy(false);}return;
@@ -603,9 +639,9 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   if((override??mode)==='build'&&(!selectedDevice?.online||revitSessions!==1)){
    setError(!selectedDevice?.online?(devices.some(d=>d.online)?'Select your online Revit device in Connections before building.':'Build needs the DATUMM Revit plugin connected. Follow the setup steps above the message box, or continue in Plan mode. Your prompt is preserved.'):'Enable the DATUMM local bridge in Revit and close its settings panel before building.');return;
   }
-   setError('');setConnectionNotice('');if(!run){setRun(null);setRunId('');setDesignVersion(null);setDesignDiff('');}if(!preserveDraft)setPrompt('');
+   setError('');setConnectionNotice('');if(!run){setRun(null);setRunId('');setDesignVersion(null);setDesignDiff('');}if(!preserveDraft)displayPrompt('');
   if(run?.data.agent_design&&(override??mode)==='build'&&!run.data.compiled&&!run.data.operation_id)setBuildSetupOpen(true);
-  const epoch=recoveryEpoch.current,submission={text,runStarted:false,sourceKey};pendingSubmission.current=submission;
+  const epoch=recoveryEpoch.current,submission={text,runStarted:false,sourceKey,draftStore:promptDrafts.current,draftRevision:promptDrafts.current.revision(sourceKey)};pendingSubmission.current=submission;
   const isCurrent=()=>recoveryEpoch.current===epoch&&pendingSubmission.current===submission;
 
   const signature=JSON.stringify({taskId:run?.id,text,mode:override??mode,model,reasoningEffort,recipe,projectId:newProject,attachmentIds:sources.map(row=>row.id)});
@@ -627,7 +663,7 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
    await sendMessage({text},{body:requestKey.body});
   }catch(failure){
     if(!isCurrent())return;
-    if(!pendingSubmission.current?.runStarted&&!preserveDraft)setPrompt(text);
+    if(!pendingSubmission.current?.runStarted&&!preserveDraft)setPrompt(current=>current||text);
     if(!pendingSubmission.current?.runStarted&&!currentRun.current)dropOptimistic(text);
    const known=chatStartFailure(failure);
     setBlockedChat(known?.blockingTask?{id:known.blockingTask.id,message:known.message}:null);
@@ -770,9 +806,9 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
 
 
  const closeMobileNav=()=>{if(window.matchMedia('(max-width:850px)').matches)setLeft(false);};
- const newTask=(projectId='')=>{if(mediaBusy)return;setStudioView('workspace');setWorkspacePane('chat');setCanvasOpen(false);setTab('preview');setRight(false);setPlanningGoalOpen(false);setNewProject(projectId);promptDrafts.current[sourceKey]=pendingSubmission.current&&!pendingSubmission.current.runStarted?pendingSubmission.current.text:prompt;recoveryEpoch.current++;setConnectionNotice('');reviewEpoch.current++;setActionBusy(false);setCompareVersion(null);setDrawingError('');const url=new URL(window.location.href);url.searchParams.delete('task');window.history.replaceState(null,'',url);pendingSubmission.current=null;void stop();submissionKey.current=null;commandRetry.current.clear();setRun(null);setRunId('');setMessages([]);setDesignVersion(null);setDesignDiff('');setError('');setPrompt(promptDrafts.current[projectId?'new:'+projectId:'new']??'');setUseCurrentModel(false);closeMobileNav();};
+ const newTask=(projectId='')=>{if(mediaBusy)return;setStudioView('workspace');setWorkspacePane('chat');setCanvasOpen(false);setTab('preview');setRight(false);setPlanningGoalOpen(false);setNewProject(projectId);recoveryEpoch.current++;setConnectionNotice('');reviewEpoch.current++;setActionBusy(false);setCompareVersion(null);setDrawingError('');const url=new URL(window.location.href);url.searchParams.delete('task');window.history.replaceState(null,'',url);pendingSubmission.current=null;void stop();submissionKey.current=null;commandRetry.current.clear();setRun(null);setRunId('');setMessages([]);setDesignVersion(null);setDesignDiff('');setError('');displayPrompt(promptDrafts.current.get(projectId?'new:'+projectId:'new'));setUseCurrentModel(false);closeMobileNav();};
 
- const selectRun=(value:Run)=>{if(mediaBusy)return;setStudioView('workspace');setWorkspacePane('chat');setCanvasOpen(false);setTab('preview');setRight(false);setPlanningGoalOpen(false);promptDrafts.current[sourceKey]=pendingSubmission.current&&!pendingSubmission.current.runStarted?pendingSubmission.current.text:prompt;setPrompt(promptDrafts.current[value.id]??'');recoveryEpoch.current++;setConnectionNotice('');reviewEpoch.current++;setActionBusy(false);setCompareVersion(null);setDrawingError('');pendingSubmission.current=null;submissionKey.current=null;void stop();commandRetry.current.clear();setRun(value);setRunId(value.id);setMode(value.mode);setModel(value.model);setReasoningEffort(value.reasoningEffort??'high');setUseCurrentModel((value.data as Run['data']&{model_context_requirement?:string}).model_context_requirement==='read');setDesignVersion(null);setDesignDiff('');setMessages([]);closeMobileNav();};
+ const selectRun=(value:Run)=>{if(mediaBusy)return;setStudioView('workspace');setWorkspacePane('chat');setCanvasOpen(false);setTab('preview');setRight(false);setPlanningGoalOpen(false);displayPrompt(promptDrafts.current.get(value.id));recoveryEpoch.current++;setConnectionNotice('');reviewEpoch.current++;setActionBusy(false);setCompareVersion(null);setDrawingError('');pendingSubmission.current=null;submissionKey.current=null;void stop();commandRetry.current.clear();setRun(value);setRunId(value.id);setMode(value.mode);setModel(value.model);setReasoningEffort(value.reasoningEffort??'high');setUseCurrentModel((value.data as Run['data']&{model_context_requirement?:string}).model_context_requirement==='read');setDesignVersion(null);setDesignDiff('');setMessages([]);closeMobileNav();};
   const selectRunRef=useRef(selectRun);selectRunRef.current=selectRun;
   useEffect(()=>window.desktop?.onNavigateTask(id=>{const epoch=++recoveryEpoch.current;void api<Run>('tasks/'+id).then(value=>{if(epoch===recoveryEpoch.current)selectRunRef.current(value);}).catch(e=>{if(epoch===recoveryEpoch.current)setError((e as Error).message);});}),[]);
 
@@ -847,7 +883,8 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   const activityView=activityRun?latestTaskActivity(activityRun,activityRun.id===run?.id?events:activityRun.events):null;
   const currentActivity=run?latestTaskActivity(run,events):null;
   const showDesktopAssistant=true;
- return {openStudioView,workspacePane,setWorkspacePane,projectsSupported,chatMenuUnsupported,unreadIds,renameChat,moveChat,createProject,archiveProject,projects,runId,mediaBusy,actionBusy,selectRun,dialogTrigger,updateHistory,setProjectContextOpen,setDeleteTarget,left,viewportReady,setLeft,panelWidths,resizePanel,toggleLeft,newTask,search,setSearch,studioView,setStudioView,runs,historyView,filteredChats,desktopAvailable,orderedProjects,collapsedProjects,setCollapsedProjects,setRenameTitle,setRenameTarget,setProjectOrder,setWorkflowFilter,workflowFilter,defaultProject,changeSettingsOpen,authConfigured,setDeviceDialog,setHistoryView,setDeletePhrase,setDeleteAllOpen,liveRuntime,desktopPreview,queueData,run,designDraftKey,placementDrafts,selectedSource,executing,setDesignHighlights,selectedDesignElement,setInspectedDesignFingerprint,setRight,setTab,model,askFromCanvas,setActionBusy,setRun,setPrompt,refresh,mode,continueDesignBuild,devices,setMode,focusReview,nativeAction,hasContent,reviewScroll,messages,traceTurns,nativeQuestions,savedTurns,nativeTodos,designTurn,nativeTurn,responseSummary,planningGoalOpen,recoveryEpoch,busy,savedSources,setSelectedSourceId,nativeContext,nativeContextError,commandExpected,taskCommand,proposalExpired,committedBuild,act,setAccessBatches,plannedAccessBatches,setAccessMargin,setAccessReview,setAccessDialog,setError,replyToQuestion,outcome,openCanvas,selectedDevice,buildLegacy,reviewAlternative,drawingLoading,drawingError,drawingMissing,setDrawingRetry,designVersion,drawingCurrent,compareVersion,canvasInputEnabled,persistentProperties,setDrawingStyle,compareDrawing,setCompareVersion,drawingStyle,designDiff,reviewAssumptions,planAccepted,acceptDrawing,switchDrawingToBuild,buildStep,revitSessions,placementTask,confirmedPlacement,buildVariable,setBuildSetupOpen,reviewPlacement,revokeVariableGrant,grantVariable,previewSvg,previewRooms,batchInProgress,partialGoal,verifiedBatchCount,verifiedCount,verifiedBreakdown,completedGoal,completedCriteria,checkpointFindings,submit,verifiedNativeBatches,confirmedAnnotationFailure,canRefreshFailedPreparation,canEndFailedPreparation,connected,workspaceReady,offlineFixture,dismissedWorkflow,workflowNoticeKey,setDismissedWorkflow,promptQueue,prompt,queueAction,runtimeConfig,messageError,blockedChat,setBlockedChat,connectionNotice,setConnectionNotice,useCurrentModel,setUseCurrentModel,draftReferences,commandsOpen,commandMatches,commandIndex,chooseCommand,visiblePrompt,setCommandIndex,setCommandsDismissed,sendShortcut,sourceKey,sources,setSources,setMediaBusy,buildUnavailable,chatModels,reasoningEffort,modelPreferenceInitialized,setModel,setReasoningEffort,queueMessage,providerStatus,contextView,right,tab,hasRenderablePlan,activeDrawing,setSelectedDesignElement,plannedCandidate,separateNativeFollowup,contextTitle,previewLabel,previewCounts,currentActivity,eventDetail,exportItems,mcpToolsError,mcpTools,setSendShortcut,setCanvasInputEnabled,setPersistentProperties,needsAccountAdmission,accountStatus,accountStatusError,accountActionError,accountBusy,accountWorkspaceLoading,accountAction,settingsOpen,showDesktopAssistant,toggleRight,currentProject,deviceId,accountExpired,renameTarget,renameTitle,error,accessDialog,restoreDialogFocus,accessBatches,accessMargin,reviewTaskAccess,accessReview,enableTaskAccess,buildSetupOpen,placementContext,placementView,setPlacementView,setConfirmedPlacement,placementX,setPlacementX,placementY,setPlacementY,placementRotation,setPlacementRotation,confirmPlacement,activityView,activityFilter,setActivityFilter,activityRuns,activityRun,setActivitySelection,designHighlights,deviceDialog,setDeviceId,revoke,setControl,deleteTarget,removeTask,deleteAllOpen,deletePhrase,removeAllTasks,canvasOpen,setCanvasOpen,canvasTrigger,models,projectContextOpen,localConnections,setLocalConnections};
+ const draftSaveNotice=prompt&&draftSaveStatus==='unavailable'?'This draft is kept in this tab. Browser storage is unavailable; copy your text before reloading.':draftSaveStatus==='memory'&&draftAccountKey&&prompt?'This draft is kept in this tab because it falls outside browser draft limits. Copy your text before reloading.':'';
+ return {serviceError,draftSaveNotice,openStudioView,workspacePane,setWorkspacePane,projectsSupported,chatMenuUnsupported,unreadIds,renameChat,moveChat,createProject,archiveProject,projects,runId,mediaBusy,actionBusy,selectRun,dialogTrigger,updateHistory,setProjectContextOpen,setDeleteTarget,left,viewportReady,setLeft,panelWidths,resizePanel,toggleLeft,newTask,search,setSearch,studioView,setStudioView,runs,historyView,filteredChats,desktopAvailable,orderedProjects,collapsedProjects,setCollapsedProjects,setRenameTitle,setRenameTarget,setProjectOrder,setWorkflowFilter,workflowFilter,defaultProject,changeSettingsOpen,authConfigured,setDeviceDialog,setHistoryView,setDeletePhrase,setDeleteAllOpen,liveRuntime,desktopPreview,queueData,run,designDraftKey,placementDrafts,selectedSource,executing,setDesignHighlights,selectedDesignElement,setInspectedDesignFingerprint,setRight,setTab,model,askFromCanvas,setActionBusy,setRun,setPrompt,refresh,mode,continueDesignBuild,devices,setMode,focusReview,nativeAction,hasContent,reviewScroll,messages,traceTurns,nativeQuestions,savedTurns,nativeTodos,designTurn,nativeTurn,responseSummary,planningGoalOpen,recoveryEpoch,busy,savedSources,setSelectedSourceId,nativeContext,nativeContextError,commandExpected,taskCommand,proposalExpired,committedBuild,act,setAccessBatches,plannedAccessBatches,setAccessMargin,setAccessReview,setAccessDialog,setError,replyToQuestion,outcome,openCanvas,selectedDevice,buildLegacy,reviewAlternative,drawingLoading,drawingError,drawingMissing,setDrawingRetry,designVersion,drawingCurrent,compareVersion,canvasInputEnabled,persistentProperties,setDrawingStyle,compareDrawing,setCompareVersion,drawingStyle,designDiff,reviewAssumptions,planAccepted,acceptDrawing,switchDrawingToBuild,buildStep,revitSessions,placementTask,confirmedPlacement,buildVariable,setBuildSetupOpen,reviewPlacement,revokeVariableGrant,grantVariable,previewSvg,previewRooms,batchInProgress,partialGoal,verifiedBatchCount,verifiedCount,verifiedBreakdown,completedGoal,completedCriteria,checkpointFindings,submit,verifiedNativeBatches,confirmedAnnotationFailure,canRefreshFailedPreparation,canEndFailedPreparation,connected,workspaceReady,offlineFixture,dismissedWorkflow,workflowNoticeKey,setDismissedWorkflow,promptQueue,prompt,queueAction,runtimeConfig,messageError,blockedChat,setBlockedChat,connectionNotice,setConnectionNotice,useCurrentModel,setUseCurrentModel,draftReferences,commandsOpen,commandMatches,commandIndex,chooseCommand,visiblePrompt,setCommandIndex,setCommandsDismissed,sendShortcut,sourceKey,sources,setSources,setMediaBusy,buildUnavailable,chatModels,reasoningEffort,modelPreferenceInitialized,setModel,setReasoningEffort,queueMessage,providerStatus,contextView,right,tab,hasRenderablePlan,activeDrawing,setSelectedDesignElement,plannedCandidate,separateNativeFollowup,contextTitle,previewLabel,previewCounts,currentActivity,eventDetail,exportItems,mcpToolsError,mcpTools,setSendShortcut,setCanvasInputEnabled,setPersistentProperties,needsAccountAdmission,accountStatus,accountStatusError,accountActionError,accountBusy,accountWorkspaceLoading,accountAction,settingsOpen,showDesktopAssistant,toggleRight,currentProject,deviceId,accountExpired,renameTarget,renameTitle,error,accessDialog,restoreDialogFocus,accessBatches,accessMargin,reviewTaskAccess,accessReview,enableTaskAccess,buildSetupOpen,placementContext,placementView,setPlacementView,setConfirmedPlacement,placementX,setPlacementX,placementY,setPlacementY,placementRotation,setPlacementRotation,confirmPlacement,activityView,activityFilter,setActivityFilter,activityRuns,activityRun,setActivitySelection,designHighlights,deviceDialog,setDeviceId,revoke,setControl,deleteTarget,removeTask,deleteAllOpen,deletePhrase,removeAllTasks,canvasOpen,setCanvasOpen,canvasTrigger,models,projectContextOpen,localConnections,setLocalConnections};
 }
 
 export type WorkspaceState = ReturnType<typeof useWorkspaceState>;

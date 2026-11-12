@@ -96,6 +96,8 @@ export type ConversationPanelProps = Pick<
   | 'planningGoalOpen'
   | 'recoveryEpoch'
   | 'busy'
+  | 'draftSaveNotice'
+  | 'serviceError'
   | 'savedSources'
   | 'setSelectedSourceId'
   | 'nativeContext'

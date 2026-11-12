@@ -1,4 +1,5 @@
 import { workflowState } from '@/lib/workflow-state';
+import {useState} from 'react';
 import {
   ArrowUpRight,
   X,
@@ -54,6 +55,8 @@ export type ComposerProps = Pick<
   | 'connected'
   | 'submit'
   | 'messageError'
+  | 'draftSaveNotice'
+  | 'serviceError'
   | 'blockedChat'
   | 'mediaBusy'
   | 'recoveryEpoch'
@@ -107,6 +110,7 @@ export type ComposerProps = Pick<
 >;
 
 export function Composer(props: ComposerProps) {
+  const [retryingConnection,setRetryingConnection]=useState(false);
   const {
     liveRuntime,
     run,
@@ -133,6 +137,8 @@ export function Composer(props: ComposerProps) {
     connected,
     submit,
     messageError,
+    draftSaveNotice,
+    serviceError,
     blockedChat,
     mediaBusy,
     recoveryEpoch,
@@ -187,6 +193,7 @@ export function Composer(props: ComposerProps) {
   return (
     <div className="composer-area">
       <div className="composer-workflow">
+        {serviceError && <div className="runtime-notice" role="alert"><div><strong>Connection unavailable</strong><span>{serviceError}</span></div><Button type="button" variant="secondary" disabled={retryingConnection} onClick={()=>{setRetryingConnection(true);void props.refresh().catch(()=>{}).finally(()=>setRetryingConnection(false));}}>{retryingConnection?'Retrying…':'Retry connection'}</Button></div>}
         {liveRuntime &&
           run &&
           !executing &&
@@ -332,6 +339,7 @@ export function Composer(props: ComposerProps) {
             </button>
           </p>
         )}
+        <div role="status" aria-live="polite">{draftSaveNotice && <p className="connection-notice">{draftSaveNotice}</p>}</div>
         {connectionNotice && (
           <p className="connection-notice" role="status">
             {connectionNotice}

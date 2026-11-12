@@ -54,12 +54,14 @@ import { ShareButton } from './workspace/share-dialog';
 
 export function Workspace({
   authConfigured,
+  accountKey,
   desktopPreview = false,
 }: {
   authConfigured: boolean;
+  accountKey?: string;
   desktopPreview?: boolean;
 }) {
-  const w = useWorkspaceState({ authConfigured, desktopPreview });
+  const w = useWorkspaceState({ authConfigured, accountKey, desktopPreview });
   return <OutputWorkspaceProvider scopeKey={w.run?.id ?? 'draft'}><WorkspaceContent w={w} /></OutputWorkspaceProvider>;
 }
 
@@ -296,6 +298,7 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
           <option value="mm">Millimetres</option>
         </select>
       </label>
+      <div className="setting-row"><span><strong>Unsent drafts</strong><small>While signed in, text drafts are saved on this browser for up to 7 days. Uploads are not saved with drafts. Very long drafts and text containing credentials stay in memory for the current visit.</small></span></div>
     </div>
   );
   if (needsAccountAdmission)

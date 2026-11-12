@@ -5,7 +5,7 @@ import { Download, FileSpreadsheet, RotateCw, X } from 'lucide-react';
 import { MAX_REPORT_BYTES, parseReviewReport, reportTableCsv, type ReviewReport } from '@/lib/review-report.mjs';
 import styles from './review-report.module.css';
 
-type PanelProps = { taskId: string; taskVersion?: number; onClose: () => void };
+type PanelProps = { taskId: string; taskVersion?: number; onClose: () => void; fetcher?: typeof fetch };
 type ReportState =
   | { kind: 'loading' }
   | { kind: 'ready'; report: ReviewReport }
@@ -46,11 +46,11 @@ async function readReportResponse(response: Response) {
 }
 
 export function ReviewReportPanel(props: PanelProps) {
-  // A task switch remounts the request and view together, so old data never appears under a new task.
-  return <LoadedReport key={JSON.stringify([props.taskId, props.taskVersion ?? null])} {...props} />;
+  // Reading a saved report is stable through background task updates; reopening reloads it.
+  return <LoadedReport key={props.taskId} {...props} />;
 }
 
-function LoadedReport({ taskId, onClose }: PanelProps) {
+function LoadedReport({ taskId, onClose, fetcher = fetch }: PanelProps) {
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<ReportState>({ kind: 'loading' });
   useEffect(() => {
@@ -62,7 +62,7 @@ function LoadedReport({ taskId, onClose }: PanelProps) {
     setState({ kind: 'loading' });
     void (async () => {
       try {
-        const response = await fetch(`/api/service/runs/${encodeURIComponent(taskId)}/export/report-json`, {
+        const response = await fetcher(`/api/service/runs/${encodeURIComponent(taskId)}/export/report-json`, {
           signal: controller.signal, cache: 'no-store', headers: { Accept: 'application/json' },
         });
         if (controller.signal.aborted) return;
@@ -100,9 +100,9 @@ function LoadedReport({ taskId, onClose }: PanelProps) {
       }
     })();
     return () => controller.abort();
-  }, [taskId, attempt]);
+  }, [taskId, attempt, fetcher]);
 
-  if (state.kind === 'ready') return <ReviewReportView report={state.report} onClose={onClose} />;
+  if (state.kind === 'ready') return <ReportFrame onClose={onClose}><ReviewReportContent report={state.report}/></ReportFrame>;
   return <ReportFrame onClose={onClose}>
     <div className={styles.state} role={state.kind === 'error' ? 'alert' : 'status'} aria-live="polite">
       <h3>{state.kind === 'loading' ? 'Loading review report…' : state.title}</h3>
@@ -129,6 +129,10 @@ function ReportFrame({ onClose, children }: { onClose: () => void; children: Rea
 
 /** Ready view, shared with clearly labelled synthetic development fixtures. */
 export function ReviewReportView({ report, onClose, fixture = false }: { report: ReviewReport; onClose: () => void; fixture?: boolean }) {
+  return <ReportFrame onClose={onClose}><ReviewReportContent report={report} fixture={fixture}/></ReportFrame>;
+}
+
+function ReviewReportContent({report, fixture = false}: {report: ReviewReport; fixture?: boolean}) {
   const [activeTab, setActiveTab] = useState<TableKind>('boq');
   const [feedback, setFeedback] = useState('');
   const id = useId();
@@ -155,8 +159,7 @@ export function ReviewReportView({ report, onClose, fixture = false }: { report:
       setFeedback(`Preview CSV downloaded with all ${table.rows.length.toLocaleString()} ${activeTab === 'boq' ? 'BOQ' : 'element'} rows and report source metadata.`);
     } catch { setFeedback('The preview CSV could not be downloaded. Try again.'); }
   };
-  return <ReportFrame onClose={onClose}>
-    <div className={styles.body}>
+  return <div className={styles.body}>
       {fixture && <p className={styles.fixture}>Synthetic development fixture · Illustrative data only</p>}
       <div className={styles.provenance}>
         <p className={styles.source}><strong>{sourceLabels[report.sourceKind]}</strong><span>Read only</span></p>
@@ -189,6 +192,5 @@ export function ReviewReportView({ report, onClose, fixture = false }: { report:
       </section>
       <p className={styles.exportNote}>CSV includes the retained rows and their source details. Refreshing this report does not reread Revit.</p>
       <p className={styles.feedback} role="status" aria-live="polite">{feedback}</p>
-    </div>
-  </ReportFrame>;
+    </div>;
 }

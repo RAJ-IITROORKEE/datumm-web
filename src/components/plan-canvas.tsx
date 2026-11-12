@@ -85,7 +85,7 @@ export function PlanCanvas({drawing,label='Selected plan',onStyleChange,source,r
  useEffect(()=>{
   if(!displayOpen)return;
   const dismiss=(event:PointerEvent)=>{if(!displayRef.current?.contains(event.target as Node))setDisplayOpen(false);};
-  const escape=(event:globalThis.KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();setDisplayOpen(false);displayButton.current?.focus();}};
+  const escape=(event:globalThis.KeyboardEvent)=>{if(event.key==='Escape'&&!event.defaultPrevented){event.preventDefault();setDisplayOpen(false);displayButton.current?.focus();}};
   document.addEventListener('pointerdown',dismiss);document.addEventListener('keydown',escape);
   return()=>{document.removeEventListener('pointerdown',dismiss);document.removeEventListener('keydown',escape);};
  },[displayOpen]);

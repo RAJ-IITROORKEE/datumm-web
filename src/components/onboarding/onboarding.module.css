@@ -21,7 +21,7 @@
 .content {min-width:0}
 .contentHeading {margin-bottom:30px}
 .stepCount {display:block;font-size:12px;color:var(--muted-foreground);margin-bottom:14px;font-variant-numeric:tabular-nums}
-.contentHeading h1 {font-size:28px;line-height:1.25;letter-spacing:-.03em;font-weight:580;margin:0 0 12px;text-wrap:balance;outline:none}
+.contentHeading h1 {font-size:28px;line-height:1.25;letter-spacing:-.03em;font-weight:580;margin:0 0 12px;text-wrap:balance}
 .contentHeading p {font-size:14px;color:var(--muted-foreground);line-height:1.7;margin:0}
 .form {display:flex;flex-direction:column;gap:24px}
 .formBody {border:0;padding:0;margin:0;min-width:0}
@@ -42,6 +42,8 @@
 .back {background:transparent;color:var(--muted-foreground);padding-left:3px;padding-right:3px}
 .page button:disabled,.editor button:disabled {opacity:.45;cursor:not-allowed}
 .page :is(button,a,input,select):focus-visible,.editor :is(button,input,select):focus-visible {outline:2px solid var(--ring,var(--foreground));outline-offset:3px}
+.contentHeading h1:focus,.page [tabindex="-1"]:focus,.editor [tabindex="-1"]:focus {outline:2px solid var(--ring,var(--foreground));outline-offset:5px;border-radius:3px}
+.fields :is(input,select)[aria-invalid=true] {border-color:var(--destructive)}
 .page ::selection,.editor ::selection {background:var(--foreground);color:var(--background)}
 .useCases {display:flex;flex-direction:column;gap:23px}
 .useCases fieldset {border:0;padding:0;margin:0;min-width:0}
@@ -51,6 +53,7 @@
 .option:hover {background:var(--muted)}
 .option[data-selected=true] {border-color:var(--foreground);background:var(--muted)}
 .option input {width:13px;height:13px;accent-color:var(--foreground);margin:0;flex-shrink:0}
+.formBody:disabled .option {cursor:not-allowed;opacity:.6}
 .formBody>.hint {margin-top:24px}
 .selectionCount {font-size:12px;color:var(--muted-foreground);font-variant-numeric:tabular-nums}
 .connector {font-size:13px;line-height:1.7}
@@ -63,7 +66,7 @@
 .connectionCheck {display:flex;gap:12px;align-items:center;margin-top:27px;flex-wrap:wrap}
 .connected {display:inline-flex;align-items:center;gap:6px;font-size:12px}
 .status {font-size:12px;margin:10px 0 20px;color:var(--muted-foreground);min-height:18px}
-.error {font-size:13px;line-height:1.65;color:var(--destructive);margin:0}
+.error {font-size:13px;line-height:1.65;color:var(--destructive);margin:0;overflow-wrap:anywhere}
 .loading {min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:var(--background);color:var(--foreground);padding:30px;text-align:center}
 .loading h1 {font-size:22px;font-weight:550;margin:0}
 .loading p {font-size:14px;max-width:55ch}
@@ -74,4 +77,5 @@
 @keyframes spin {to {transform:rotate(360deg)}}
 @media(max-width:900px) {.layout {gap:40px;grid-template-columns:220px minmax(0,1fr);padding:48px 28px}.aside h2 {font-size:22px}.header {padding:0 28px}.contentHeading h1 {font-size:25px}}
 @media(max-width:650px) {.header {height:65px;padding:0 22px}.layout {display:block;padding:28px 22px 40px;max-width:540px}.aside h2,.aside>p {display:none}.stepper {flex-direction:row;gap:18px;margin:0 0 34px;justify-content:space-between}.stepper li {font-size:11px;gap:7px;align-items:flex-start}.stepper li>span {width:21px;height:21px}.stepper small {font-size:10px}.contentHeading h1 {font-size:25px}.stepCount {display:none}.actions {flex-wrap:wrap;align-items:center}.actions>.hint {display:none}.actionEnd {gap:10px}.primary {padding:9px 12px}.selectionCount {font-size:11px}.option {font-size:12px;padding:8px}.contentHeading {margin-bottom:27px}.connectionIntro {gap:12px}}
+@media(max-width:650px) {.fields input,.fields select {font-size:16px}.actions>.actionEnd {min-width:0;flex:1}}
 @media(prefers-reduced-motion:reduce) {.spin {animation:none}.primary,.secondary,.back,.option {transition:none}}
