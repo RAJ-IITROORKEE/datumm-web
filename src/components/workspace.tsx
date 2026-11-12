@@ -1,8 +1,9 @@
 'use client';
 
 import './studio-workspace.css';
-import {useEffect} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {OutputWorkspaceProvider, OutputPanel, useOutputWorkspace} from './workspace/output-workspace';
+import {ReviewReportPanel} from './workspace/review-report';
 import {PanelResize} from './panel-resize';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import {
@@ -27,6 +28,7 @@ import {
   Minimize2,
   MessageSquare,
   PanelRight,
+  TableProperties,
 } from 'lucide-react';
 import { AccountAdmission } from './account-admission';
 import { DesktopTitlebar } from './desktop-titlebar';
@@ -62,7 +64,11 @@ export function Workspace({
 }
 
 function WorkspaceContent({w}: {w: WorkspaceState}) {
-  const {activeOutput, closeOutput} = useOutputWorkspace();
+  const {activeOutput, closeOutput, dismissOutput} = useOutputWorkspace();
+  const [reportOpen, setReportOpen] = useState(false);
+  const reportTrigger = useRef<HTMLButtonElement>(null);
+  useEffect(() => { if (activeOutput) setReportOpen(false); }, [activeOutput]);
+  const closeReport = () => { setReportOpen(false); requestAnimationFrame(() => reportTrigger.current?.focus()); };
   const {workspacePane, setWorkspacePane, resizePanel} = w;
   const {authConfigured, desktopPreview} = w;
   const {
@@ -791,14 +797,16 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
         </section>
         <section id="workspace-drawing" className="studio-stage" aria-label="Architectural workspace">
           <div className="studio-workarea-toolbar">
-            <button type="button" data-output-focus-fallback aria-pressed={!activeOutput} title={activeDrawing ? `Plan ${activeDrawing.planId} · version ${activeDrawing.version} · ${activeDrawing.fingerprint}` : undefined} onClick={() => {if(activeOutput)closeOutput();setStudioView('workspace');}}><PencilRuler size={15}/>Drawing{activeDrawing ? ` · v${activeDrawing.version}` : ''}</button>
+            <button type="button" data-output-focus-fallback aria-pressed={!activeOutput && !reportOpen} title={activeDrawing ? `Plan ${activeDrawing.planId} · version ${activeDrawing.version} · ${activeDrawing.fingerprint}` : undefined} onClick={() => {if(activeOutput)closeOutput();setReportOpen(false);setStudioView('workspace');}}><PencilRuler size={15}/>Drawing{activeDrawing ? ` · v${activeDrawing.version}` : ''}</button>
+            {run && (!w.runtimeConfig?.supportedExports || w.runtimeConfig.supportedExports.includes('report-json')) && <button ref={reportTrigger} type="button" aria-pressed={reportOpen} onClick={() => {if(activeOutput)dismissOutput();setCanvasOpen(false);setStudioView('workspace');setWorkspacePane('drawing');setReportOpen(true);}}><TableProperties size={15}/><span>Schedules & BOQ</span></button>}
             {activeOutput && <span className="studio-open-output-label">Output preview</span>}
             <span className="studio-workarea-tools"/>
             <button type="button" aria-label="Open properties" onClick={() => {setTab('preview');setRight(true);}}><PanelRight size={15}/><span>Properties</span></button>
-            <button type="button" aria-label={canvasOpen ? 'Exit focus drawing' : 'Focus drawing'} aria-pressed={canvasOpen} disabled={!hasRenderablePlan && !canvasOpen} title={!hasRenderablePlan ? 'A drawing is needed to focus this work area' : undefined} onClick={event => {if (!canvasOpen) {canvasTrigger.current = event.currentTarget;if(activeOutput)closeOutput();}setStudioView('workspace');setCanvasOpen(!canvasOpen);}}>{canvasOpen ? <Minimize2 size={15}/> : <Maximize2 size={15}/>}<span>{canvasOpen ? 'Exit focus' : 'Focus drawing'}</span></button>
+            <button type="button" aria-label={canvasOpen ? 'Exit focus drawing' : 'Focus drawing'} aria-pressed={canvasOpen} disabled={!hasRenderablePlan && !canvasOpen} title={!hasRenderablePlan ? 'A drawing is needed to focus this work area' : undefined} onClick={event => {if (!canvasOpen) {canvasTrigger.current = event.currentTarget;if(activeOutput)closeOutput();}setReportOpen(false);setStudioView('workspace');setCanvasOpen(!canvasOpen);}}>{canvasOpen ? <Minimize2 size={15}/> : <Maximize2 size={15}/>}<span>{canvasOpen ? 'Exit focus' : 'Focus drawing'}</span></button>
           </div>
           {activeOutput && studioView === 'workspace' && <OutputPanel />}
-          <div className="studio-drawing-content" hidden={Boolean(activeOutput) || studioView !== 'workspace'}>
+          {reportOpen && run && studioView === 'workspace' && <ReviewReportPanel taskId={run.id} taskVersion={run.taskVersion} onClose={closeReport}/>}
+          <div className="studio-drawing-content" hidden={reportOpen || Boolean(activeOutput) || studioView !== 'workspace'}>
             {activeDrawing ? (
               <PlanCanvas
                 key={`${activeDrawing.planId}:${activeDrawing.version}:${activeDrawing.fingerprint}`}

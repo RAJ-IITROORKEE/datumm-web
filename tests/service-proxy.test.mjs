@@ -35,6 +35,16 @@ test('Ask, Plan and project controls reach v2 without opening native routes or c
     const status=(await proxy(path,'GET')).status;
     assert.equal(status,path==='projects/abc-123'?200:404,path);
   }
+  for(const [path,method] of [['device-authorizations/request_123','GET'],['device-authorizations/request_123/approve','POST']]){
+    calls.length=0;
+    assert.equal((await proxy(path,method)).status,200,path);
+    assert.equal(calls[0].path,`/v1/${path}?after=3`);
+  }
+  for(const path of ['device-authorizations','device-authorizations/request_123/token']){
+    calls.length=0;
+    assert.equal((await proxy(path)).status,404,path);
+    assert.equal(calls.length,0,'Connector start/token claims are not browser proxy routes');
+  }
   for(const action of ['build/approve','design/build','queue/not-a-hex-id','questions/unknown','unknown']){
     calls.length=0;
     assert.equal((await proxy(`tasks/canary-task/${action}`)).status,404,action);

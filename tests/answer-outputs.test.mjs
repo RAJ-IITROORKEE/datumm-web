@@ -109,3 +109,24 @@ test('recorded AgentActivity returns its expandable content in both compact and 
   assert.equal(React.isValidElement(exports.AgentActivity({ ...props, compact: false })), true);
   assert.equal(React.isValidElement(exports.AgentActivity({ ...props, compact: true })), true);
 });
+
+test('replacing an output with another work surface does not schedule return focus', () => {
+  const code = readFileSync(new URL('../src/components/workspace/output-workspace.tsx', import.meta.url), 'utf8');
+  let focusFrames = 0, closed = 0;
+  const hooks = { ...React, useState: value => [value, () => {}], useRef: value => ({ current: value }),
+    useCallback: callback => callback, useMemo: callback => callback() };
+  const exports = {}, context = { exports, requestAnimationFrame: () => { focusFrames++; }, require(name) {
+    if (name === 'react') return hooks;
+    if (name === 'react/jsx-runtime') return { jsx, jsxs };
+    return {};
+  } };
+  runInNewContext(ts.transpileModule(code, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText, context);
+  const state = exports.OutputWorkspaceProvider({ children: null, onClose: () => { closed++; } });
+  const provider = state.type(state.props);
+  provider.props.value.dismissOutput();
+  assert.equal(closed, 1);
+  assert.equal(focusFrames, 0, 'A replacement surface owns its own focus');
+  provider.props.value.closeOutput();
+  assert.equal(closed, 2);
+  assert.equal(focusFrames, 1, 'An ordinary close still restores the original opener');
+});

@@ -120,6 +120,8 @@ The next approval-ready milestone is the agreed wireframe/interaction specificat
 
 ## Next decisions
 
+Integration progress: `/connect` now uses the connector's actual account authorization contract, and Schedules & BOQ reads the inspected schema-1 report export. Current production and isolated OpenCode preview were verified read-only; see [backend evidence](docs/ux/backend-contract-evidence.md). D9 immutable report revisions still need a backend API. Existing report `revision` is the source model revision, not a saved BOQ revision.
+
 Ask in small rounds before adding details to committed scope:
 
 - Output lifecycle: define revision data and failure recovery around approved D9 automatic-current behavior.

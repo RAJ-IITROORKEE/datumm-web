@@ -1,0 +1,23 @@
+export type ReportCell = string | number | null;
+export type ReportTable = { columns: { key: string; label: string }[]; rows: Record<string, ReportCell>[] };
+export type ReviewReport = {
+  schemaVersion: 1;
+  runId: string;
+  documentId: string | null;
+  modelRevision: number | null;
+  planVersion: number | null;
+  sourceKind: 'proposed' | 'measured' | 'verified' | 'unavailable';
+  source: string | null;
+  scope: string | null;
+  status: string | null;
+  coverage: string | null;
+  summary: string | null;
+  limitations: string[];
+  boq: ReportTable;
+  elements: ReportTable;
+  artifacts: { format: string; available: boolean; runId: string; documentId: string | null; revision: number | null; planVersion: number | null; sourceKind: string | null }[];
+};
+export const MAX_REPORT_BYTES: number;
+export const MAX_REPORT_ROWS: number;
+export function parseReviewReport(payload: unknown): ReviewReport;
+export function reportTableCsv(report: ReviewReport, kind?: 'boq' | 'elements'): string;

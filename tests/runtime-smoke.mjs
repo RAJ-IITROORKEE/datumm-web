@@ -8,6 +8,8 @@ const checks=[
  ['unsupported-project-route',origin+'/api/service/projects/canary/workspace',{},404],
  ['pricing',origin+'/pricing',{},200],
  ['profile-auth-gate',origin+'/api/account/profile',{},[401,503]],
+ ['connect-invalid',origin+'/connect?request=invalid',{},200],
+ ['connector-auth-gate',origin+'/api/service/device-authorizations/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',{},[401,503]],
  ['cross-origin-write',origin+'/api/chat',{method:'POST',headers:{Origin:'https://example.invalid','Content-Type':'application/json'},body:JSON.stringify({messages:[]})},403],
  ['missing-origin-write',origin+'/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[]})},403],
  ['unsupported-attachment',origin+'/api/chat',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({messages:[],attachmentIds:['source-1']})},422]
@@ -21,5 +23,6 @@ for(const [name,url,init,expected] of checks){
   const text=body.replace(/<!--[\s\S]*?-->/g,'');
   if(!text.includes('Choose your plan')||!text.includes('$20')||!text.includes('$99')||!text.includes('Planned monthly price'))throw Error('Pricing plan content mismatch');
  }
+ if(name==='connect-invalid'&&!body.includes('Start a new connection from Revit'))throw Error('Invalid connector request did not show recovery');
  console.log(name+': '+response.status);
 }

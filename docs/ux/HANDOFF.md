@@ -1,8 +1,20 @@
-# Planning handoff
+# DATUMM handoff
 
 Updated 12 November 2026. Branch `codex/ui-ux-foundation-2026-11-12`.
 
-## Current implementation checkpoint
+## Latest integration checkpoint
+
+Implemented `/connect?request=...` from the actual Revit connector contract. Sign-in preserves the request; loading only reviews it. A deliberate Allow action authorizes the computer through the existing endpoint. Connector start/token claiming and native model approvals remain separate. Invalid/expired/already-approved/unavailable requests have explicit recovery. No real device was authorized during this task.
+
+Added **Schedules & BOQ** to the saved-task work area when the service does not explicitly exclude report export. It reads the existing schema-1 report JSON and presents BOQ/element tables, source document/model revision, partial coverage and limitations. Visual tables omit wholly unspecified columns; CSV preserves the typed retained data and provenance, including numeric negative values. Preview rendering is bounded to 200 rows; the validated dataset limit is 10,000 rows / 2 MiB. Unsupported exports show an unavailable state. Refresh reloads saved task evidence and does not reread Revit.
+
+Read-only verification established current production behind AWS CloudFront exposes `datumm-orchestrator` contract v2 at source commit `2aace05d66e4789eab403fa03be7571a53980ed4`. The separate hosted OpenCode preview reports `nativeAvailable:false` and isolated canary history. Earlier Azure-location notes are stale; no environment/origin was changed. Vercel CLI supplied no secret key to the local check, so this is not evidence that the deployed key is absent. An existing authenticated production report was downloaded through the browser and parsed successfully: proposed source, zero measured BOQ/element rows. Private payload remains ignored and is not committed.
+
+Final checks: **71 tests passed**, TypeScript and production build passed, extended production runtime smoke passed including `/connect` recovery, anonymous device-authorization gate and production-404 dev fixtures. Browser checks covered invalid/unconfigured connection pages plus clearly labelled synthetic desktop/mobile BOQ tables, tabs and actual CSV download. Download contents were checked against source metadata and fixture rows. The new scoped design detector returned zero primary/advisory findings. Independent [integration review](integration-review.md) identified two issues (replacement focus and live-model freshness copy); both were fixed and the scope passed. Screenshots: ignored `artifacts/ux/boq-review-desktop.jpg`, `boq-review-mobile.jpg`, `connect-unconfigured.jpg`.
+
+Read [backend contract evidence](backend-contract-evidence.md) and [connector authorization evidence](connector-auth-evidence.md) before changing integrations. Sibling repositories were read-only; their existing work was preserved. Payment collection and immutable BOQ revision history still require explicit backend contracts. Connected Google/profile persistence, a real connector authorization, and measured/verified report qualification remain live-environment acceptance work. No push, merge or deployment occurred.
+
+## Previous UI implementation checkpoint
 
 The user approved development and subsequent pricing additions. The earlier planning-only statements in phase packets are historical. Application development is authorized; push/merge/deployment remain later decisions.
 

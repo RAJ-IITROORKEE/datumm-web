@@ -11,6 +11,7 @@ type OutputContext = {
   activeOutput: AnswerOutput | null;
   openOutput: (output: AnswerOutput | string) => void;
   closeOutput: () => void;
+  dismissOutput: () => void;
   register: (key: string, outputs: AnswerOutput[]) => void;
 };
 const Context = createContext<OutputContext | null>(null);
@@ -44,7 +45,8 @@ function OutputWorkspaceState({ children, onClose }: { children: ReactNode; onCl
       else document.querySelector<HTMLElement>('[data-output-focus-fallback]')?.focus();
     });
   }, [onClose]);
-  const value = useMemo(() => ({ outputs, activeOutput, openOutput, closeOutput, register }), [outputs, activeOutput, openOutput, closeOutput, register]);
+  const dismissOutput = useCallback(() => { setActiveId(null); onClose?.(); }, [onClose]);
+  const value = useMemo(() => ({ outputs, activeOutput, openOutput, closeOutput, dismissOutput, register }), [outputs, activeOutput, openOutput, closeOutput, dismissOutput, register]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 

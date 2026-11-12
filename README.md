@@ -17,6 +17,8 @@ After starting the production build with `npm start`, run `npm run check:runtime
 - `src/components/workspace/conversation.tsx`: the chat panel and its transcript blocks (messages, one process accordion per turn, design and native review cards, errors, budget checkpoint, saved-artifacts link). The question dock and plan checklist render above the composer.
 - `src/components/workspace/turn-process.tsx`: the per-turn process accordion (step, agent or job, tool names and statuses), rendered under the DATUMM label.
 - `src/components/workspace/plan-details.tsx`: alternatives, comparison, exports, assumptions and limits for the plan, shown in the Exports tab (the chat keeps a compact card).
+- `src/components/workspace/review-report.tsx` and `src/lib/review-report.mjs`: read-only source-aware BOQ/element report preview and typed retained-row CSV, covered by `tests/review-report.test.mjs`.
+- `src/app/connect/page.tsx`, `src/components/connections/device-authorization.tsx` and `src/lib/device-authorization.mjs`: authenticated connector computer review and explicit approval; connector token claiming is not exposed to the browser.
 - `src/components/workspace/chat-row.tsx`: one minimal chat row with status dots, inline rename and the row menu (Rename, Move to project, Pin, Archive, Delete).
 - `src/components/workspace/project-create.tsx`: hosted "New project" inline field.
 - `src/components/workspace/plan-dock.tsx`: pinned "Plan · n of m" checklist above the composer (task plan, native to-dos, or stage spans for Ask turns).
@@ -42,11 +44,13 @@ After starting the production build with `npm start`, run `npm run check:runtime
 
 Use the repository root as a Next.js Vercel project, Node.js 22 or newer, build command `npm run build`, and default output directory. Configure `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, and server-only `ORCHESTRATOR_URL` in Vercel.
 
-Append the exact new web origin to the existing Azure `CLERK_AUTHORIZED_PARTIES` allowlist and permit it in the same Clerk instance. Keep existing authorized origins, desktop authorization origin and desktop verification pin. A future custom subdomain must be added to those allowlists before switching it on. Browser sessions on different unrelated domains may require sign-in again; identity remains the same account.
+Append the exact new web origin to the configured service's `CLERK_AUTHORIZED_PARTIES` allowlist and permit it in the same Clerk instance. Keep existing authorized origins, desktop authorization origin and desktop verification pin. A future custom subdomain must be added to those allowlists before switching it on. Browser sessions on different unrelated domains may require sign-in again; identity remains the same account.
 
 ## Runtime scope
 
-This release uses the existing hosted LangGraph harness through strict v2 task commands, saved events and versioned plans. It does not deploy the desktop OpenCode process to Vercel. Cloud OpenCode parity requires a separately operated authenticated worker and persistence port.
+The browser proxies its configured hosted task service through strict v2 commands, saved events and versioned plans; it does not host an agent worker in Vercel. On 12 November 2026, read-only environment and health checks identified production behind AWS CloudFront as `datumm-orchestrator` (task/event contract v2), while the hosted OpenCode preview reported an isolated history namespace and `nativeAvailable:false`. These are separate environments; do not switch origins merely to obtain a different UI capability. See `docs/ux/backend-contract-evidence.md` for source and live-evidence limits.
+
+`/connect?request=...` reviews the Revit connector's existing browser authorization request after sign-in. Only an explicit Allow action approves the computer; this does not approve native model changes or confirm the device is online. Connector token claiming remains outside the browser. The workspace's Schedules & BOQ view reads the existing schema-1 `report-json` export and labels model revision, source and coverage. Its CSV contains validated retained rows; it does not implement immutable BOQ revision history.
 
 Local project folders, attachments, speech transcription, desktop MCP packs and queued background prompts remain desktop capabilities. The web interface exposes hosted model selection, planning, exact design acceptance, drawing/export review, connector management and exact native proposal approval.
 
