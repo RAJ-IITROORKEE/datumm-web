@@ -41,6 +41,16 @@ typography:
     fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
     fontSize: "12px"
     fontWeight: 500
+  review-title:
+    fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "15px"
+    fontWeight: 600
+    lineHeight: 1.45
+    letterSpacing: "-0.015em"
+  review-body:
+    fontFamily: "Inter Variable, Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "13px"
+    lineHeight: 1.65
   mono:
     fontFamily: "SFMono-Regular, Consolas, Liberation Mono, monospace"
   pricing-heading:
@@ -219,6 +229,7 @@ Small, medium and large foundation radii define compact rounding; forms and navi
 - **Navigation:** muted text at rest, secondary surface and foreground on hover/current selection. Preserve semantic current/expanded state and narrow-screen recovery.
 - **Choice chips:** wrapping, bordered controls with a stronger selected border and tonal selected fill. Use a visible selection control or accessible pressed/checked state.
 - **Cards and reviews:** compact tonal containers with a purposeful border or attention edge. Review status and exact native approval remain distinct from decorative color.
+- **Review decisions and changes:** one consistent neutral panel uses the review-title and review-body roles, compact source/version facts, explicit state and a wrapping action row. Keep plan acceptance distinct from exact native approval and committed status distinct from measured verification. Show exact identity/absolute expiry with native actions, expected/actual values in comparison, and only supplied operation counts in summaries. Technical evidence and saved-version details expand without hiding unavailable or stale state. See [review migration](docs/ux/review-panels-migration.md).
 - **Composer:** one shared Ask/Plan/Build control group with a visible selected mode, wrapping tools and context. Keep the existing textarea and draft; do not create a competing prompt on the drawing.
 - **Output panel:** titled header, wrapping toolbar, source/revision information and independently scrolling content. Preserve source identity through review and export; opening an output must not imply native execution.
 - **Report review:** read-only BOQ/element tabs, source document and model revision, explicit coverage/limitations, and a bounded horizontally scrolling table. Hide wholly unspecified columns from the visual preview while retaining the typed CSV schema. Refresh reads saved task evidence; current quantities require a new agent read of Revit.

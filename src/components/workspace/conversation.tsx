@@ -14,6 +14,9 @@ import { PlanningGoalPanel } from '../planning-goal';
 import { OpenCodeQuestions } from '../opencode-questions';
 import { Button } from '@/components/ui/button';
 import { BuildComparisonCard } from '../build-comparison';
+import {DeletionClosureReview,NativeChangesPanel} from '../review/change-summary';
+import {ProposalApprovalPanel} from '../review/proposal-approval';
+import {PlanReviewCard} from '../review/plan-review-card';
 import { ShieldCheck, Loader2, ArrowUpRight, Expand, Check } from 'lucide-react';
 import { AgentQuestions } from '../agent-questions';
 import { PlanCanvas } from '../plan-canvas';
@@ -758,96 +761,23 @@ export function ConversationPanel(props: ConversationPanelProps) {
                 <p role="status">Measured comparison needs a refresh: {run.data.build_comparison_error}</p>
               )}
 
-              {run?.data.proposal?.deletions?.map((closure) => (
-                <div
-                  className="agent-evidence-card"
-                  key={closure.key}
-                  role="group"
-                  aria-label="Exact Revit deletion closure"
-                >
-                  <div className="section-caption">
-                    NATIVE DELETE REVIEW · {closure.elements.length}{' '}
-                    {closure.elements.length === 1 ? 'ELEMENT' : 'ELEMENTS'}
-                  </div>
-                  <strong>Target {closure.targetId}</strong>
-                  <p>
-                    Revit evaluated this complete dependent set in a rollback-only transaction. Approving the proposal
-                    removes exactly these IDs. Any change to the set cancels the write; this task requires Review
-                    approval.
-                  </p>
-                  <ol>
-                    {closure.elements.map((element) => (
-                      <li key={element.id}>
-                        {element.kind.replaceAll('_', ' ')} · {element.name} · <code>{element.id}</code>
-                        {element.id === closure.targetId ? ' (target)' : ' (dependent)'}
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              ))}
+              {run?.data.proposal?.deletions?.map(closure=><DeletionClosureReview key={closure.key} closure={closure}/>)}
 
-              {(run?.status === 'awaiting_approval' || run?.data.error === 'APPROVAL_REQUIRED') && (
-                <div className="approval-card">
-                  <div>
-                    <ShieldCheck size={20} />
-                    <strong>Approve these exact changes</strong>
-                  </div>
-                  <p>
-                    The Revit dry run passed. Review the proposed changes below and their counts in Context. Approving
-                    here authorizes this exact proposal for the connected project; DATUMM will then commit and verify it
-                    in Revit.
-                  </p>
-                  <div className="approval-details">
-                    {run.data.annotation_view_review && (
-                      <span>
-                        Annotation view <b>{run.data.annotation_view_review.name}</b>
-                      </span>
-                    )}
-                    <span>
-                      Project <b>{run.data.context?.title ?? 'Connected project'}</b>
-                    </span>
-                    <span>
-                      Revision <b>{run.data.proposal?.revision ?? '—'}</b>
-                    </span>
-                    <span>
-                      Proposal <b>{run.data.proposal?.approvalHash?.slice(0, 12) ?? '—'}…</b>
-                    </span>
-                  </div>
-                  <small>
-                    Expires{' '}
-                    {run.data.proposal?.expiresAt ? new Date(run.data.proposal.expiresAt).toLocaleTimeString() : 'soon'}
-                    . DATUMM does not save the project file.
-                  </small>
-                  <div className="approval-actions">
-                    {proposalExpired && (run.data.variable_selection || run.data.m09_revision) && !committedBuild && (
-                      <Button variant="secondary" disabled={actionBusy} onClick={() => act('refresh-proposal')}>
-                        Refresh expired review
-                      </Button>
-                    )}
-                    <Button onClick={() => act('resume')} disabled={actionBusy || proposalExpired}>
-                      {actionBusy ? <Loader2 size={15} className="spin" /> : null} Approve and build{' '}
-                      <ArrowUpRight size={15} />
-                    </Button>
-                    <Button variant="ghost" onClick={() => act('cancel')} disabled={actionBusy}>
-                      Cancel
-                    </Button>
-                    {run.data.agent_execution && !run.data.proposal?.deletions?.length && (
-                      <Button
-                        variant="secondary"
-                        disabled={actionBusy}
-                        onClick={(event) => {
-                          dialogTrigger.current = event.currentTarget;
-                          setAccessBatches(plannedAccessBatches);
-                          setAccessMargin(0);
-                          setAccessReview(null);
-                          setAccessDialog(true);
-                        }}
-                      >
-                        Configure task Full Access
-                      </Button>
-                    )}
-                  </div>
-                </div>
+              {(run?.status==='awaiting_approval'||run?.data.error==='APPROVAL_REQUIRED')&&(
+                <ProposalApprovalPanel
+                  key={[run.id,run.data.proposal?.proposalId,run.data.proposal?.approvalHash,run.data.proposal?.revision].join(':')}
+                  proposal={run.data.proposal}
+                  pending={actionBusy}
+                  expired={proposalExpired}
+                  projectName={run.data.context?.title}
+                  annotationView={run.data.annotation_view_review?.name}
+                  operations={run.data.compiled?.changes?.operations}
+                  canRefresh={Boolean((run.data.variable_selection||run.data.m09_revision)&&!committedBuild)}
+                  onAction={act}
+                  onConfigureAccess={run.data.agent_execution&&!run.data.proposal?.deletions?.length?trigger=>{
+                    dialogTrigger.current=trigger;setAccessBatches(plannedAccessBatches);setAccessMargin(0);setAccessReview(null);setAccessDialog(true);
+                  }:undefined}
+                />
               )}
 
               {run?.data.build_type_review && (
@@ -878,38 +808,8 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   </details>
                 </div>
               )}
-              {(run?.data.variable_selection || run?.data.m09_revision) && run.data.compiled?.changes && (
-                <div className="agent-evidence-card" aria-label="Native-bound changes">
-                  <div className="section-caption">
-                    NATIVE PROPOSAL · {run.data.compiled.changes.operations.length} OPERATIONS
-                  </div>
-                  <p>
-                    Positions use Revit internal XY millimetres in the reviewed project and level. Hosted openings refer
-                    to wall keys in this batch; annotations use committed native IDs and inspected references.
-                  </p>
-                  {run.data.compiled.svg && (
-                    <img
-                      style={{ width: '100%', borderRadius: 8 }}
-                      src={'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(run.data.compiled.svg)}
-                      alt="Native-bound wall positions at the confirmed origin and rotation"
-                    />
-                  )}
-                  <details open={run.status === 'awaiting_approval'}>
-                    <summary>Review exact native changes</summary>
-                    <ol>
-                      {run.data.compiled.changes.operations.map((op) => (
-                        <li key={op.key}>
-                          <strong>
-                            {op.key} · {op.kind.replaceAll('_', ' ')}
-                          </strong>
-                          <pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
-                            {JSON.stringify(op, null, 2)}
-                          </pre>
-                        </li>
-                      ))}
-                    </ol>
-                  </details>
-                </div>
+              {(run?.data.variable_selection||run?.data.m09_revision)&&run.data.compiled?.changes&&(
+                <NativeChangesPanel operations={run.data.compiled.changes.operations} svg={run.data.compiled.svg} pending={run.status==='awaiting_approval'}/>
               )}
               {run?.data.concept && !run.data.agent_design?.conceptImage && (
                 <div className="saved-plan-card">
@@ -1056,82 +956,28 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   )}
                 </div>
               )}
-              {run?.data.agent_design && (
-                <div className="saved-plan-card agent-plan-card" aria-label="Plan review">
-                  <p className="plan-card-line">
-                    {run.data.agent_design.candidates.length}{' '}
-                    {run.data.agent_design.candidates.length === 1 ? 'alternative' : 'alternatives'} ready · Plan v
-                    {run.currentPlanRef?.version ?? designVersion?.version ?? run.data.agent_design.candidates[0]?.version ?? 1}
-                  </p>
-                  {drawingError && <p role="status">The drawing could not be loaded. Open the details to retry.</p>}
-                  <div className="plan-actions">
-                    <Button
-                      variant="secondary"
-                      onClick={() =>
-                        document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message DATUMM"]')?.focus()
-                      }
-                    >
-                      Request changes
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        setRight(true);
-                        setTab('exports');
-                      }}
-                    >
-                      View details <ArrowUpRight size={13} />
-                    </Button>
-                    {!planAccepted ? (
-                      <Button
-                        disabled={busy || drawingLoading || !!drawingError || !drawingCurrent}
-                        onClick={() => void acceptDrawing()}
-                      >
-                        Accept this plan
-                      </Button>
-                    ) : run.mode !== 'build' ? (
-                      <>
-                        <span role="status">Plan accepted — switch to Build</span>
-                        <Button
-                          disabled={busy || drawingLoading || !!drawingError || !drawingCurrent}
-                          onClick={() => void switchDrawingToBuild()}
-                        >
-                          Switch to Build
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <span role="status">Plan accepted · Build mode</span>
-                        <Button
-                          disabled={
-                            buildStep !== 'prepare' ||
-                            busy ||
-                            !selectedDevice?.online ||
-                            revitSessions !== 1 ||
-                            !!drawingError ||
-                            placementTask !== run.id ||
-                            !confirmedPlacement
-                          }
-                          onClick={() => void buildVariable()}
-                        >
-                          Prepare accepted plan
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  {planAccepted && run.mode === 'build' && !run.data.compiled && (
-                    <Button
-                      variant="secondary"
-                      disabled={busy}
-                      onClick={() => {
-                        setBuildSetupOpen(true);
-                        void reviewPlacement();
-                      }}
-                    >
-                      Choose Revit placement
-                    </Button>
-                  )}
-                </div>
+              {run?.data.agent_design&&(
+                <PlanReviewCard
+                  key={[run.id,run.currentPlanRef?.planId,run.currentPlanRef?.version,run.currentPlanRef?.fingerprint].join(':')}
+                  alternatives={run.data.agent_design.candidates.length}
+                  planVersion={run.currentPlanRef?.version??designVersion?.version??run.data.agent_design.candidates[0]?.version}
+                  planId={run.currentPlanRef?.planId??designVersion?.planId}
+                  fingerprint={run.currentPlanRef?.fingerprint??designVersion?.fingerprint}
+                  accepted={planAccepted}
+                  mode={run.mode}
+                  busy={busy}
+                  drawingLoading={drawingLoading}
+                  drawingError={drawingError}
+                  drawingCurrent={drawingCurrent}
+                  buildReady={Boolean(buildStep==='prepare'&&!busy&&selectedDevice?.online&&revitSessions===1&&!drawingError&&placementTask===run.id&&confirmedPlacement)}
+                  showPlacement={Boolean(planAccepted&&run.mode==='build'&&!run.data.compiled)}
+                  onRequestChanges={()=>document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message DATUMM"]')?.focus()}
+                  onDetails={()=>{setRight(true);setTab('exports');}}
+                  onAccept={acceptDrawing}
+                  onSwitchToBuild={switchDrawingToBuild}
+                  onPrepare={()=>buildVariable()}
+                  onPlacement={()=>{setBuildSetupOpen(true);void reviewPlacement();}}
+                />
               )}
 
               {run?.data.agent_design && selectedDevice?.online && (

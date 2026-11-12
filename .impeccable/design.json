@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-12T12:46:49.7834979Z",
+  "generatedAt": "2026-11-12T15:57:07.4579057Z",
   "title": "Design System: DATUMM",
   "extensions": {
     "colorMeta": {
@@ -351,6 +351,14 @@
       "pricing-metadata": {
         "displayName": "Pricing metadata",
         "purpose": "Badges, usage rows and price notes; details and action labels use 12px."
+      },
+      "review-title": {
+        "displayName": "Review title",
+        "purpose": "Current task, design and native review panel headings."
+      },
+      "review-body": {
+        "displayName": "Review body",
+        "purpose": "Compact facts, action and evidence context in review panels."
       }
     },
     "shadows": [
@@ -457,9 +465,9 @@
       "name": "Review container",
       "kind": "card",
       "refersTo": "review-card",
-      "description": "Property-review surface; content here only demonstrates typography.",
-      "html": "<section class=\"ds-review\"><strong>Review drawing</strong><p>Check the current drawing before requesting changes.</p><button>Review</button></section>",
-      "css": ".ds-review{padding:18px;border:1px solid var(--separator,#3c3c3e);border-radius:9px;background:var(--card,#1f1f22);color:var(--foreground,#e8e8e9);font-family:var(--font-sans,'Inter Variable',Inter,ui-sans-serif,system-ui,sans-serif);}.ds-review strong{font-size:13px;font-weight:400}.ds-review p{color:var(--muted-foreground,#a1a1a6);font-size:12px;line-height:1.8;margin:14px 0 18px}.ds-review button{width:100%;min-height:40px;background:var(--foreground,#e8e8e9);color:var(--background,#1c1c1e);border:1px solid var(--border,#6f6f70);border-radius:6px;cursor:pointer;font-family:var(--font-sans,'Inter Variable',Inter,ui-sans-serif,system-ui,sans-serif);}.ds-review button:hover{opacity:.86}.ds-review button:focus-visible{outline:2px solid var(--ring,var(--trace-accent,#4fb0fe));outline-offset:3px}"
+      "description": "Current review panel vocabulary with exact identity and a deliberately disabled preview action.",
+      "html": "<section class=\"ds-review\"><header><h3>Review room updates</h3><span>Approval required</span></header><p>Review the exact document and model revision before approving.</p><dl><div><dt>Document</dt><dd>preview-document</dd></div><div><dt>Revision</dt><dd>12</dd></div></dl><button disabled>Approve exact proposal and build</button></section>",
+      "css": ".ds-review{padding:20px;border:1px solid var(--border,#6f6f70);border-radius:10px;background:var(--card,#1f1f22);color:var(--foreground,#e8e8e9);font-family:var(--font-sans,Inter,sans-serif);font-size:13px;line-height:1.65}.ds-review header{display:flex;align-items:start;justify-content:space-between;gap:16px;flex-wrap:wrap}.ds-review h3{margin:0;font-size:15px;font-weight:600;line-height:1.45;letter-spacing:-.015em}.ds-review header span{font-size:11px;border:1px solid var(--border,#6f6f70);border-radius:5px;padding:4px 8px;color:var(--muted-foreground,#a1a1a6)}.ds-review p{color:var(--muted-foreground,#a1a1a6);font-size:12px}.ds-review dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:16px 0;border-top:1px solid var(--separator,#3c3c3e);border-bottom:1px solid var(--separator,#3c3c3e)}.ds-review dt{color:var(--muted-foreground,#a1a1a6);font-size:11px}.ds-review dd{margin:3px 0 0;font-size:12px}.ds-review button{padding:9px 12px;border:0;border-radius:7px;background:var(--foreground,#e8e8e9);color:var(--background,#1c1c1e);font-size:12px;opacity:.5;cursor:not-allowed}.ds-review button:focus-visible{outline:2px solid var(--ring,#4fb0fe);outline-offset:3px}"
     },
     {
       "name": "Composer modes",

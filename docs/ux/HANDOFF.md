@@ -2,6 +2,20 @@
 
 Updated 12 November 2026. Branch `codex/ui-ux-foundation-2026-11-12`.
 
+## Latest affectUI review/approval migration checkpoint
+
+Completed the user-requested review, approval and change-summary slice with three Sol 6.1 High implementation agents plus an independent reviewer. Shared review styling now covers the existing design review, exact native review/progress, measured comparison and plan details. The hosted conversation also uses separate plan acceptance, exact proposal approval, native change-summary and deletion-closure panels. Original task/native callbacks, proposal IDs/hashes/document/revision commands, source/placement gates, export scopes and independently reviewed Full Access controls remain intact.
+
+The UI distinguishes proposed/accepted plans, pending/expired/incomplete approval, original-operation reconciliation, committed but unverified results, stale/unknown evidence and measured verification. Expected/actual comparison rows and supplied operation counts replace default technical noise while preserving expandable evidence. Callback completion alone does not declare approval or native success. Local guards prevent duplicate actions; invalid/expired proposals fail closed at click time. Failed notes/feedback survive, revision displacement remains finite and bounded to ±2,000 mm, and the existing three-preparation cap is preserved.
+
+Browser verification used the Codex in-app browser and labelled actual-component fixtures: pending/error/retry and malformed/expired web approval; plan acceptance without build; stale drawing gates and exact export links; native availability, expiry and all result states; comparison mismatch/unknown/limit gates, exact revision payload and Unicode feedback recovery; design inspection without approval, stale/pending source gates and empty layouts. Keyboard disclosures/tab order worked. Native review fit 390px; comparison/proposal/deletion fit 320px, with 16px narrow inputs and no page-wide overflow. No local console error was observed. Fixtures perform no real task, admin, connector or Revit operation.
+
+Independent [review](review-panels-review.md) found one Prepare button availability mismatch; it is corrected and regression-tested. All **129 tests passed**, including the new design/native/comparison/export and hosted-approval tests. **TypeScript, the final production build and all 13 production runtime smoke checks passed**; admin/auth/origin gates and production-404 dev previews remain intact in the locally built, unconfigured environment. The temporary production server was stopped. The scoped source detector reported no findings; it is regex-only and does not prove accessibility or contrast. DESIGN.md and its sidecar now include the review vocabulary; doctor's sole advisory remains the optional future marketing build preference.
+
+Read [component/reference/state ledger](review-panels-migration.md). Captures are ignored under `artifacts/ux/`: `native-review-desktop.jpg`, `native-review-mobile.jpg`, `native-review-mobile-actions.jpg`, `change-comparison-desktop.jpg`, `proposal-approval-desktop.jpg`. All displayed model/proposal data is synthetic. Current local browser tab remains on the synthetic hosted proposal; live DATUMM, affectUI and Streamdown tabs are preserved.
+
+Remaining release work: connected Google/profile, hosted streaming/reconnect and real Revit proposal/commit/read-back qualification; backend immutable sheet/BOQ revisions, paid activation and final merge/deployment decisions. No real native approval, push, merge or deployment occurred. The user's Revit reference screenshot is still pending for any further viewer-specific reconstruction.
+
 ## Latest affectUI settings/admin migration checkpoint
 
 The user explicitly directed continuation of the proposed affectUI migration before connected-service qualification. Completed the next settings/admin slice using three Sol 6.1 High implementation agents and an independent reviewer:
