@@ -7,6 +7,8 @@ const checks=[
  ['config',origin+'/api/service/config',{},localOrigin?[401,503]:401],
  ['unsupported-project-route',origin+'/api/service/projects/canary/workspace',{},404],
  ['pricing',origin+'/pricing',{},200],
+ ['admin-entry-gate',origin+'/admin',{},404],
+ ['admin-config-auth-gate',origin+'/api/service/admin/config',{},localOrigin?[401,503]:401],
  ['profile-auth-gate',origin+'/api/account/profile',{},[401,503]],
  ['connect-invalid',origin+'/connect?request=invalid',{},200],
  ['connector-auth-gate',origin+'/api/service/device-authorizations/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',{},[401,503]],

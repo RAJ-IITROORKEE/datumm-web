@@ -1,0 +1,85 @@
+.pageHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 28px; min-width: 0; }
+.pageHeader > div { min-width: 0; }
+.pageHeader h1 { margin: 0; font-size: 20px; line-height: 1.4; font-weight: 600; letter-spacing: -0.025em; }
+.pageHeader p { max-width: 70ch; margin: 6px 0 0; color: var(--muted-foreground); font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
+.headerActions { display: flex; flex-shrink: 0; flex-wrap: wrap; gap: 8px; }
+.configForm, .configFields { min-width: 0; }
+.configForm { display: grid; gap: 20px; }
+.configFields { display: grid; gap: 32px; border: 0; padding: 0; margin: 0; }
+.group { min-width: 0; }
+.groupHeading { padding-bottom: 14px; }
+.groupHeading h2 { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.5; }
+.groupHeading p { margin: 5px 0 0; color: var(--muted-foreground); max-width: 70ch; font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
+.groupFields { border-top: 1px solid var(--separator); }
+.groupFields > * + * { border-top: 1px solid var(--separator); }
+.field { min-width: 0; }
+.fieldStack { display: grid; gap: 8px; }
+.fieldRow, .toggleRow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, 1.2fr); align-items: start; gap: 24px; padding: 18px 0; }
+.fieldLabel { min-width: 0; }
+.fieldLabel label, .toggleRow label, .modeGroup legend { display: block; font-size: 13px; font-weight: 500; line-height: 1.5; }
+.fieldLabel p, .toggleRow p { margin: 4px 0 0; color: var(--muted-foreground); font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
+.fieldControl { min-width: 0; }
+.fieldControl :is(input, select, textarea) { box-shadow: none; font-size: 13px; }
+.fieldControl textarea { resize: vertical; line-height: 1.65; }
+.fieldError { color: var(--trace-error); font-size: 12px; line-height: 1.6; }
+p.fieldError { margin: 6px 0 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; padding: 0; list-style: none; }
+.chips li { display: inline-flex; align-items: start; gap: 4px; max-width: 100%; padding: 3px 4px 3px 8px; border-radius: 5px; background: var(--secondary); font-size: 12px; line-height: 22px; }
+.chips li > span { min-width: 0; overflow-wrap: anywhere; }
+.chips button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 24px; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; }
+.chips button:hover { background: var(--background); }
+.chips svg { width: 13px; height: 13px; }
+.chipAdd { display: flex; gap: 8px; align-items: start; }
+.chipAdd input { min-width: 0; }
+.chipAdd button { flex-shrink: 0; }
+.item { border-top: 1px solid var(--separator); min-width: 0; }
+.item:last-of-type { border-bottom: 1px solid var(--separator); }
+.itemHeading { display: flex; gap: 8px; align-items: center; padding: 8px 0; }
+.itemToggle { display: flex; gap: 12px; align-items: center; min-width: 0; flex: 1; padding: 8px; border-radius: 6px; text-align: left; cursor: pointer; }
+.itemToggle:hover { background: var(--secondary); }
+.itemCopy { display: grid; gap: 4px; min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.itemTitle { font-size: 13px; font-weight: 500; line-height: 1.5; }
+.itemSubtitle { font-size: 12px; color: var(--muted-foreground); line-height: 1.5; }
+.itemBadges { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; max-width: 45%; }
+.itemBadges [data-slot='badge'] { background: var(--secondary); color: var(--foreground); border-color: transparent; border-radius: 5px; font-size: 11px; }
+.chevron { width: 15px; height: 15px; flex-shrink: 0; color: var(--muted-foreground); }
+.closed { transform: rotate(-90deg); }
+.itemBody:not([hidden]) { display: grid; gap: 20px; border-top: 1px solid var(--separator); padding: 20px 8px 24px; }
+.itemBody .fieldRow { padding: 0; }
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.directory { min-width: 0; }
+.directoryActions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+.directoryActions p { margin: 0; color: var(--muted-foreground); font-size: 12px; }
+.empty { padding: 24px 0; border-block: 1px solid var(--separator); }
+.empty h2 { font-size: 14px; font-weight: 500; margin: 0 0 6px; }
+.empty p { font-size: 13px; line-height: 1.65; color: var(--muted-foreground); margin: 0; max-width: 65ch; }
+.notice { display: flex; align-items: start; flex-wrap: wrap; gap: 12px; padding: 14px 16px; background: var(--secondary); border: 1px solid var(--separator); border-radius: 7px; font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
+.noticeCopy { flex: 1; min-width: 180px; }
+.noticeCopy strong { font-weight: 500; }
+.noticeCopy p { margin: 4px 0 0; color: var(--muted-foreground); }
+.modeGroup { border: 0; padding: 0; min-width: 0; margin: 0; }
+.modeGroup legend { margin-bottom: 10px; }
+.modeOptions { display: flex; flex-wrap: wrap; gap: 10px 20px; }
+.modeOptions label { display: flex; align-items: center; gap: 8px; font-size: 13px; text-transform: capitalize; cursor: pointer; min-height: 28px; }
+.modeOptions input { accent-color: var(--foreground); width: 16px; height: 16px; }
+.toggleRow { align-items: center; }
+.toggleRow > [data-slot='switch'] { justify-self: end; }
+.itemBody .toggleRow { padding: 0; }
+.saveBar { position: sticky; bottom: calc(-1 * var(--admin-content-bottom, 40px)); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-top: 1px solid var(--separator); background: var(--background); padding: 16px 0; margin-top: 8px; z-index: 2; }
+.saveBar > p { min-width: 0; overflow-wrap: anywhere; flex: 1 1 170px; margin: 0; color: var(--muted-foreground); font-size: 12px; line-height: 1.65; }
+.saveActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.configFields:disabled :is(button, input, textarea, select) { cursor: wait; }
+@media (max-width: 700px) {
+  .pageHeader { flex-direction: column; gap: 14px; margin-bottom: 24px; }
+  .fieldRow, .toggleRow { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 16px 0; }
+  .toggleRow { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; }
+  .pair { grid-template-columns: minmax(0, 1fr); }
+  .fieldControl :is(input, select, textarea) { font-size: 16px; }
+  .itemToggle { flex-wrap: wrap; gap: 8px; }
+  .itemBadges { margin-left: 23px; width: 100%; max-width: none; justify-content: flex-start; }
+  .itemBody:not([hidden]) { padding-inline: 0; }
+}
+@media (max-width: 380px) {
+  .saveActions { width: 100%; }
+  .saveActions > button { flex: 1; }
+}

@@ -1,11 +1,13 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { emptyConfig, sameConfig, validateConfig, type AdminConfig } from '@/lib/admin-config.mjs';
+import styles from './admin-form.module.css';
 
 export type Fail = 'missing' | 'forbidden' | 'stale' | 'error';
 export type Result<T> = { ok: true; data: T } | { ok: false; reason: Fail; message: string };
+export type AdminClient = <T>(path: string, init?: { method?: string; body?: unknown }) => Promise<Result<T>>;
 
 /** Admin call through the same-origin service proxy; 404, 403 and 409 get their own friendly states. */
 export async function adminCall<T>(path: string, init?: { method?: string; body?: unknown }): Promise<Result<T>> {
@@ -20,20 +22,42 @@ export async function adminCall<T>(path: string, init?: { method?: string; body?
   }
 }
 
+const AdminClientContext = createContext<AdminClient>(adminCall);
+export function AdminClientProvider({ client, children }: { client: AdminClient; children: ReactNode }) {
+  return <AdminClientContext.Provider value={client}>{children}</AdminClientContext.Provider>;
+}
+export const useAdminClient = () => useContext(AdminClientContext);
+
 /** Loads a GET resource; `pollMs(data)` (optional) returns a refresh interval or 0 to stop. */
 export function useAdminResource<T>(path: string, pollMs?: (data: T) => number) {
+  const client = useAdminClient();
   const [result, setResult] = useState<Result<T> | null>(null);
+  const owner = useMemo(() => ({ active: false, request: 0, pending: false }), [path, client]);
   const pollRef = useRef(pollMs);
   pollRef.current = pollMs;
-  const load = useCallback(async () => { setResult(await adminCall<T>(path)); }, [path]);
-  useEffect(() => { void load(); }, [load]);
+  const load = useCallback(async () => {
+    if (!owner.active) return;
+    const request = ++owner.request;
+    owner.pending = true;
+    const next = await client<T>(path);
+    if (owner.request === request) {
+      owner.pending = false;
+      if (owner.active) setResult(next);
+    }
+  }, [path, client, owner]);
+  useEffect(() => {
+    owner.active = true;
+    setResult(null);
+    void load();
+    return () => { owner.active = false; owner.request++; };
+  }, [load, owner]);
   const data = result?.ok ? result.data : null;
   const interval = data ? pollRef.current?.(data) ?? 0 : 0;
   useEffect(() => {
     if (!interval) return;
-    const timer = setInterval(() => { if (!document.hidden) void load(); }, interval);
+    const timer = setInterval(() => { if (!document.hidden && !owner.pending) void load(); }, interval);
     return () => clearInterval(timer);
-  }, [interval, load]);
+  }, [interval, load, owner]);
   return { result, load, data };
 }
 
@@ -48,10 +72,10 @@ export function ResultState({ result, onRetry }: { result: Result<unknown> | nul
     error: ['Something went wrong', result.message],
   }[result.reason];
   return (
-    <div role="alert" className="flex flex-wrap items-start gap-3 rounded-lg border border-[var(--trace-thought)]/40 bg-card p-4 text-sm">
+    <div role="alert" className={styles.notice}>
       <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[var(--trace-thought)]" aria-hidden />
       <div className="min-w-0 flex-1"><p className="font-medium">{copy[0]}</p><p className="text-muted-foreground">{copy[1]}</p></div>
-      {onRetry && <Button variant="outline" size="sm" onClick={onRetry}><RefreshCw /> Retry</Button>}
+      {onRetry && <Button type="button" variant="outline" size="sm" onClick={onRetry}><RefreshCw /> Retry</Button>}
     </div>
   );
 }
@@ -60,24 +84,28 @@ export type ConfigEnvelope = { config: AdminConfig; effective: Record<string, un
 
 /** One editable copy of the global config: dirty state, validation and revision-checked save. */
 export function useAdminConfig() {
+  const client = useAdminClient();
   const { result, load } = useAdminResource<ConfigEnvelope>('admin/config');
   const [draft, setDraft] = useState<AdminConfig | null>(null);
   const [base, setBase] = useState<ConfigEnvelope | null>(null);
   const [saveResult, setSaveResult] = useState<Result<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const savingRef = useRef(false);
   useEffect(() => {
     if (result?.ok) { setBase(result.data); setDraft({ ...emptyConfig(), ...result.data.config }); setSaveResult(null); }
   }, [result]);
   const errors = draft ? validateConfig(draft) : {};
   const dirty = Boolean(draft && base && !sameConfig(draft, { ...emptyConfig(), ...base.config }));
   const save = async () => {
-    if (!draft || !base || Object.keys(errors).length) return;
+    if (savingRef.current || !dirty || !draft || !base || Object.keys(errors).length) return;
+    savingRef.current = true;
     setSaving(true); setSaved(false);
-    const next = await adminCall<ConfigEnvelope>('admin/config', { method: 'PUT', body: { config: draft, expectedRevision: base.revision } });
+    const next = await client<ConfigEnvelope>('admin/config', { method: 'PUT', body: { config: draft, expectedRevision: base.revision } });
+    savingRef.current = false;
     setSaving(false);
     if (next.ok) { setBase(next.data); setDraft({ ...emptyConfig(), ...next.data.config }); setSaveResult(null); setSaved(true); } else setSaveResult(next);
   };
-  const reload = () => { setSaveResult(null); setSaved(false); setBase(null); setDraft(null); void load(); };
-  return { result, draft, base, errors, dirty, save, saving, saved, saveResult, reload, update: (patch: Partial<AdminConfig>) => { setSaved(false); setDraft(d => (d ? { ...d, ...patch } : d)); } };
+  const reload = () => { if (savingRef.current) return; setSaveResult(null); setSaved(false); setBase(null); setDraft(null); void load(); };
+  return { result, draft, base, errors, dirty, save, saving, saved, saveResult, reload, update: (patch: Partial<AdminConfig>) => { if (savingRef.current) return; setSaved(false); setDraft(d => (d ? { ...d, ...patch } : d)); } };
 }

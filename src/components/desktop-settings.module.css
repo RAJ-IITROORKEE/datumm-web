@@ -135,7 +135,7 @@
 .layout :global(.settings-voice-error) { padding:10px 12px; border:1px solid color-mix(in srgb,var(--trace-error) 35%,var(--border)); border-radius:7px; color:var(--trace-error); font-size:11px; line-height:1.6; overflow-wrap:anywhere; }
 .layout :global(.settings-provider-copy) > strong { display:block; margin-bottom:5px; font-size:13px; font-weight:500; }
 .layout { gap:0; }
-.layout .content { display:block; }
+.layout .content { display:block; grid-column:2; grid-row:1; }
 .sectionHeading { margin-bottom:28px; padding-bottom:22px; border-bottom:1px solid var(--separator,var(--border)); }
 .sectionHeading .pageTitle { margin:0 0 8px; font-size:22px; font-weight:600; letter-spacing:-.025em; }
 .sectionHeading > p { margin:0; color:var(--muted-foreground); font-size:13px; }
@@ -156,3 +156,61 @@
 .layout :global(.setting-row) input:disabled { cursor:not-allowed; opacity:.5; }
 .layout :global(.setting-row) select:disabled { cursor:not-allowed; opacity:.6; }
 .layout :global(.toggleRow) input[type=checkbox]:disabled { cursor:not-allowed; opacity:.5; }
+.sidebarActions { flex:none; }
+.browseButton.browseButton { display:none; }
+.navPanel { min-width:0; }
+.layout .sectionSearch { margin:0 3px 18px; padding:5px 8px; }
+.sectionSearch > svg { flex:none; }
+.sectionSearch input { caret-color:var(--foreground); }
+.sectionSearch input::-webkit-search-cancel-button { display:none; }
+.clearSearch.clearSearch { flex:none; width:26px; min-height:26px; height:26px; padding:4px; border-radius:5px; color:var(--muted-foreground); }
+.navigation { gap:20px; }
+.navGroup { min-width:0; }
+.groupTitle { margin:0 9px 6px; color:var(--muted-foreground); font-size:11px; font-weight:500; }
+.searchEmpty { margin:0 9px; color:var(--muted-foreground); font-size:12px; line-height:1.7; }
+.pageTitle:focus-visible { outline:2px solid var(--trace-accent); outline-offset:5px; border-radius:6px; }
+.generalContent :global(.settings-general) { overflow:hidden; border:1px solid var(--separator,var(--border)); border-radius:10px; background:var(--card,var(--background)); }
+.generalContent :global(.setting-row) { gap:24px; padding:18px 20px; }
+.generalContent :global(.setting-row):last-child { border-bottom:0; }
+.generalContent :global(.setting-row) > span { flex:1; min-width:0; }
+.generalContent :global(.setting-row) strong { margin-bottom:5px; font-weight:500; }
+.layout .modelCatalog,.capabilityList { margin:20px 0 0; padding:0; border:1px solid var(--separator,var(--border)); border-radius:10px; background:var(--card,var(--background)); list-style:none; }
+.catalogRow { display:flex; align-items:flex-start; gap:14px; min-width:0; padding:18px 20px; border-bottom:1px solid var(--separator,var(--border)); }
+.catalogRow:last-child,.capabilityList > div:last-child { border-bottom:0; }
+.catalogRow > svg { flex:none; margin-top:3px; color:var(--muted-foreground); }
+.catalogRow > div { min-width:0; }
+.catalogRow strong,.catalogRow span,.catalogRow code { display:block; overflow-wrap:anywhere; }
+.catalogRow strong { font-size:13px; font-weight:500; }
+.catalogRow span { margin-top:3px; color:var(--muted-foreground); font-size:12px; }
+.catalogRow code { margin-top:8px; color:var(--muted-foreground); font-size:11px; line-height:1.6; }
+.capabilityList { margin-top:0; }
+.capabilityList > div { display:grid; grid-template-columns:145px minmax(0,1fr); gap:24px; padding:18px 20px; border-bottom:1px solid var(--separator,var(--border)); }
+.capabilityList dt { font-size:12px; font-weight:500; }
+.capabilityList dd { margin:0; color:var(--muted-foreground); font-size:12px; line-height:1.7; overflow-wrap:anywhere; }
+.unavailableState { margin:20px 0 0; padding:20px; border:1px solid var(--separator,var(--border)); border-radius:10px; background:var(--card,var(--background)); }
+.layout .unavailableState h2 { margin:0 0 6px; font-size:13px; }
+.unavailableState p { max-width:62ch; margin:0; color:var(--muted-foreground); font-size:12px; line-height:1.7; }
+@media(max-width:650px) {
+  .layout .sidebar { grid-column:1; grid-row:1; min-width:0; flex:none; max-height:45dvh; padding:8px 12px; }
+  .layout .content { grid-column:1; grid-row:2; }
+  .sidebarActions { display:flex; align-items:center; justify-content:space-between; gap:4px; }
+  .backButton.backButton { width:auto; min-height:44px; margin:0; padding:7px 3px; }
+  .browseButton.browseButton { display:flex; flex:none; gap:5px; min-height:44px; height:auto; padding:7px 5px; color:var(--muted-foreground); font-size:11px; }
+  .browseButton[aria-expanded=true] svg { transform:rotate(180deg); }
+  .navPanel { display:none; }
+  .navPanel[data-expanded=true] { display:block; padding-top:6px; }
+  .layout .sectionSearch { margin:0 0 16px; min-height:40px; }
+  .layout .sectionSearch input { font-size:16px; }
+  .clearSearch.clearSearch { width:32px; min-height:32px; height:32px; }
+  .navigation { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; overflow:visible; padding-bottom:8px; }
+  .navItem.navItem { width:100%; min-height:44px; gap:7px; padding:9px 7px; white-space:normal; }
+  .groupTitle { margin-left:7px; }
+  .searchEmpty { grid-column:1 / -1; }
+  .content { padding:24px 16px; }
+  .sectionHeading { margin-bottom:22px; padding-bottom:18px; }
+  .generalContent :global(.setting-row) { flex-wrap:wrap; gap:12px; padding:16px; }
+  .generalContent :global(.setting-row) > span { flex-basis:100%; }
+  .generalContent :global(.setting-row) select { width:100%; max-width:100%; }
+  .catalogRow { gap:12px; padding:16px; }
+  .capabilityList > div { grid-template-columns:1fr; gap:5px; padding:16px; }
+}

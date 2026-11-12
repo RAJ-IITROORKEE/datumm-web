@@ -2,6 +2,23 @@
 
 Updated 12 November 2026. Branch `codex/ui-ux-foundation-2026-11-12`.
 
+## Latest affectUI settings/admin migration checkpoint
+
+The user explicitly directed continuation of the proposed affectUI migration before connected-service qualification. Completed the next settings/admin slice using three Sol 6.1 High implementation agents and an independent reviewer:
+
+- Personal settings: grouped Personal/Workspace navigation, section search with clear/no-results/Escape, focused section headings, compact mobile Browse sections, actual provider/model identity rows and readable capability boundaries. Existing profile, appearance, Revit, usage and pricing services/props are preserved.
+- Administration: stable grouped 232px navigation, 64px collapsed rail, mobile drawer, keyboard skip and administrator identity. Configuration uses compact settings rows, expandable skills/MCP directories, linked errors and a revision-aware sticky save row. Duplicate saves and editing/discard during save are blocked. MCP remains stored configuration only.
+- Overview, knowledge, release and audit now share the affectUI hierarchy. Knowledge/audit searches filter loaded records, tables scroll within their region, delete has confirmation/cancellation and failed additions keep inputs. Source/installer routes and server/proxy admin gates remain unchanged. No real admin mutation or native operation was used for testing.
+- Resource loading discards obsolete requests and suppresses overlapping timer polls, so slow responses can settle and old indexing polls cannot restore removed rows or overwrite newer edits. Dedicated regressions cover timing, path/client changes, unmount and development effect replay.
+
+Codex browser verification: desktop, 390px and 320px; configuration invalid/pending/saved/conflict/error; skill validation/save, stored-only MCP save, unavailable/denied states; source admission/search/cancel/empty, audit search and release disclosure; mobile drawer Escape restores its trigger. The browser caught a settings grid collision with legacy global CSS; scoped placement fixed it and both narrow sizes passed. Settings search, Usage and heading focus also passed in the actual unconfigured main workspace at 390px. At 320px, source tables remained internally scrollable without widening the document; mobile inputs/search used 16px text. Live account and admin-service mutations remain unqualified.
+
+Final checks: **102 tests passed**, TypeScript and final production build passed, all **13 production runtime smoke checks passed**, including anonymous/unconfigured admin entry/config gates and production-404 development previews. One standalone typecheck overlapped build regeneration and reported missing generated files; it passed when rerun sequentially after the successful build. The temporary production server was stopped. Scoped review passed; source-only design detection found zero primary findings and 16 advisory token differences, several pre-existing. No numerical accessibility/performance score is claimed. Impeccable's only doctor advisory remains the optional future marketing build preference; no unrelated preference was stored.
+
+Read [migration packet and reference URLs](admin-settings-migration.md) and [independent review](admin-settings-review.md). Captures in ignored `artifacts/ux/`: `admin-overview-desktop.jpg`, `settings-models-desktop.jpg`, `settings-models-mobile.jpg`. Admin/catalog data in those captures is explicitly synthetic. DESIGN.md was extended with the implemented patterns and its sidecar refreshed. The current Codex tab remains on the synthetic admin overview; live DATUMM and reference tabs are preserved.
+
+Next migration slice: the existing review/approval/change-summary surfaces mapped in PLAN.md. Preserve exact proposal/native authority and use real task evidence. Connected Google/Revit acceptance, immutable BOQ revisions and paid activation remain separate release dependencies. No push, merge or deployment occurred.
+
 ## Latest acceptance and recovery checkpoint
 
 Continued the approved release-verification phase using GPT-6.1 Sol high agents for draft recovery, onboarding hardening and independent acceptance review. The next local reliability slice is implemented:
