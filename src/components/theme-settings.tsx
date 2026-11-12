@@ -15,6 +15,7 @@ import { Button } from './ui/button';
 import styles from './theme-settings.module.css';
 
 const paletteLabels: Record<Appearance['palette'], string> = {
+  affectui: 'DATUMM Studio',
   'oc-2': 'OpenCode OC-2',
   datumm: 'DATUMM classic',
   opencode: 'OpenCode TUI (legacy)',
@@ -24,7 +25,7 @@ const paletteLabels: Record<Appearance['palette'], string> = {
   catppuccin: 'Catppuccin',
 };
 
-const paletteKeys = ['oc-2', ...Object.keys(palettes).filter((name) => name !== 'oc-2')] as Appearance['palette'][];
+const paletteKeys = ['affectui', ...Object.keys(palettes).filter((name) => name !== 'affectui')] as Appearance['palette'][];
 
 const modeLabels: Record<Appearance['mode'], string> = {
   system: 'System',

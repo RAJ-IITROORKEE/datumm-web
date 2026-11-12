@@ -1,6 +1,6 @@
 # DATUMM UI/UX plan
 
-Updated: 12 November 2026. Status: collaborative planning draft, not implementation authorization.
+Updated: 12 November 2026. Status: user approved the plan and authorized implementation; development and local verification in progress. Merge/release remain separate.
 Branch: `codex/ui-ux-foundation-2026-11-12`. Read [PROJECT.md](PROJECT.md) for baseline and boundaries.
 
 ## Confirmed decisions
@@ -17,6 +17,8 @@ Branch: `codex/ui-ux-foundation-2026-11-12`. Read [PROJECT.md](PROJECT.md) for b
 | D8 | Google sign-in first → name/domain → multiple use cases → optional Revit connector → workspace | Connector step has Skip for now. See [onboarding specification](docs/ux/onboarding.md); option taxonomy remains proposed. |
 | D9 | Non-native sheet/BOQ revisions become current automatically, with change summary and history | Keep prior revisions accessible; native Revit changes still require explicit approval. |
 | D10 | Individual accounts first | Defer organization invitations/team roles; preserve existing restricted administrator functions. |
+| D11 | Subscription-based usage billing later; free tier now | Show Free tier. No paid checkout, invented prices or unlimited-use promises; provider and quotas remain undefined. |
+| D12 | Pro $20/month and Max $99/month; individual plans, teams later | Use affectUI pricing-plans layout. Pro targets regular professional work with higher usage; Max targets heavier usage and planned priority processing. Paid plans remain upcoming until billing is connected; exact quotas are undefined. |
 
 Product framing from the user: **a Cursor for Revit**. The web workspace supports architectural reasoning and review; native modifications still require exact approval and verified execution.
 
@@ -71,7 +73,7 @@ Evidence levels: **I** = specific interaction tested; **P** = preview/docs inspe
 6. **Onboarding, settings and administration slices:** agree scope and integrate actual account, usage and billing contracts before presenting working controls.
 7. **Release verification:** regression checks, accessibility, responsive behavior, large-output performance, disconnected recovery and native approval correctness; user decides merge/release at the end.
 
-Phases 4–7 are provisional sequencing. No application implementation, dependency installation, deployment or merge is authorized by this document alone.
+The user explicitly approved the plan and application implementation after this draft was written. Implement the approved experience using verified existing capabilities; do not fabricate unavailable service contracts. Deployment and merge remain later decisions.
 
 ## State and validation requirements
 

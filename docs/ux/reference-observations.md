@@ -46,3 +46,7 @@ The index names Inter and SF Mono, font tokens `--aui-font` / `--aui-font-mono`,
 Catalog discovery also found agent tree/queue/monitor/recap/trail/fleet/graph, context map/window, memory, permissions, cost waterfall, decision inbox, checkpoint, orchestration and mission-control references. These are optional research leads, not approved features. Use only the relevant exact links in PLAN.md when a feature is selected; inspect before assigning implementation.
 
 Screenshot views were inspected during the session but not saved as repository image artifacts. Do not cite nonexistent screenshot filenames. Later implementation packets should capture sanitized before/after images and attach their actual paths.
+
+## Pricing reference — implementation follow-up
+
+The user confirmed Free as current tier, Pro $20/month and Max $99/month. Inspected [Pricing Plans](https://www.affectui.com/blocks/pricing-plans) in the built-in browser: Clean dark preview, three compact cards, plan title/price/billing line, short limit rows, emphasized middle plan, and expandable details. Switched Yearly to Monthly and confirmed monthly labels/prices changed; toggled Hide details and observed collapsed plan details. No gated source was accessed. DATUMM adapts the structure for individual architectural work; annual pricing, trial length, exact quotas, demo integrations and demo plan benefits are not copied.

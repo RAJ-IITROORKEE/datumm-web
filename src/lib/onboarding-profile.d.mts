@@ -1,0 +1,11 @@
+export type OnboardingStep='profile'|'use-cases'|'connector'|'complete';
+export type ProfileInput={name:string;domain:string;useCases:string[];step:OnboardingStep};
+export type OnboardingProfile=ProfileInput&{version:number;completedAt:string|null;updatedAt:string|null};
+export const PROFILE_VERSION:number;
+export const DOMAINS:string[][];
+export const USE_CASE_GROUPS:{label:string;options:string[][]}[];
+export function validateProfileInput(input:unknown):ProfileInput;
+export function readOnboardingProfile(metadata:unknown):OnboardingProfile|null;
+export function nextOnboardingProfile(input:unknown,previous:OnboardingProfile|null,now?:string):OnboardingProfile;
+export function isSameOriginMutation(request:Request):boolean;
+export function handleProfileRequest(request:Request,dependencies:{userId:string|null;loadUser:(id:string)=>Promise<unknown>;saveMetadata:(id:string,metadata:{privateMetadata:{datummOnboarding:OnboardingProfile}})=>Promise<unknown>}):Promise<Response>;

@@ -18,14 +18,13 @@ import { cn } from '@/lib/utils';
 import { needsPluginSetup } from '@/lib/plugin-setup.mjs';
 import { PluginSetupGuide } from '../plugin-setup-guide';
 import { ComposerMedia } from '../composer-media';
-import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { ModelPicker } from '../model-picker';
 import { type WorkspaceState, api, type Run, type Mode } from './use-workspace-state';
 
 const modes = [
+  { id: 'ask' as Mode, label: 'Ask', icon: MessageSquare },
   { id: 'plan' as Mode, label: 'Plan', icon: Workflow },
   { id: 'build' as Mode, label: 'Build', icon: PencilRuler },
-  { id: 'ask' as Mode, label: 'Ask', icon: MessageSquare },
 ];
 
 export type ComposerProps = Pick<
@@ -517,25 +516,15 @@ export function Composer(props: ComposerProps) {
               }}
             />
           </div>
-          <DropdownMenuPrimitive.Root>
-            <DropdownMenuPrimitive.Trigger asChild>
-              <button
-                type="button"
-                className="studio-mode-trigger"
-                aria-label="Task mode"
-                disabled={busy || mediaBusy || !workspaceReady}
-              >
-                {modes.find((item) => item.id === mode)?.label ?? mode}
-                <ChevronDown size={12} />
-              </button>
-            </DropdownMenuPrimitive.Trigger>
-            <DropdownMenuPrimitive.Portal>
-              <DropdownMenuPrimitive.Content className="action-menu" side="top" align="start">
+          <div className="studio-mode-segments" role="group" aria-label="Task mode">
                 {modes.map((item) => (
-                  <DropdownMenuPrimitive.Item
+                  <button
+                    type="button"
                     key={item.id}
+                    aria-pressed={item.id === mode}
+                    title={item.id === 'ask' ? 'Ask questions about your project' : item.id === 'plan' ? 'Explore and review a design' : 'Prepare changes for explicit Revit approval'}
                     disabled={busy || mediaBusy || !workspaceReady || (buildUnavailable && item.id === 'build')}
-                    onSelect={() => {
+                    onClick={() => {
                       if (
                         item.id === 'build' &&
                         run?.data.agent_design &&
@@ -549,12 +538,9 @@ export function Composer(props: ComposerProps) {
                   >
                     <item.icon size={14} />
                     {item.label}
-                    {item.id === mode && <Check size={13} />}
-                  </DropdownMenuPrimitive.Item>
+                  </button>
                 ))}
-              </DropdownMenuPrimitive.Content>
-            </DropdownMenuPrimitive.Portal>
-          </DropdownMenuPrimitive.Root>
+          </div>
 
           <div className="composer-right">
             <div className="studio-model-control">

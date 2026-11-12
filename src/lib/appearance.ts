@@ -1,4 +1,5 @@
 import datumm from './themes/datumm.json';
+import affectui from './themes/affectui.json';
 import opencode from './themes/opencode.json';
 import nord from './themes/nord.json';
 import tokyonight from './themes/tokyonight.json';
@@ -6,9 +7,9 @@ import oneDark from './themes/one-dark.json';
 import catppuccin from './themes/catppuccin.json';
 import oc2 from './themes/oc-2.json';
 
-export const palettes = { datumm, opencode, nord, tokyonight, 'one-dark':oneDark, catppuccin, 'oc-2':oc2 };
+export const palettes = { affectui, datumm, opencode, nord, tokyonight, 'one-dark':oneDark, catppuccin, 'oc-2':oc2 };
 export type Appearance = { palette: keyof typeof palettes; mode: 'system'|'light'|'dark'; custom?: Partial<Record<'light'|'dark',Record<string,string>>> };
-export const defaultAppearance: Appearance = {palette:'datumm',mode:'dark'};
+export const defaultAppearance: Appearance = {palette:'affectui',mode:'dark'};
 export const customTokens = ['background','foreground','card','secondary','border','trace-accent'] as const;
 const hex = /^#[a-f\d]{6}$/i;
 const rgb=(color:string)=>[1,3,5].map(index=>parseInt(color.slice(index,index+2),16)/255);

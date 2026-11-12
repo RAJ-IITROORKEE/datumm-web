@@ -1,0 +1,15 @@
+{
+  "defs": {},
+  "theme": {
+    "primary": { "dark": "#4fb0fe", "light": "#0070d6" },
+    "text": { "dark": "#e8e8e9", "light": "#1f1f1f" },
+    "textMuted": { "dark": "#a1a1a6", "light": "#737373" },
+    "background": { "dark": "#1c1c1e", "light": "#ffffff" },
+    "backgroundPanel": { "dark": "#1f1f22", "light": "#ffffff" },
+    "backgroundElement": { "dark": "#252527", "light": "#f7f7f7" },
+    "border": { "dark": "#3c3c3e", "light": "#ebebeb" },
+    "warning": { "dark": "#ffb35c", "light": "#b25e00" },
+    "error": { "dark": "#ff8a7a", "light": "#c4320a" },
+    "success": { "dark": "#7dcf9f", "light": "#1e8a4f" }
+  }
+}

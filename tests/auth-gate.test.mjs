@@ -10,5 +10,6 @@ test('workspace renders only for signed-in visitors or when auth is unconfigured
   assert.equal(authGateState(true,true,'user_1'),'open');
   assert.equal(authGateState(false,true,null),'open');
   const entry=readFileSync(new URL('../src/components/workspace-entry.tsx',import.meta.url),'utf8');
-  assert.match(entry,/gate==='open'\?<Workspace/);
+  assert.match(entry,/gate==='open'\?<AccountOnboardingGate key=\{userId\}/);
+  assert.match(entry,/authConfigured\?<AccountWorkspace\/>:<Workspace authConfigured=\{false\}/);
 });

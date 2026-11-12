@@ -16,7 +16,7 @@ Architects and Revit/BIM practitioners. The initial release serves individual ac
 
 DATUMM is an agent workspace for architects and Revit/BIM practitioners: a Cursor for Revit. Users ask questions, plan buildings, review drawings and outputs, annotate context and direct the agent to make changes. The current web application is a working prototype whose interface and end-to-end flows need improvement.
 
-The immediate effort is collaborative UI/UX planning. The user will approve the plan before implementation. affectUI provides the initial visual foundation. Preserve the working system and isolate changes on the existing UI/UX branch.
+The user approved the UI/UX plan and implementation on 12 November 2026. affectUI provides the initial visual foundation. Preserve the working system and isolate changes on the existing UI/UX branch; merge/release remain later decisions.
 
 ## Positioning
 
@@ -37,6 +37,7 @@ The web workspace can be used before connecting Revit. Onboarding explicitly all
 - First-run onboarding: Google sign-in, name and professional domain, multiple use cases, optional Revit connector download/connection with Skip for now, then the workspace.
 - Keep native execution approval explicit and bound to the reviewed proposal.
 - Non-native sheet/BOQ updates automatically become current with a change summary and previous revisions available; this never approves native model changes.
+- Free tier now; subscription-based usage billing later. Confirmed individual prices: Pro $20/month and Max $99/month. Pro offers planned higher usage for professional work; Max targets heavy use with planned priority processing. Provider and quotas remain undefined; do not imply unlimited usage or enable paid checkout.
 
 ## Capabilities and Constraints
 

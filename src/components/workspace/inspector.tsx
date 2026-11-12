@@ -1,4 +1,4 @@
-import { PanelResize } from '../panel-resize';
+import {useEffect,useRef} from 'react';
 import { cn } from '@/lib/utils';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import {
@@ -29,14 +29,10 @@ import { type WorkspaceState } from './use-workspace-state';
 type InspectorProps = Pick<
   WorkspaceState,
   | 'right'
-  | 'viewportReady'
   | 'setRight'
-  | 'panelWidths'
-  | 'resizePanel'
   | 'tab'
   | 'hasRenderablePlan'
   | 'setTab'
-  | 'studioView'
   | 'activeDrawing'
   | 'selectedDesignElement'
   | 'setSelectedDesignElement'
@@ -70,20 +66,15 @@ type InspectorProps = Pick<
   | 'mcpTools'
   | 'refresh'
   | 'workspaceReady'
-> & { conversationPanel: React.ReactNode; planDetails: React.ReactNode };
+> & { planDetails: React.ReactNode };
 
 export function Inspector(props: InspectorProps) {
   const {
     right,
-    viewportReady,
     setRight,
-    panelWidths,
-    resizePanel,
     tab,
     hasRenderablePlan,
     setTab,
-    studioView,
-    conversationPanel,
     planDetails,
     activeDrawing,
     selectedDesignElement,
@@ -119,29 +110,30 @@ export function Inspector(props: InspectorProps) {
     refresh,
     workspaceReady,
   } = props;
+  const panel = useRef<HTMLElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!right) return;
+    returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    requestAnimationFrame(() => panel.current?.querySelector<HTMLButtonElement>('.studio-inspector-close')?.focus());
+    return () => {if (returnFocus.current?.isConnected) returnFocus.current.focus();};
+  }, [right]);
   return (
     <>
-      {right && viewportReady && (
+      {right && (
         <button className="inspector-backdrop" aria-label="Close inspector panel" onClick={() => setRight(false)} />
       )}
       {right && (
-        <aside id="workspace-inspector" className="inspector">
-          <PanelResize side="right" width={panelWidths.right} onChange={(value) => resizePanel('right', value)} />
+        <aside ref={panel} id="workspace-inspector" className="inspector" aria-label="Drawing details" onKeyDown={event => {if(event.key === 'Escape' && !event.defaultPrevented){event.preventDefault();setRight(false);}}}>
           <div className="inspector-tabs">
-            {(['assistant', 'preview', 'activity'] as const).map((t) => (
+            {(['preview', 'activity'] as const).map((t) => (
               <button
                 type="button"
                 key={t}
                 className={cn(tab === t && 'active')}
-                disabled={t === 'assistant' && !hasRenderablePlan}
-                title={
-                  t === 'assistant' && !hasRenderablePlan
-                    ? 'Conversation stays in the main panel until a plan is ready'
-                    : undefined
-                }
                 onClick={() => setTab(t)}
               >
-                {t === 'assistant' ? 'Agent' : t === 'preview' ? 'Properties' : 'Activity'}
+                {t === 'preview' ? 'Properties' : 'Activity'}
               </button>
             ))}
             <DropdownMenuPrimitive.Root>
@@ -166,17 +158,12 @@ export function Inspector(props: InspectorProps) {
             <button
               type="button"
               className="studio-inspector-close"
-              aria-label="Collapse agent panel"
+              aria-label="Close drawing details"
               onClick={() => setRight(false)}
             >
               <PanelRightClose size={16} />
             </button>
           </div>
-          {(hasRenderablePlan || studioView !== 'workspace') && (
-            <div className="studio-assistant-panel" hidden={tab !== 'assistant'}>
-              {conversationPanel}
-            </div>
-          )}
           {tab !== 'assistant' && (
             <>
               {tab === 'preview' && <BriefChips run={run} />}

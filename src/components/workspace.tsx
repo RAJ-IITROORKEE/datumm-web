@@ -1,6 +1,9 @@
 'use client';
 
 import './studio-workspace.css';
+import {useEffect} from 'react';
+import {OutputWorkspaceProvider, OutputPanel, useOutputWorkspace} from './workspace/output-workspace';
+import {PanelResize} from './panel-resize';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import {
   Ellipsis,
@@ -20,6 +23,10 @@ import {
   Unplug,
   ShieldCheck,
   Download,
+  Maximize2,
+  Minimize2,
+  MessageSquare,
+  PanelRight,
 } from 'lucide-react';
 import { AccountAdmission } from './account-admission';
 import { DesktopTitlebar } from './desktop-titlebar';
@@ -29,17 +36,14 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { workflowState } from '@/lib/workflow-state';
 import { ContextUsage } from './agent-memory';
-import { ActivitySummary, AgentActivity, WorkingIndicator } from './agent-activity';
+import { ActivitySummary, AgentActivity } from './agent-activity';
 import { PipelineTrace } from './pipeline-trace';
 import { AgentScheduler } from './agent-scheduler';
 import { PlanCanvas } from './plan-canvas';
-import { ComposerMedia } from './composer-media';
-import { studioPipeline } from '@/lib/studio-pipeline';
 import installerRelease from '../../public/downloads/release.json';
-import { candidateDrawing } from './design-review';
 import { DesktopSettings } from './desktop-settings';
 import { ProjectContext } from './project-context';
-import { useWorkspaceState, api, type Run } from './workspace/use-workspace-state';
+import { useWorkspaceState, api, type Run, type WorkspaceState } from './workspace/use-workspace-state';
 import { Sidebar } from './workspace/sidebar';
 import { ConversationPanel } from './workspace/conversation';
 import { PlanDetails } from './workspace/plan-details';
@@ -54,6 +58,13 @@ export function Workspace({
   desktopPreview?: boolean;
 }) {
   const w = useWorkspaceState({ authConfigured, desktopPreview });
+  return <OutputWorkspaceProvider scopeKey={w.run?.id ?? 'draft'}><WorkspaceContent w={w} /></OutputWorkspaceProvider>;
+}
+
+function WorkspaceContent({w}: {w: WorkspaceState}) {
+  const {activeOutput, closeOutput} = useOutputWorkspace();
+  const {workspacePane, setWorkspacePane, resizePanel} = w;
+  const {authConfigured, desktopPreview} = w;
   const {
     actionBusy,
     run,
@@ -64,10 +75,6 @@ export function Workspace({
     sendShortcut,
     mediaBusy,
     setSendShortcut,
-    canvasInputEnabled,
-    setCanvasInputEnabled,
-    persistentProperties,
-    setPersistentProperties,
     needsAccountAdmission,
     accountStatus,
     accountStatusError,
@@ -91,7 +98,6 @@ export function Workspace({
     setRight,
     setTab,
     refresh,
-    hasContent,
     studioView,
     viewportReady,
     selectedDevice,
@@ -160,21 +166,12 @@ export function Workspace({
     setSelectedDesignElement,
     selectedSource,
     askFromCanvas,
-    providerStatus,
-    sources,
-    setSources,
-    setMediaBusy,
-    liveRuntime,
     
+    liveRuntime,
     previewLabel,
     previewSvg,
     executing,
-    traceTurns,
-    nativeQuestions,
     mode,
-    model,
-    nativeTodos,
-    savedTurns,
     deviceDialog,
     devices,
     setDeviceId,
@@ -192,8 +189,6 @@ export function Workspace({
     canvasOpen,
     setCanvasOpen,
     canvasTrigger,
-    plannedCandidate,
-    separateNativeFollowup,
     offlineFixture,
     
     models,
@@ -201,6 +196,17 @@ export function Workspace({
     localConnections,
     setLocalConnections,
   } = w;
+  useEffect(() => {
+    if (!canvasOpen) return;
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || Array.from(document.querySelectorAll('[role="dialog"]')).some(element => element.getClientRects().length > 0)) return;
+      event.preventDefault();setCanvasOpen(false);
+      requestAnimationFrame(() => canvasTrigger.current?.focus());
+    };
+    document.addEventListener('keydown', escape);
+    return () => document.removeEventListener('keydown', escape);
+  }, [canvasOpen, setCanvasOpen, canvasTrigger]);
+  useEffect(() => {if (activeOutput) {setWorkspacePane('drawing');setStudioView('workspace');}}, [activeOutput?.id, setWorkspacePane]);
   const conversationPanel = <ConversationPanel {...w} />;
   const chatOptions = (
     <DropdownMenuPrimitive.Root>
@@ -277,37 +283,6 @@ export function Workspace({
       </label>
       <label className="setting-row">
         <span>
-          <strong>Canvas input</strong>
-          <small>Keep a floating assistant input on the drawing.</small>
-        </span>
-        <input
-          type="checkbox"
-          aria-label="Floating canvas input"
-          checked={canvasInputEnabled}
-          disabled={mediaBusy}
-          onChange={(event) => {
-            setCanvasInputEnabled(event.target.checked);
-            localStorage.setItem('datumm-canvas-input', String(event.target.checked));
-          }}
-        />
-      </label>
-      <label className="setting-row">
-        <span>
-          <strong>Persistent properties</strong>
-          <small>Always show essential details below your drawing.</small>
-        </span>
-        <input
-          type="checkbox"
-          aria-label="Persistent properties"
-          checked={persistentProperties}
-          onChange={(event) => {
-            setPersistentProperties(event.target.checked);
-            localStorage.setItem('datumm-persistent-properties', String(event.target.checked));
-          }}
-        />
-      </label>
-      <label className="setting-row">
-        <span>
           <strong>Units</strong>
           <small>Measurements and dimensions use the current geometry units.</small>
         </span>
@@ -373,21 +348,24 @@ export function Workspace({
         }
       />
       <div
+        id="datumm-workspace"
         className={cn(
           'workspace',
           'desktop-workspace',
-          !showDesktopAssistant && 'studio-new-chat',
-          hasContent && studioView === 'workspace' && 'studio-has-pipeline',
+          'studio-stable-layout',
+          canvasOpen && 'studio-drawing-focused',
           settingsOpen && 'studio-settings-open',
           studioView !== 'workspace' && 'studio-secondary-view',
           !left && 'left-closed',
           !right && 'right-closed',
           viewportReady && 'viewport-ready',
+          `studio-pane-${workspacePane}`,
         )}
         style={
           {
             '--left-panel-width': `${panelWidths.left}px`,
             '--right-panel-width': `${panelWidths.right}px`,
+            '--chat-panel-width': `${panelWidths.right}px`,
           } as React.CSSProperties
         }
       >
@@ -803,9 +781,51 @@ export function Workspace({
             )}
           </div>
         </header>
-        <section className="studio-stage" aria-label="Architectural workspace">
+        <div className="studio-pane-switch" role="group" aria-label="Workspace panes">
+          <button type="button" aria-pressed={workspacePane === 'chat'} onClick={() => {setCanvasOpen(false);setStudioView('workspace');setWorkspacePane('chat');}}><MessageSquare size={15}/>Chat</button>
+          <button type="button" aria-pressed={workspacePane === 'drawing'} onClick={() => setWorkspacePane('drawing')}><PencilRuler size={15}/>Work area</button>
+        </div>
+        <section id="workspace-chat" className="studio-chat-column studio-assistant-panel" aria-label="Chat">
+          {conversationPanel}
+          <PanelResize side="right" label="chat" direction="forward" width={panelWidths.right} onChange={value => resizePanel('right', value)} />
+        </section>
+        <section id="workspace-drawing" className="studio-stage" aria-label="Architectural workspace">
+          <div className="studio-workarea-toolbar">
+            <button type="button" data-output-focus-fallback aria-pressed={!activeOutput} title={activeDrawing ? `Plan ${activeDrawing.planId} · version ${activeDrawing.version} · ${activeDrawing.fingerprint}` : undefined} onClick={() => {if(activeOutput)closeOutput();setStudioView('workspace');}}><PencilRuler size={15}/>Drawing{activeDrawing ? ` · v${activeDrawing.version}` : ''}</button>
+            {activeOutput && <span className="studio-open-output-label">Output preview</span>}
+            <span className="studio-workarea-tools"/>
+            <button type="button" aria-label="Open properties" onClick={() => {setTab('preview');setRight(true);}}><PanelRight size={15}/><span>Properties</span></button>
+            <button type="button" aria-label={canvasOpen ? 'Exit focus drawing' : 'Focus drawing'} aria-pressed={canvasOpen} disabled={!hasRenderablePlan && !canvasOpen} title={!hasRenderablePlan ? 'A drawing is needed to focus this work area' : undefined} onClick={event => {if (!canvasOpen) {canvasTrigger.current = event.currentTarget;if(activeOutput)closeOutput();}setStudioView('workspace');setCanvasOpen(!canvasOpen);}}>{canvasOpen ? <Minimize2 size={15}/> : <Maximize2 size={15}/>}<span>{canvasOpen ? 'Exit focus' : 'Focus drawing'}</span></button>
+          </div>
+          {activeOutput && studioView === 'workspace' && <OutputPanel />}
+          <div className="studio-drawing-content" hidden={Boolean(activeOutput) || studioView !== 'workspace'}>
+            {activeDrawing ? (
+              <PlanCanvas
+                key={`${activeDrawing.planId}:${activeDrawing.version}:${activeDrawing.fingerprint}`}
+                drawing={activeDrawing}
+                label="Workspace design"
+                selectedElement={selectedDesignElement}
+                onProperties={() => {setRight(true);setTab('preview');}}
+                onStyleChange={setDrawingStyle}
+                highlights={designHighlights}
+                onSelectElement={setSelectedDesignElement}
+                source={selectedSource?.image ? {id:selectedSource.id,sha256:selectedSource.sha256,name:selectedSource.name,image:selectedSource.image,page:selectedSource.page} : undefined}
+                reference={queueData?.design?.reference}
+                onAsk={askFromCanvas}
+              />
+            ) : previewSvg ? (
+              <div className="studio-static-preview"><div className="studio-preview-label"><PencilRuler size={16}/>{previewLabel}</div><img alt={previewLabel} src={'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(previewSvg)}/></div>
+            ) : (
+              <div className="studio-empty studio-drawing-empty">
+                <PencilRuler size={28}/>
+                <h2>{drawingLoading ? 'Loading your drawing…' : drawingError ? 'Drawing unavailable' : 'Room for your next idea'}</h2>
+                <p>{drawingError || (drawingLoading ? 'Your conversation stays available while the saved design loads.' : 'Ask DATUMM to plan a space. Review its proposed drawing here, then add selections or comments to your message.')}</p>
+                {drawingError && <Button variant="secondary" onClick={() => setDrawingRetry(value => value + 1)}>Retry drawing</Button>}
+              </div>
+            )}
+          </div>
           {studioView === 'activity' ? (
-            <div className="studio-page">
+            <div className="studio-page" tabIndex={-1}>
               <div className="studio-page-heading">
                 <div>
                   <h2>Your workspace, in motion</h2>
@@ -917,7 +937,7 @@ export function Workspace({
               </div>
             </div>
           ) : studioView === 'schedules' ? (
-            <div className="studio-page">
+            <div className="studio-page" tabIndex={-1}>
               <div className="studio-page-heading">
                 <div>
                   <h2>Scheduled tasks</h2>
@@ -949,118 +969,10 @@ export function Workspace({
               </div>
               {run?.data.agent_scheduler && <AgentScheduler value={run.data.agent_scheduler} />}
             </div>
-          ) : hasRenderablePlan ? (
-            <div className="studio-canvas-stage">
-              {activeDrawing ? (
-                <PlanCanvas
-                  canvasInputEnabled={canvasInputEnabled}
-                  persistentProperties={persistentProperties}
-                  key={activeDrawing.fingerprint}
-                  drawing={activeDrawing}
-                  label="Workspace design"
-                  selectedElement={selectedDesignElement}
-                  onProperties={() => {
-                    setRight(true);
-                    setTab('preview');
-                  }}
-                  onStyleChange={setDrawingStyle}
-                  highlights={designHighlights}
-                  onSelectElement={setSelectedDesignElement}
-                  source={
-                    selectedSource?.image
-                      ? {
-                          id: selectedSource.id,
-                          sha256: selectedSource.sha256,
-                          name: selectedSource.name,
-                          image: selectedSource.image,
-                          page: selectedSource.page,
-                        }
-                      : undefined
-                  }
-                  reference={queueData?.design?.reference}
-                  onAsk={askFromCanvas}
-                  voiceControl={(onTranscript) => (
-                    <ComposerMedia
-                      voiceOnly
-                      voiceStatus={providerStatus?.voice}
-                      locked={mediaBusy}
-                      nativeAvailable={desktopAvailable}
-                      sources={sources}
-                      onChange={setSources}
-                      onBusy={setMediaBusy}
-                      disabled={actionBusy || (!liveRuntime && !desktopPreview)}
-                      onTranscript={onTranscript}
-                      onContext={() => setProjectContextOpen(true)}
-                      onTools={() => changeSettingsOpen(true)}
-                      onSettings={() => changeSettingsOpen(true)}
-                      onSkill={() => {}}
-                      onCommand={() => {}}
-                    />
-                  )}
-                />
-              ) : (
-                <div className="studio-static-preview">
-                  <div className="studio-preview-label">
-                    <PencilRuler size={16} />
-                    {previewLabel}
-                  </div>
-                  <img alt={previewLabel} src={'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(previewSvg)} />
-                </div>
-              )}
-            </div>
-          ) : (
-            conversationPanel
-          )}
+          ) : null}
         </section>
-        {hasContent && studioView === 'workspace' && (
-          <details className="studio-pipeline">
-            <summary>
-              <Workflow size={15} />
-              <span>Pipeline</span>
-              <span className="studio-pipeline-steps">
-                {studioPipeline({
-                  planReady: Boolean(activeDrawing),
-                  accepted: Boolean(queueData?.design?.selected || planAccepted),
-                  build: queueData?.native_build,
-                  executing,
-                  mode: run?.mode ?? mode,
-                }).map((step) => (
-                  <span key={step.label} data-state={step.state}>
-                    {step.state === 'done' ? (
-                      <Check size={12} />
-                    ) : step.state === 'current' ? (
-                      <i aria-hidden="true" />
-                    ) : null}
-                    {step.label}
-                  </span>
-                ))}
-              </span>
-              <strong className="studio-pipeline-status">
-                {run ? workflowState(run).label : executing ? 'Working' : 'Conversation'}
-              </strong>
-              {executing && <WorkingIndicator />}
-              <ChevronDown size={14} />
-            </summary>
-            <div>
-              {run && <p>{workflowState(run).next}</p>}
-              {run?.data.agent_scheduler && <AgentScheduler value={run.data.agent_scheduler} />}
-              <AgentActivity
-                nativeMessages={executing ? run?.data.native_messages : undefined}
-                events={traceTurns.at(-1) ?? []}
-                active={executing}
-                waiting={nativeQuestions.length > 0}
-                mode={run?.mode ?? mode}
-                model={run?.model ?? model}
-                todos={nativeTodos}
-                manifest={run?.data.run_manifest}
-                evidence={savedTurns.at(-1)?.result?.evidence ?? run?.data.run_manifest?.tools ?? []}
-              />
-              {desktopAvailable && runId && <PipelineTrace taskId={runId} />}
-            </div>
-          </details>
-        )}
 
-        <Inspector {...w} conversationPanel={conversationPanel} planDetails={<PlanDetails {...w} />} />
+        <Inspector {...w} planDetails={<PlanDetails {...w} />} />
 
         <Dialog open={deviceDialog} onOpenChange={setDeviceDialog}>
           <DialogContent className="device-dialog" onCloseAutoFocus={restoreDialogFocus}>
@@ -1228,48 +1140,6 @@ export function Workspace({
             </div>
           </DialogContent>
         </Dialog>
-        <Dialog open={canvasOpen} onOpenChange={setCanvasOpen}>
-          <DialogContent
-            className="canvas-dialog"
-            onCloseAutoFocus={(event) => {
-              event.preventDefault();
-              if (canvasTrigger.current?.isConnected) canvasTrigger.current.focus();
-            }}
-          >
-            <DialogHeader>
-              <DialogTitle>
-                {plannedCandidate && separateNativeFollowup ? 'Saved design reference' : 'Design preview'}
-              </DialogTitle>
-              <DialogDescription>
-                {plannedCandidate && separateNativeFollowup
-                  ? 'Saved geometry excludes the separate native proposal and later native room-name changes.'
-                  : 'Proposed geometry · select a room to inspect dimensions'}
-              </DialogDescription>
-            </DialogHeader>
-            {plannedCandidate ? (
-              <PlanCanvas
-                canvasInputEnabled={canvasInputEnabled}
-                persistentProperties={persistentProperties}
-                drawing={candidateDrawing(plannedCandidate)}
-                label="Expanded design"
-                onAsk={askFromCanvas}
-              />
-            ) : designVersion ? (
-              <PlanCanvas
-                canvasInputEnabled={canvasInputEnabled}
-                persistentProperties={persistentProperties}
-                drawing={designVersion}
-                onAsk={askFromCanvas}
-              />
-            ) : previewSvg ? (
-              <div className="canvas-scroll">
-                <img alt={previewLabel} src={'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(previewSvg)} />
-              </div>
-            ) : (
-              <p>No current design preview.</p>
-            )}
-          </DialogContent>
-        </Dialog>
         <footer className="studio-global-footer">
           <span>
             <span className={cn('connection-dot', connected && 'online')} />
@@ -1299,6 +1169,8 @@ export function Workspace({
           onOpenChange={changeSettingsOpen}
           authConfigured={authConfigured}
           models={models}
+          taskTitle={run?.title}
+          usageContent={run?.data.usage && run.data.usage.rootTaskId === run.id ? <ContextUsage usage={run?.data.usage}/> : undefined}
           generalContent={generalSettingsContent}
           revitContent={
             <>

@@ -2,7 +2,8 @@ import { DesignReview, type DesignRecord } from '../design-review';
 import { NativeBuildReview } from '../native-build-review';
 import { cn } from '@/lib/utils';
 import { Conversation, ConversationContent, ConversationScrollButton } from '@/components/ai-elements/conversation';
-import { Message, MessageContent, MessageResponse } from '@/components/ai-elements/message';
+import { Message, MessageContent } from '@/components/ai-elements/message';
+import { AnswerContent } from './output-workspace';
 import { PromptContent } from '../prompt-content';
 import { TurnProcess, turnProcessVisible } from './turn-process';
 import { PlanDock } from './plan-dock';
@@ -525,7 +526,8 @@ export function ConversationPanel(props: ConversationPanelProps) {
                           nativeMessages: executing && last ? run.data.native_messages : turn.nativeMessages,
                           events: traceTurns[index] ?? [],
                           active: executing && last,
-                          waiting: nativeQuestions.length > 0 || (last && run.status === 'needs_input' && Boolean(run.data.agent_question)),
+                          waiting: last && (nativeQuestions.length > 0 || (run.status === 'needs_input' && Boolean(run.data.agent_question))),
+                          status: last ? run.status : 'completed',
                           manifest: saved?.result?.manifest ?? (last ? run.data.run_manifest : undefined),
                           evidence: saved?.result?.evidence ?? (last ? run.data.run_manifest?.tools : []),
                           scheduler: last ? run.data.agent_scheduler : undefined,
@@ -552,7 +554,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                             />
                             {turn.answer && (
                               <MessageContent>
-                                <MessageResponse>{turn.answer}</MessageResponse>
+                                <AnswerContent text={turn.answer} source={{ key: `${run.id}:answer:${index}`, taskId: run.id, conversationIndex: index, state: executing && last ? 'streaming' : !last || run.status === 'completed' ? 'saved' : 'partial' }} />
                               </MessageContent>
                             )}
                           </Message>
@@ -593,9 +595,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                           message.role === 'user' ? (
                             <PromptContent key={i} text={part.text} />
                           ) : (
-                            <MessageResponse key={i}>
-                              {message.id === messages.at(-1)?.id && responseSummary ? responseSummary : part.text}
-                            </MessageResponse>
+                            <AnswerContent key={i} text={message.id === messages.at(-1)?.id && responseSummary ? responseSummary : part.text} source={{ key: `message:${message.id}:${i}`, taskId: run?.id, conversationIndex: messages.filter(row => row.role === 'assistant').findIndex(row => row.id === message.id), state: busy && message.id === messages.at(-1)?.id ? 'streaming' : run && run.status !== 'completed' ? 'partial' : 'saved' }} />
                           ),
                         )}
                     </MessageContent>
@@ -617,7 +617,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                       <Mark /> DATUMM
                     </div>
                     <MessageContent>
-                      <MessageResponse>{responseSummary ?? run.data.answer}</MessageResponse>
+                      <AnswerContent text={responseSummary ?? run.data.answer} source={{ key: `${run.id}:answer:0`, taskId: run.id, conversationIndex: 0, state: run.status === 'completed' ? 'saved' : 'partial' }} />
                     </MessageContent>
                   </Message>
                 )}
@@ -632,6 +632,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                     events={traceTurns.at(-1) ?? []}
                     active
                     waiting={nativeQuestions.length > 0}
+                    status={run?.status}
                   />
                 </Message>
               )}

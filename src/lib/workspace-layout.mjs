@@ -11,43 +11,29 @@
 export const isRenderablePlan = (activeDrawing, previewSvg) =>
   Boolean(activeDrawing?.graph?.rooms?.length) || (typeof previewSvg === 'string' && previewSvg.trim() !== '');
 
-/**
- * Focus the sole conversation before a plan exists, otherwise the plan target.
- * @param {string} selector
- * @param {{
- *   hasRenderablePlan: boolean;
- *   setStudioView: (view: 'workspace') => void;
- *   setRight: (open: boolean) => void;
- *   setTab: (tab: 'assistant' | 'preview') => void;
- *   reviewScroll: { current: { stopScroll: () => void } | null };
- *   requestFrame?: (callback: () => void) => unknown;
- *   doc?: { querySelector: (selector: string) => { scrollIntoView: (options: object) => void } | null };
- * }} env
- */
-export function reviewFocus(
-  selector,
-  {
-    hasRenderablePlan,
-    setStudioView,
-    setRight,
-    setTab,
-    reviewScroll,
-    requestFrame = requestAnimationFrame,
-    doc = document,
-  },
-) {
+/** Review controls always lead to the stable chat and its exact approval card. */
+export function reviewFocus(selector, {
+  setStudioView,
+  setWorkspacePane,
+  setRight,
+  reviewScroll,
+  requestFrame = requestAnimationFrame,
+  doc = document,
+}) {
   setStudioView('workspace');
-  if (hasRenderablePlan) {
-    setRight(true);
-    setTab('assistant');
-  } else {
-    setRight(false);
-    setTab('preview');
-  }
+  setWorkspacePane('chat');
+  setRight(false);
   requestFrame(() => {
     reviewScroll.current?.stopScroll();
-    doc
-      .querySelector(hasRenderablePlan ? selector : '.conversation')
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const target = doc.querySelector(selector) ?? doc.querySelector('.conversation');
+    target?.scrollIntoView({behavior: 'smooth', block: 'start'});
+    target?.focus?.({preventScroll: true});
   });
+}
+
+/** Secondary destinations are explicit navigation into the work area. */
+export function openWorkspaceView(view, {setStudioView,setWorkspacePane,setLeft,narrow}) {
+  setStudioView(view);
+  setWorkspacePane('drawing');
+  if(narrow)setLeft(false);
 }

@@ -1,6 +1,6 @@
 # DATUMM Web — UI/UX renewal
 
-Status: discovery and collaborative planning in progress. Implementation is not approved yet.
+Status: user approved the plan and development on 12 November 2026. Implementation and local verification are in progress; merge/release remain later decisions.
 Date: 12 November 2026 (Asia/Kolkata).
 Working branch: `codex/ui-ux-foundation-2026-11-12`.
 Baseline: `749587903de58957d410a7bfc8637888c981899c` (remote main, PR #10).
@@ -15,7 +15,7 @@ The user identifies the current agent harness as hosted OpenCode on AWS. Older r
 ## Instructions and boundaries
 
 - Work on this branch; keep main preserved. Integrate and merge only at the end, after the agreed design, implementation and verification phases and the user's release decision.
-- Foundation and skill installation are complete. Continue the user-directed planning discussion; do not begin implementation yet.
+- Foundation, skill setup and planning are complete enough for the approved implementation. Continue development and validation on this branch; preserve unresolved service dependencies explicitly.
 - Use the Codex built-in browser for the reference walkthrough and live DATUMM observations.
 - Ask questions during discovery, recording answers and open decisions here. Do not silently turn assumptions into requirements.
 - Read relevant installed Next.js documentation in `node_modules/next/dist/docs/` before writing application code. This project uses Next 16.4.3 and React 19.3.
@@ -35,7 +35,7 @@ The user identifies the current agent harness as hosted OpenCode on AWS. Older r
 | Native changes | Preview, exact approval, execution status, verification, failure/recovery | Server/connector authority; never infer approval from UI navigation |
 | Settings | Account, appearance, accessibility, notifications, model defaults, connections, help | Distinguish user/project/org/system settings |
 | User management | Individual profile, sessions, account lifecycle | Existing identity and authorization capabilities; organizations/team roles deferred by D10 |
-| Billing | Plan comparison, checkout/portal, invoices, upgrades, cancellation and failure states | Provider, pricing, entitlements and webhook source of truth undecided |
+| Billing | Free / Pro / Max pricing and subscription-usage design; payment collection later | User confirmed Pro $20/month and Max $99/month, free tier current; provider, quotas, entitlements and payment contract undecided |
 | Usage | Requests/tokens/cost or credits, quotas, time ranges, attribution, limits and freshness | Authoritative metering; never present estimated spend as billed spend |
 | Admin | Runtime configuration, knowledge, release management and audit | Existing admin gates and backend permissions |
 
@@ -145,6 +145,8 @@ Exclude development skills, planning documents and captures from deployment uplo
 
 Current artifacts: [PLAN.md](PLAN.md), [PRODUCT.md](PRODUCT.md), [current state](docs/ux/current-state.md), [reference evidence](docs/ux/reference-observations.md), [structured outputs](docs/ux/structured-output.md) and [phase handoff](docs/ux/HANDOFF.md).
 
-Next action: refine the onboarding taxonomy and individual-account billing/usage; complete selected reference behavior and integration contracts before approving development. Output revision behavior is already approved. No application implementation, billing integration, harness migration, push, merge or deployment is part of this planning checkpoint.
+Current development: stable middle chat/right work area, preserved-viewer Focus drawing, one Ask/Plan/Build composer, compact real activity, Streamdown/Mermaid and answer-output browsing, Clerk-backed onboarding/profile, settings/usage/free-tier billing and planned pricing. Deployed AWS/Clerk/Revit behavior and authoritative BOQ revision APIs remain unverified. See [implementation review](docs/ux/implementation-review.md) and [phase handoff](docs/ux/HANDOFF.md) for actual verification results. No push, merge or deployment is part of this implementation checkpoint.
+
+Local verification checkpoint: 59 tests, TypeScript and production build passed; production runtime smoke passed, including public pricing and production rejection of the development fixture route. Browser review covered desktop and 390px layouts plus clearly labelled synthetic onboarding/drawing/output fixtures. Pricing is available at `/pricing` and Settings → Billing, with current Free and planned Pro $20/month / Max $99/month. Numerical allowances and paid payment integration remain undefined.
 
 Latest tooling instruction: use GPT-6.1 Sol at high reasoning for parallel sub-agents. Workspace, integration/output and onboarding/account planning were delegated with separate document ownership. Impeccable's project hook was installed and its doctor check returned no findings after updating PRODUCT.md to the current schema. No new skill download was necessary; the repository skill was already installed. Hook execution itself still depends on Codex loading/trusting the manifest.

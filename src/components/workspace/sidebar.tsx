@@ -130,7 +130,7 @@ type SidebarProps = Pick<
   | 'search'
   | 'setSearch'
   | 'studioView'
-  | 'setStudioView'
+  | 'openStudioView'
   | 'runs'
   | 'historyView'
   | 'filteredChats'
@@ -180,7 +180,7 @@ export function Sidebar(props: SidebarProps) {
     search,
     setSearch,
     studioView,
-    setStudioView,
+    openStudioView,
     runs,
     historyView,
     filteredChats,
@@ -269,7 +269,7 @@ export function Sidebar(props: SidebarProps) {
             <button
               type="button"
               aria-current={studioView === 'schedules' ? 'page' : undefined}
-              onClick={() => setStudioView('schedules')}
+              onClick={() => openStudioView('schedules')}
             >
               <Clock3 size={17} />
               Scheduled tasks
@@ -277,7 +277,7 @@ export function Sidebar(props: SidebarProps) {
             <button
               type="button"
               aria-current={studioView === 'activity' ? 'page' : undefined}
-              onClick={() => setStudioView('activity')}
+              onClick={() => openStudioView('activity')}
             >
               <Workflow size={17} />
               Activity<span>{runs.filter((item) => workflowState(item).kind === 'in_progress').length || ''}</span>
@@ -480,14 +480,14 @@ export function Sidebar(props: SidebarProps) {
           >
             <Plus size={19} />
           </button>
-          <button type="button" aria-label="Activity" title="Activity" onClick={() => setStudioView('activity')}>
+          <button type="button" aria-label="Activity" title="Activity" onClick={() => openStudioView('activity')}>
             <Workflow size={18} />
           </button>
           <button
             type="button"
             aria-label="Scheduled tasks"
             title="Scheduled tasks"
-            onClick={() => setStudioView('schedules')}
+            onClick={() => openStudioView('schedules')}
           >
             <Clock3 size={18} />
           </button>

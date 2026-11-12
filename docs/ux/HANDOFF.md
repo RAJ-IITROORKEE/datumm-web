@@ -2,6 +2,28 @@
 
 Updated 12 November 2026. Branch `codex/ui-ux-foundation-2026-11-12`.
 
+## Current implementation checkpoint
+
+The user approved development and subsequent pricing additions. The earlier planning-only statements in phase packets are historical. Application development is authorized; push/merge/deployment remain later decisions.
+
+Implemented locally:
+
+- Stable navigation/chat/right work area, same-mounted-viewer Focus drawing, narrow Chat / Work area navigation, contextual properties/activity and one Ask/Plan/Build composer.
+- Streamdown completion-state rendering, strict Mermaid diagrams, side-by-side answer outputs and scoped answer-table CSV export. Output history reflects real saved answers; it is not an authoritative BOQ revision service.
+- Google-first configured Clerk sign-in, profile/domain/grouped interests, optional connector setup/Skip, durable Clerk private-metadata profile storage, resume and existing-user bypass. Profile editing is available in Settings.
+- affectUI-derived theme, self-hosted Inter, preserved saved palettes, coherent settings and admin appearance, current-task usage and pricing.
+- Public `/pricing` and Settings Billing: current Free tier, planned Pro **$20/month**, Max **$99/month**, individuals only. Higher/highest usage and Max priority processing are explicitly planned. No paid checkout or invented numerical quota.
+
+Verification: **59 tests passed**, TypeScript passed, final production build passed. Production runtime smoke passed for app/pricing, rejected cross-origin/missing-origin writes, unsupported routes/attachments, profile unavailable gate and production-404 development fixture. Updated the smoke test's obsolete unsupported-project route: project listing is already supported by the existing proxy; its unsupported workspace child remains rejected. `npm audit --omit=dev --audit-level=low` reported zero vulnerabilities after pinning the Mermaid transitive KaTeX dependency to patched 0.18.2.
+
+Browser evidence: actual local workspace at desktop and 390px; mobile Settings/Usage/Billing and Activity; synthetic dev-only plan/output/onboarding fixtures for 2D/3D, focus retaining 125% zoom, annotation save/context handoff, Pro details and pricing stacking. Screenshot files are in ignored `artifacts/ux/`; actual paths include `workspace-desktop.jpg`, `workspace-mobile.jpg`, `onboarding-usecases.jpg`, `onboarding-connector.jpg`, `review-3d.jpg`, `annotation-review.jpg`, `activity-mobile.jpg`, `settings-mobile.jpg`, `pricing-desktop.jpg`, `pricing-mobile.jpg`, `billing-desktop.jpg`, `billing-mobile.jpg`. The Billing phone screenshot was recaptured after viewport settling; the independent reviewer confirmed 390×844.
+
+Independent review: [implementation-review.md](implementation-review.md). Two navigation/focus regressions were fixed and scored resolved; pricing received a scoped source/visual pass. [DESIGN.md](../../DESIGN.md) and `.impeccable/design.json` describe the built tokens/components. The first scoped detector pass returned no findings; the subsequent new pricing scan reported advisory type/radius documentation differences, after which tiny badges/radius were aligned and intentional pricing type steps documented. No suppressions were added. Final doctor reports only an unset future marketing/showcase build preference; Operate app surfaces remain code-first, and no unrelated preference was silently stored.
+
+Live limits: no local Clerk/orchestrator credentials. Google provider, actual profile persistence against Clerk, AWS OpenCode streaming/export/reconnect, Revit authorization/execution and metering need connected-environment verification. D9 immutable BOQ revisions/full provenance require a verified backend contract; the UI does not fabricate one. Payment provider, exact quotas, subscriptions/webhooks and paid entitlements are still undefined. Annotation storage remains browser-local to the exact plan version. The dev fixture route returns 404 in production.
+
+Next: review the local result with the user; connect the verified service environment, validate live journeys and agree backend revision/payment contracts. Preserve current native approval paths and do not merge/release implicitly.
+
 ## Read first
 
 1. PROJECT.md: baseline, authority and overall scope.
@@ -23,7 +45,7 @@ Updated 12 November 2026. Branch `codex/ui-ux-foundation-2026-11-12`.
 | Parallel source planning | Sol 6.1 high agents wrote packets/workspace.md, integration-contracts.md and packets/onboarding-account.md; coordinator reviewed and indexed them | Confirm remaining interaction decisions and verify deployed contracts before source implementation. |
 | Specification | PLAN.md and PRODUCT.md created with observed evidence separated from proposals | DESIGN.md, journey details, contracts and approved implementation packets are not complete. |
 
-## Next conversation
+## Earlier planning follow-up
 
 Discuss the proposed onboarding domain/use-case taxonomy, individual-account billing/usage and remaining viewer details in small question rounds. First-use step order, automatic-current output revisions with history, and individual-account scope are already approved. Do not revisit D1–D10 unless new information requires it.
 
@@ -31,9 +53,9 @@ Then inspect the chosen onboarding/settings/account references and verify actual
 
 Use the packet index in PLAN.md. W-D/I4 are one activity workstream and W-A/I6 one shell integration stream; do not assign competing owners. Verified gaps: annotation storage is browser-local; profile/onboarding persistence is absent from current proxy surface; generic immutable artifact revisions are not established; existing export routes still need live format/data verification. These are implementation dependencies, not blanket claims that the current product is broken.
 
-## Guardrails and verification
+## Historical planning guardrails and verification
 
-- Planning only. No UI source/dependency change, new native run, push, merge or deploy in this phase.
+- During the original planning phase no UI source/dependency change or native run was made. The approved implementation above supersedes that boundary; push/merge/deploy are still excluded.
 - Source reviews and browser observations are evidence; no new-baseline test/build pass is claimed.
 - Browser tabs for live DATUMM, affectUI and Streamdown were preserved. Revit disconnected; live DATUMM restored to saved plan's 2D view.
 - Streamdown already exists; Mermaid plugin is not currently configured. MessageResponse's text-only memo comparator needs attention when adding state props.

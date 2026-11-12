@@ -1,4 +1,4 @@
-import {isRenderablePlan,reviewFocus} from '@/lib/workspace-layout.mjs';
+import {isRenderablePlan,reviewFocus,openWorkspaceView} from '@/lib/workspace-layout.mjs';
 import {useState, useRef, useEffect, useCallback, useMemo} from 'react';
 import {type AuthStatus, type ProviderStatus} from '@/lib/desktop-contract';
 import {accountAdmissionState} from '../account-admission';
@@ -95,8 +95,8 @@ export function useWorkspaceState({authConfigured,desktopPreview=false}:{authCon
  const [desktopAvailable,setDesktopAvailable]=useState(false),[settingsOpen,setSettingsOpen]=useState(false);
  const [accountStatus,setAccountStatus]=useState<AuthStatus>(),[accountStatusError,setAccountStatusError]=useState(''),[accountActionError,setAccountActionError]=useState(''),[accountBusy,setAccountBusy]=useState(false),[accountWorkspaceSubject,setAccountWorkspaceSubject]=useState<string>();
  const accountEpoch=useRef(0);
- const [sendShortcut,setSendShortcut]=useState('enter'),[canvasInputEnabled,setCanvasInputEnabled]=useState(true),[persistentProperties,setPersistentProperties]=useState(true);
- useEffect(()=>{try{setSendShortcut(localStorage.getItem('datumm-send-shortcut')==='ctrl-enter'?'ctrl-enter':'enter');setCanvasInputEnabled(localStorage.getItem('datumm-canvas-input')!=='false');setPersistentProperties(localStorage.getItem('datumm-persistent-properties')!=='false');}catch{}},[]);
+ const [sendShortcut,setSendShortcut]=useState('enter'),[canvasInputEnabled,setCanvasInputEnabled]=useState(false),[persistentProperties,setPersistentProperties]=useState(false);
+ useEffect(()=>{try{setSendShortcut(localStorage.getItem('datumm-send-shortcut')==='ctrl-enter'?'ctrl-enter':'enter');localStorage.removeItem('datumm-canvas-input');localStorage.removeItem('datumm-persistent-properties');}catch{}},[]);
  const [providerStatus,setProviderStatus]=useState<ProviderStatus>();
  useEffect(()=>{void window.desktop?.providerStatus().then(setProviderStatus).catch(()=>{});},[]);
  useEffect(()=>{setDesktopAvailable(Boolean(window.desktop));},[]);
@@ -249,13 +249,14 @@ export function useWorkspaceState({authConfigured,desktopPreview=false}:{authCon
   return()=>window.removeEventListener('hashchange',sync);
  },[changeSettingsOpen]);
  const [studioView,setStudioView]=useState<'workspace'|'activity'|'schedules'>('workspace');
+ const [workspacePane,setWorkspacePane]=useState<'chat'|'drawing'>('chat');
  const [activityFilter,setActivityFilter]=useState('all');
  const [activitySelection,setActivitySelection]=useState('');
  useEffect(()=>setTab('preview'),[]);
  const [viewportReady,setViewportReady]=useState(false);
  const [dismissedWorkflow,setDismissedWorkflow]=useState('');
- const [panelWidths,setPanelWidths]=useState({left:200,right:440});
- useEffect(()=>{try{const saved=JSON.parse(localStorage.getItem('datumm-panel-widths')??'null');if(saved&&Number.isFinite(saved.left)&&Number.isFinite(saved.right))setPanelWidths({left:Math.max(180,Math.min(440,saved.left===242?200:saved.left)),right:Math.max(240,Math.min(620,saved.right===316?440:saved.right))});}catch{}},[]);
+ const [panelWidths,setPanelWidths]=useState({left:224,right:380});
+ useEffect(()=>{try{const saved=JSON.parse(localStorage.getItem('datumm-panel-widths')??'null');if(saved&&Number.isFinite(saved.left)&&Number.isFinite(saved.right))setPanelWidths({left:Math.max(180,Math.min(440,saved.left===242?200:saved.left)),right:Math.max(320,Math.min(620,saved.right===316?380:saved.right))});}catch{}},[]);
  const resizePanel=(side:'left'|'right',width:number)=>setPanelWidths(previous=>{const next={...previous,[side]:width};try{localStorage.setItem('datumm-panel-widths',JSON.stringify(next));}catch{}return next;});
 
  const [deviceDialog,setLegacyDeviceDialog]=useState(false),[pairing,setPairing]=useState(''),[search,setSearch]=useState(''),[actionBusy,setActionBusy]=useState(false);
@@ -266,7 +267,7 @@ const [placementContext,setPlacementContext]=useState<PlacementContext|null>(nul
 const [placementX,setPlacementX]=useState(''),[placementY,setPlacementY]=useState(''),[placementRotation,setPlacementRotation]=useState(''),[placementView,setPlacementView]=useState('');
 const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(null);
  const [historyView,setHistoryView]=useState<'recent'|'archived'>('recent'),[deleteTarget,setDeleteTarget]=useState<Run|null>(null),[deleteAllOpen,setDeleteAllOpen]=useState(false),[deletePhrase,setDeletePhrase]=useState('');
- const [canvasOpen,setCanvasOpen]=useState(false),[canvasZoom,setCanvasZoom]=useState(1);
+ const [canvasOpen,setCanvasOpen]=useState(false);
  const [designVersion,setDesignVersion]=useState<VariableVersion|null>(null),[designDiff,setDesignDiff]=useState<string>('');
  const [drawingError,setDrawingError]=useState(''),[drawingMissing,setDrawingMissing]=useState(false),[drawingLoading,setDrawingLoading]=useState(false),[drawingRetry,setDrawingRetry]=useState(0),[compareVersion,setCompareVersion]=useState<VariableVersion|null>(null);
  const [drawingStyle,setDrawingStyle]=useState<'presentation'|'linework'>('presentation');
@@ -276,7 +277,7 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  const pendingSubmission=useRef<{text:string;runStarted:boolean;taskId?:string;sourceKey:string}|null>(null);
  const recoveryEpoch=useRef(0),promptDrafts=useRef<Record<string,string>>({});
  const recoverLiveView=(taskId?:string)=>{const epoch=recoveryEpoch.current;setError('');setConnectionNotice('Checking the saved task after the live stream ended…');if(taskId)void api<Run>('tasks/'+encodeURIComponent(taskId)).then(task=>{if(recoveryEpoch.current===epoch){setRun(task);setConnectionNotice(savedTaskConnectionNotice(task));}}).catch(()=>{if(recoveryEpoch.current===epoch)setConnectionNotice('Saved task updates are unavailable. Check the connection before retrying; this message was already admitted.');});};
- const openCanvas=(trigger:HTMLButtonElement)=>{canvasTrigger.current=trigger;setCanvasZoom(1);setCanvasOpen(true);};
+ const openCanvas=(trigger:HTMLButtonElement)=>{canvasTrigger.current=trigger;setStudioView('workspace');setRight(false);setCanvasOpen(true);};
  const restoreDialogFocus=(event:Event)=>{event.preventDefault();const trigger=dialogTrigger.current?.isConnected?dialogTrigger.current:document.querySelector<HTMLElement>('button[aria-label="Show sidebar"],button[aria-label="Account settings"],[aria-label="Search tasks"]');trigger?.focus();};
  const planSummary=run?.data.plan?`Plan revision ${run.data.plan.version} is ready. Review the layout below, describe a change, or build this version in Revit.`:null;
  const outcome=run?.modelOutcome;
@@ -429,7 +430,7 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
 
  useEffect(()=>{
   const narrow=window.matchMedia('(max-width:850px)');
-  const update=()=>{setLeft(!narrow.matches);setRight(!narrow.matches);setViewportReady(true);};
+  const update=()=>{setLeft(!narrow.matches);setViewportReady(true);};
   update();narrow.addEventListener('change',update);
   return()=>narrow.removeEventListener('change',update);
  },[]);
@@ -438,10 +439,10 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   const closeDrawer=(event:KeyboardEvent)=>{
    if(event.key!=='Escape'||event.defaultPrevented||document.querySelector('[role="dialog"][data-state="open"]'))return;
    if(left&&window.matchMedia('(max-width:850px)').matches){
-    setLeft(false);requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>('button[aria-label="Show sidebar"]')?.focus());return;
+    event.preventDefault();setLeft(false);requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>('button[aria-label="Show sidebar"]')?.focus());return;
    }
-   if(right&&window.matchMedia('(max-width:850px)').matches){
-    setRight(false);requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>('button[aria-label="Show inspector"]')?.focus());
+   if(right){
+    event.preventDefault();setRight(false);requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>('button[aria-label="Show inspector"]')?.focus());
    }
   };
   document.addEventListener('keydown',closeDrawer);
@@ -769,9 +770,9 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
 
 
  const closeMobileNav=()=>{if(window.matchMedia('(max-width:850px)').matches)setLeft(false);};
- const newTask=(projectId='')=>{if(mediaBusy)return;setStudioView('workspace');setTab('preview');setRight(false);setPlanningGoalOpen(false);setNewProject(projectId);promptDrafts.current[sourceKey]=pendingSubmission.current&&!pendingSubmission.current.runStarted?pendingSubmission.current.text:prompt;recoveryEpoch.current++;setConnectionNotice('');reviewEpoch.current++;setActionBusy(false);setCompareVersion(null);setDrawingError('');const url=new URL(window.location.href);url.searchParams.delete('task');window.history.replaceState(null,'',url);pendingSubmission.current=null;void stop();submissionKey.current=null;commandRetry.current.clear();setRun(null);setRunId('');setMessages([]);setDesignVersion(null);setDesignDiff('');setError('');setPrompt(promptDrafts.current[projectId?'new:'+projectId:'new']??'');setUseCurrentModel(false);closeMobileNav();};
+ const newTask=(projectId='')=>{if(mediaBusy)return;setStudioView('workspace');setWorkspacePane('chat');setCanvasOpen(false);setTab('preview');setRight(false);setPlanningGoalOpen(false);setNewProject(projectId);promptDrafts.current[sourceKey]=pendingSubmission.current&&!pendingSubmission.current.runStarted?pendingSubmission.current.text:prompt;recoveryEpoch.current++;setConnectionNotice('');reviewEpoch.current++;setActionBusy(false);setCompareVersion(null);setDrawingError('');const url=new URL(window.location.href);url.searchParams.delete('task');window.history.replaceState(null,'',url);pendingSubmission.current=null;void stop();submissionKey.current=null;commandRetry.current.clear();setRun(null);setRunId('');setMessages([]);setDesignVersion(null);setDesignDiff('');setError('');setPrompt(promptDrafts.current[projectId?'new:'+projectId:'new']??'');setUseCurrentModel(false);closeMobileNav();};
 
- const selectRun=(value:Run)=>{if(mediaBusy)return;setStudioView('workspace');setTab('preview');setRight(false);setPlanningGoalOpen(false);promptDrafts.current[sourceKey]=pendingSubmission.current&&!pendingSubmission.current.runStarted?pendingSubmission.current.text:prompt;setPrompt(promptDrafts.current[value.id]??'');recoveryEpoch.current++;setConnectionNotice('');reviewEpoch.current++;setActionBusy(false);setCompareVersion(null);setDrawingError('');pendingSubmission.current=null;submissionKey.current=null;void stop();commandRetry.current.clear();setRun(value);setRunId(value.id);setMode(value.mode);setModel(value.model);setReasoningEffort(value.reasoningEffort??'high');setUseCurrentModel((value.data as Run['data']&{model_context_requirement?:string}).model_context_requirement==='read');setDesignVersion(null);setDesignDiff('');setMessages([]);closeMobileNav();};
+ const selectRun=(value:Run)=>{if(mediaBusy)return;setStudioView('workspace');setWorkspacePane('chat');setCanvasOpen(false);setTab('preview');setRight(false);setPlanningGoalOpen(false);promptDrafts.current[sourceKey]=pendingSubmission.current&&!pendingSubmission.current.runStarted?pendingSubmission.current.text:prompt;setPrompt(promptDrafts.current[value.id]??'');recoveryEpoch.current++;setConnectionNotice('');reviewEpoch.current++;setActionBusy(false);setCompareVersion(null);setDrawingError('');pendingSubmission.current=null;submissionKey.current=null;void stop();commandRetry.current.clear();setRun(value);setRunId(value.id);setMode(value.mode);setModel(value.model);setReasoningEffort(value.reasoningEffort??'high');setUseCurrentModel((value.data as Run['data']&{model_context_requirement?:string}).model_context_requirement==='read');setDesignVersion(null);setDesignDiff('');setMessages([]);closeMobileNav();};
   const selectRunRef=useRef(selectRun);selectRunRef.current=selectRun;
   useEffect(()=>window.desktop?.onNavigateTask(id=>{const epoch=++recoveryEpoch.current;void api<Run>('tasks/'+id).then(value=>{if(epoch===recoveryEpoch.current)selectRunRef.current(value);}).catch(e=>{if(epoch===recoveryEpoch.current)setError((e as Error).message);});}),[]);
 
@@ -812,8 +813,9 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  const contextTitle=typeof nativeContext?.context.title==='string'?nativeContext.context.title:run?.data.context?.title??(selectedDevice?.online?'Revit connected':'Your model, in context');
  const contextView=typeof nativeContext?.context.activeViewName==='string'?nativeContext.context.activeViewName:run?.data.context?.activeViewName??(selectedDevice?.online?'Inspect to read the active view and level.':'Connect Revit to bring your project into the conversation.');
 
- const toggleLeft=()=>{if(!left&&window.matchMedia('(max-width:850px)').matches)setRight(false);setLeft(value=>!value);};
- const toggleRight=()=>{if(!right&&window.matchMedia('(max-width:850px)').matches)setLeft(false);setRight(value=>!value);};
+ const openStudioView=(view:'activity'|'schedules')=>{openWorkspaceView(view,{setStudioView,setWorkspacePane,setLeft,narrow:window.matchMedia('(max-width:850px)').matches});setCanvasOpen(false);setRight(false);requestAnimationFrame(()=>document.querySelector<HTMLElement>('#workspace-drawing .studio-page')?.focus());};
+ const toggleLeft=()=>setLeft(value=>!value);
+ const toggleRight=()=>{if(!right){setTab('preview');setWorkspacePane('drawing');}setRight(value=>!value);};
  const hasContent=messages.length>0||Boolean(run);
 
  const unreadIds=new Set(runs.filter(item=>isUnread(item,seen,runId)).map(item=>item.id));
@@ -822,14 +824,14 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  const currentProject=projects.find(project=>project.id===(run?.projectId||newProject)&&!project.isDefault);
  const orderedProjects=projects.filter(project=>!project.isDefault).sort((a,b)=>(projectOrder.includes(a.id)?projectOrder.indexOf(a.id):projectOrder.length)-(projectOrder.includes(b.id)?projectOrder.indexOf(b.id):projectOrder.length));
  const reviewScroll=useRef<StickToBottomContext|null>(null);
- const focusReview=(selector:string)=>reviewFocus(selector,{hasRenderablePlan,setStudioView,setRight,setTab,reviewScroll});
+ const focusReview=(selector:string)=>{setCanvasOpen(false);reviewFocus(selector,{setStudioView,setWorkspacePane,setRight,reviewScroll});};
  const continueDesignBuild=async()=>{
   if(!run)return;setActionBusy(true);setError('');
   try{if(queueData?.design?.selected||queueData?.native_build){if(run.mode!=='build'&&!queueData?.native_build){await taskCommand({type:'change_mode',mode:'build'});setRun(await api<Run>('tasks/'+run.id));}setMode('build');}setRight(true);setTab('preview');focusReview(queueData?.native_build?'[aria-label="Native build review"]':queueData?.design?.selected?'[aria-label="Accepted design placement"]':'[aria-label="Validated design preview"]');}
   catch(error){setError((error as Error).message);throw error;}finally{setActionBusy(false);}
  };
  const designDraftKey=run&&queueData?.design?run.id+':'+queueData.design.brief.briefId:'';
-  const askFromCanvas=(text:string)=>{setPrompt(previous=>appendViewportPrompt(previous,text));setRight(true);setTab('assistant');requestAnimationFrame(()=>document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message DATUMM"]')?.focus());};
+  const askFromCanvas=(text:string)=>{setPrompt(previous=>appendViewportPrompt(previous,text));setCanvasOpen(false);setWorkspacePane('chat');setRight(false);requestAnimationFrame(()=>document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message DATUMM"]')?.focus());};
  const nativeAction=async(action:'approve'|'reconcile'|'show'|'select')=>{
        if(!run||!queueData?.native_build)return;setActionBusy(true);
        try{if(!window.desktop)throw new Error('Open the desktop to approve native operations.');const row=queueData.native_build;const result=await window.desktop.nativeBuildAction(run.id,action,{expectedTaskVersion:run.taskVersion,proposal:{proposalId:row.proposal.proposalId,approvalHash:row.proposal.approvalHash,documentId:row.changes.documentId,expectedRevision:row.changes.expectedRevision}});setRun(result as Run);}catch(error){try{setRun(await api<Run>(`tasks/${run.id}`));}catch{}throw error;}finally{setActionBusy(false);}
@@ -838,14 +840,14 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  const nativeTurn=run?.data.nativeBuildConversationIndex??designTurn;
   const visiblePrompt=splitViewportPrompt(prompt);
  const workflowNoticeKey=JSON.stringify([run?.id,run?workflowState(run).label:'',run?.currentPlanRef?.fingerprint,queueData?.native_build?.state,queueData?.native_build?.proposal?.proposalId,buildStep]);
-  useEffect(()=>{if(hasRenderablePlan){setRight(true);setTab('assistant');}},[hasRenderablePlan,runId]);
+  // Geometry arriving never changes the user's selected pane or inspector.
   const selectedActivityRun=runs.find(item=>item.id===activitySelection)??run??runs[0];
   const activityRun=selectedActivityRun?.id===run?.id?run:selectedActivityRun;
   const activityRuns=runs.filter(item=>activityFilter==='all'||(activityFilter==='done'?item.status==='completed':workflowState(item).kind===activityFilter));
   const activityView=activityRun?latestTaskActivity(activityRun,activityRun.id===run?.id?events:activityRun.events):null;
   const currentActivity=run?latestTaskActivity(run,events):null;
-  const showDesktopAssistant=hasRenderablePlan||studioView!=='workspace'||tab==='tools'||tab==='exports';
- return {projectsSupported,chatMenuUnsupported,unreadIds,renameChat,moveChat,createProject,archiveProject,projects,runId,mediaBusy,actionBusy,selectRun,dialogTrigger,updateHistory,setProjectContextOpen,setDeleteTarget,left,viewportReady,setLeft,panelWidths,resizePanel,toggleLeft,newTask,search,setSearch,studioView,setStudioView,runs,historyView,filteredChats,desktopAvailable,orderedProjects,collapsedProjects,setCollapsedProjects,setRenameTitle,setRenameTarget,setProjectOrder,setWorkflowFilter,workflowFilter,defaultProject,changeSettingsOpen,authConfigured,setDeviceDialog,setHistoryView,setDeletePhrase,setDeleteAllOpen,liveRuntime,desktopPreview,queueData,run,designDraftKey,placementDrafts,selectedSource,executing,setDesignHighlights,selectedDesignElement,setInspectedDesignFingerprint,setRight,setTab,model,askFromCanvas,setActionBusy,setRun,setPrompt,refresh,mode,continueDesignBuild,devices,setMode,focusReview,nativeAction,hasContent,reviewScroll,messages,traceTurns,nativeQuestions,savedTurns,nativeTodos,designTurn,nativeTurn,responseSummary,planningGoalOpen,recoveryEpoch,busy,savedSources,setSelectedSourceId,nativeContext,nativeContextError,commandExpected,taskCommand,proposalExpired,committedBuild,act,setAccessBatches,plannedAccessBatches,setAccessMargin,setAccessReview,setAccessDialog,setError,replyToQuestion,outcome,openCanvas,selectedDevice,buildLegacy,reviewAlternative,drawingLoading,drawingError,drawingMissing,setDrawingRetry,designVersion,drawingCurrent,compareVersion,canvasInputEnabled,persistentProperties,setDrawingStyle,compareDrawing,setCompareVersion,drawingStyle,designDiff,reviewAssumptions,planAccepted,acceptDrawing,switchDrawingToBuild,buildStep,revitSessions,placementTask,confirmedPlacement,buildVariable,setBuildSetupOpen,reviewPlacement,revokeVariableGrant,grantVariable,previewSvg,previewRooms,batchInProgress,partialGoal,verifiedBatchCount,verifiedCount,verifiedBreakdown,completedGoal,completedCriteria,checkpointFindings,submit,verifiedNativeBatches,confirmedAnnotationFailure,canRefreshFailedPreparation,canEndFailedPreparation,connected,workspaceReady,offlineFixture,dismissedWorkflow,workflowNoticeKey,setDismissedWorkflow,promptQueue,prompt,queueAction,runtimeConfig,messageError,blockedChat,setBlockedChat,connectionNotice,setConnectionNotice,useCurrentModel,setUseCurrentModel,draftReferences,commandsOpen,commandMatches,commandIndex,chooseCommand,visiblePrompt,setCommandIndex,setCommandsDismissed,sendShortcut,sourceKey,sources,setSources,setMediaBusy,buildUnavailable,chatModels,reasoningEffort,modelPreferenceInitialized,setModel,setReasoningEffort,queueMessage,providerStatus,contextView,right,tab,hasRenderablePlan,activeDrawing,setSelectedDesignElement,plannedCandidate,separateNativeFollowup,contextTitle,previewLabel,previewCounts,currentActivity,eventDetail,exportItems,mcpToolsError,mcpTools,setSendShortcut,setCanvasInputEnabled,setPersistentProperties,needsAccountAdmission,accountStatus,accountStatusError,accountActionError,accountBusy,accountWorkspaceLoading,accountAction,settingsOpen,showDesktopAssistant,toggleRight,currentProject,deviceId,accountExpired,renameTarget,renameTitle,error,accessDialog,restoreDialogFocus,accessBatches,accessMargin,reviewTaskAccess,accessReview,enableTaskAccess,buildSetupOpen,placementContext,placementView,setPlacementView,setConfirmedPlacement,placementX,setPlacementX,placementY,setPlacementY,placementRotation,setPlacementRotation,confirmPlacement,activityView,activityFilter,setActivityFilter,activityRuns,activityRun,setActivitySelection,designHighlights,deviceDialog,setDeviceId,revoke,setControl,deleteTarget,removeTask,deleteAllOpen,deletePhrase,removeAllTasks,canvasOpen,setCanvasOpen,canvasTrigger,models,projectContextOpen,localConnections,setLocalConnections};
+  const showDesktopAssistant=true;
+ return {openStudioView,workspacePane,setWorkspacePane,projectsSupported,chatMenuUnsupported,unreadIds,renameChat,moveChat,createProject,archiveProject,projects,runId,mediaBusy,actionBusy,selectRun,dialogTrigger,updateHistory,setProjectContextOpen,setDeleteTarget,left,viewportReady,setLeft,panelWidths,resizePanel,toggleLeft,newTask,search,setSearch,studioView,setStudioView,runs,historyView,filteredChats,desktopAvailable,orderedProjects,collapsedProjects,setCollapsedProjects,setRenameTitle,setRenameTarget,setProjectOrder,setWorkflowFilter,workflowFilter,defaultProject,changeSettingsOpen,authConfigured,setDeviceDialog,setHistoryView,setDeletePhrase,setDeleteAllOpen,liveRuntime,desktopPreview,queueData,run,designDraftKey,placementDrafts,selectedSource,executing,setDesignHighlights,selectedDesignElement,setInspectedDesignFingerprint,setRight,setTab,model,askFromCanvas,setActionBusy,setRun,setPrompt,refresh,mode,continueDesignBuild,devices,setMode,focusReview,nativeAction,hasContent,reviewScroll,messages,traceTurns,nativeQuestions,savedTurns,nativeTodos,designTurn,nativeTurn,responseSummary,planningGoalOpen,recoveryEpoch,busy,savedSources,setSelectedSourceId,nativeContext,nativeContextError,commandExpected,taskCommand,proposalExpired,committedBuild,act,setAccessBatches,plannedAccessBatches,setAccessMargin,setAccessReview,setAccessDialog,setError,replyToQuestion,outcome,openCanvas,selectedDevice,buildLegacy,reviewAlternative,drawingLoading,drawingError,drawingMissing,setDrawingRetry,designVersion,drawingCurrent,compareVersion,canvasInputEnabled,persistentProperties,setDrawingStyle,compareDrawing,setCompareVersion,drawingStyle,designDiff,reviewAssumptions,planAccepted,acceptDrawing,switchDrawingToBuild,buildStep,revitSessions,placementTask,confirmedPlacement,buildVariable,setBuildSetupOpen,reviewPlacement,revokeVariableGrant,grantVariable,previewSvg,previewRooms,batchInProgress,partialGoal,verifiedBatchCount,verifiedCount,verifiedBreakdown,completedGoal,completedCriteria,checkpointFindings,submit,verifiedNativeBatches,confirmedAnnotationFailure,canRefreshFailedPreparation,canEndFailedPreparation,connected,workspaceReady,offlineFixture,dismissedWorkflow,workflowNoticeKey,setDismissedWorkflow,promptQueue,prompt,queueAction,runtimeConfig,messageError,blockedChat,setBlockedChat,connectionNotice,setConnectionNotice,useCurrentModel,setUseCurrentModel,draftReferences,commandsOpen,commandMatches,commandIndex,chooseCommand,visiblePrompt,setCommandIndex,setCommandsDismissed,sendShortcut,sourceKey,sources,setSources,setMediaBusy,buildUnavailable,chatModels,reasoningEffort,modelPreferenceInitialized,setModel,setReasoningEffort,queueMessage,providerStatus,contextView,right,tab,hasRenderablePlan,activeDrawing,setSelectedDesignElement,plannedCandidate,separateNativeFollowup,contextTitle,previewLabel,previewCounts,currentActivity,eventDetail,exportItems,mcpToolsError,mcpTools,setSendShortcut,setCanvasInputEnabled,setPersistentProperties,needsAccountAdmission,accountStatus,accountStatusError,accountActionError,accountBusy,accountWorkspaceLoading,accountAction,settingsOpen,showDesktopAssistant,toggleRight,currentProject,deviceId,accountExpired,renameTarget,renameTitle,error,accessDialog,restoreDialogFocus,accessBatches,accessMargin,reviewTaskAccess,accessReview,enableTaskAccess,buildSetupOpen,placementContext,placementView,setPlacementView,setConfirmedPlacement,placementX,setPlacementX,placementY,setPlacementY,placementRotation,setPlacementRotation,confirmPlacement,activityView,activityFilter,setActivityFilter,activityRuns,activityRun,setActivitySelection,designHighlights,deviceDialog,setDeviceId,revoke,setControl,deleteTarget,removeTask,deleteAllOpen,deletePhrase,removeAllTasks,canvasOpen,setCanvasOpen,canvasTrigger,models,projectContextOpen,localConnections,setLocalConnections};
 }
 
 export type WorkspaceState = ReturnType<typeof useWorkspaceState>;

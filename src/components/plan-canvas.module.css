@@ -335,3 +335,31 @@
   --pd-fill-bathroom: color-mix(in srgb,#4fae8a 22%,var(--background));
   --pd-fill-circulation: color-mix(in srgb,var(--foreground) 8%,var(--background));
 }
+
+/* Drawing review controls share the application composer. */
+.tabs {min-height:56px;gap:6px;padding:8px;flex-wrap:wrap;background:var(--card)}
+.tab {width:auto;flex:0 1 auto;padding:6px 9px;border:0;border-radius:6px;background:transparent;min-height:32px}
+.tab[aria-selected=true] {box-shadow:none;background:var(--secondary);color:var(--foreground)}
+.thumbnail,.tabCopy small {display:none}
+.tabCopy strong {font-size:12px;font-weight:500}
+.viewTabs {gap:4px;flex:1 1 auto}
+.addContextButton {display:flex;align-items:center;gap:5px;padding:6px 8px;min-height:32px;border:1px solid var(--separator,var(--border));border-radius:6px;background:var(--background);color:var(--foreground);font:inherit;font-size:11px;cursor:pointer}
+.addContextButton:hover {background:var(--secondary)}
+.selectionProperties {position:relative;flex:none}
+.selectionProperties>summary {display:flex;align-items:center;gap:5px;min-height:32px;padding:6px 8px;border-radius:6px;font-size:11px;cursor:pointer;list-style:none}
+.selectionProperties>summary::-webkit-details-marker {display:none}
+.selectionProperties[open]>summary,.selectionProperties>summary:hover {background:var(--secondary)}
+.selectionProperties>section {position:absolute;top:calc(100% + 8px);right:0;z-index:15;width:min(300px,calc(100vw - 40px));max-height:65vh;overflow:auto;padding:18px;border:1px solid var(--separator,var(--border));border-radius:10px;background:var(--card);color:var(--foreground);box-shadow:0 8px 24px #0002}
+.selectionProperties strong {display:block;font-size:14px;margin-bottom:16px}
+.selectionProperties label {display:grid;gap:6px;font-size:11px;color:var(--muted-foreground)}
+.selectionProperties select {min-height:36px;min-width:0;padding:6px;border:1px solid var(--border);border-radius:6px;background:var(--background);color:var(--foreground)}
+.selectionProperties dl {display:grid;gap:0;margin:12px 0}
+.selectionProperties dl>div {display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--separator,var(--border))}
+.selectionProperties dt {font-size:10px;color:var(--muted-foreground)}
+.selectionProperties dd {margin:0;font-size:12px;font-variant-numeric:tabular-nums}
+.selectionProperties small {display:block;font-size:10px;color:var(--muted-foreground);line-height:1.7;overflow-wrap:anywhere}
+.selectionProperties section>button {min-height:32px;margin-top:12px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--secondary);color:var(--foreground);font-size:11px}
+.selectionProperties :is(summary,button,select):focus-visible,.addContextButton:focus-visible {outline:2px solid var(--ring,var(--trace-accent));outline-offset:2px}
+.canvasStatus {font-size:10px;min-height:30px;background:var(--card)}
+@media(max-width:650px) {.annotateButton {font-size:0;gap:0}.annotateButton svg {width:16px;height:16px}.addContextButton>span {max-width:95px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.selectionProperties>summary>span {display:none}.canvasStatus>span:last-child {display:none}}
+:global(.studio-drawing-content) .viewport,:global(.studio-drawing-content) .drawingFrame {min-height:0}

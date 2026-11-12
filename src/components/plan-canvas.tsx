@@ -1,7 +1,7 @@
 'use client';
 import dynamic from 'next/dynamic';
-import {ArrowUp, Check, ChevronDown, Eye, Hand, Home, MapPin, MessageSquarePlus, MessagesSquare, Minus, MousePointer2, PanelRight, Pencil, Plus, RotateCcw, Ruler, Settings2, Trash2, X} from 'lucide-react';
-import {type FormEvent,type KeyboardEvent,type MouseEvent as ReactMouseEvent,type ReactNode,useCallback,useEffect,useId,useRef,useState,useSyncExternalStore} from 'react';
+import {ArrowUp, Check, ChevronDown, Hand, Home, MapPin, MessageSquarePlus, MessagesSquare, Minus, MousePointer2, PanelRight, Pencil, Plus, RotateCcw, Ruler, Settings2, Trash2, X} from 'lucide-react';
+import {type KeyboardEvent,type MouseEvent as ReactMouseEvent,type ReactNode,useCallback,useEffect,useId,useRef,useState,useSyncExternalStore} from 'react';
 import {formatLength,planSheet,pointInRoom,wallLength} from '@/lib/plan-geometry.mjs';
 import styles from './plan-canvas.module.css';
 import {exportPlanSheet,exportRaster,PlanDrawing} from './plan-drawing';
@@ -34,7 +34,7 @@ function CutawayThumbnail({graph}:{graph:PlanGraph}){
  </svg>;
 }
 
-export function PlanCanvas({drawing,label='Selected plan',onStyleChange,source,reference,highlights=[],onSelectElement,selectedElement,onAsk,onProperties,voiceControl,canvasInputEnabled=true,persistentProperties=true,readOnly=false}:{drawing:DrawingVersion;label?:string;onStyleChange?:(view:'presentation'|'linework')=>void;source?:ReferenceSource;reference?:ReferenceRecord;highlights?:string[];onSelectElement?:(key:string)=>void;selectedElement?:string;onAsk?:(text:string)=>void;onProperties?:()=>void;voiceControl?:ReactNode|((onTranscript:(text:string)=>void)=>ReactNode);canvasInputEnabled?:boolean;persistentProperties?:boolean;readOnly?:boolean}){
+export function PlanCanvas({drawing,label='Selected plan',onStyleChange,source,reference,highlights=[],onSelectElement,selectedElement,onAsk,onProperties,readOnly=false}:{drawing:DrawingVersion;label?:string;onStyleChange?:(view:'presentation'|'linework')=>void;source?:ReferenceSource;reference?:ReferenceRecord;highlights?:string[];onSelectElement?:(key:string)=>void;selectedElement?:string;onAsk?:(text:string)=>void;onProperties?:()=>void;voiceControl?:ReactNode|((onTranscript:(text:string)=>void)=>ReactNode);canvasInputEnabled?:boolean;persistentProperties?:boolean;readOnly?:boolean}){
  const id=useId(),identity={planId:drawing.planId,version:drawing.version,fingerprint:drawing.fingerprint};
  const firstRoom=drawing.graph.rooms.find(row=>row.key===selectedElement)?.key??(!selectedElement?drawing.graph.rooms[0]?.key??'':'');
  const storageKey=`datumm.plan-canvas.annotations.v1:${encodeURIComponent(drawing.planId)}:${drawing.version}:${drawing.fingerprint}`;
@@ -46,8 +46,8 @@ export function PlanCanvas({drawing,label='Selected plan',onStyleChange,source,r
  const [zoom,setZoom]=useState(1),[fitRequest,setFitRequest]=useState(0),[view,setView]=useState<'presentation'|'linework'>('linework'),[room,setRoom]=useState(firstRoom),[tab,setTab]=useState<'2d'|'3d'>('2d');
  const [displayStyle,setDisplayStyle]=useState<DisplayStyle>('edges'),[showGrid,setShowGrid]=useState(true),[showLabels,setShowLabels]=useState(true),[displayOpen,setDisplayOpen]=useState(false);
  const [tool,setTool]=useState<CanvasTool>('select'),[commentPanel,setCommentPanel]=useState<CommentPanel>('closed'),[activeCommentId,setActiveCommentId]=useState(''),[statusMessage,setStatusMessage]=useState('');
- const [picked,setPicked]=useState(''),[measure,setMeasure]=useState<number[][]>([]),[cutMm,setCutMm]=useState(0),[askOpen,setAskOpen]=useState(true),[askDraft,setAskDraft]=useState(''),[frameSize,setFrameSize]=useState({width:0,height:0});
- const frame=useRef<HTMLDivElement>(null),drag=useRef<{x:number;y:number;left:number;top:number}|null>(null),moved=useRef(false),askInput=useRef<HTMLInputElement>(null),reopen=useRef<HTMLButtonElement>(null),commentInput=useRef<HTMLTextAreaElement>(null),displayRef=useRef<HTMLDivElement>(null),displayButton=useRef<HTMLButtonElement>(null),previousIdentity=useRef(storageKey),sheet=useRef<SVGSVGElement>(null),capture=useRef<(()=>HTMLCanvasElement)|null>(null);
+ const [picked,setPicked]=useState(''),[measure,setMeasure]=useState<number[][]>([]),[cutMm,setCutMm]=useState(0),[frameSize,setFrameSize]=useState({width:0,height:0});
+ const frame=useRef<HTMLDivElement>(null),drag=useRef<{x:number;y:number;left:number;top:number}|null>(null),moved=useRef(false),commentInput=useRef<HTMLTextAreaElement>(null),displayRef=useRef<HTMLDivElement>(null),displayButton=useRef<HTMLButtonElement>(null),previousIdentity=useRef(storageKey),sheet=useRef<SVGSVGElement>(null),capture=useRef<(()=>HTMLCanvasElement)|null>(null),commentReturn=useRef<HTMLElement|SVGElement|null>(null);
  const fit=()=>{setZoom(1);frame.current?.scrollTo(0,0);setFitRequest(value=>value+1);};
  const selected=drawing.graph.rooms.find(r=>r.key===room),selectedComment=annotations.comments.find(comment=>comment.id===activeCommentId),draft=annotations.draft;
  const clearWidth=selected?Math.max(0,selected.rect[2]-selected.rect[0]-drawing.graph.wallThicknessMm):drawing.graph.site.widthMm;
@@ -85,7 +85,7 @@ export function PlanCanvas({drawing,label='Selected plan',onStyleChange,source,r
  useEffect(()=>{
   if(!displayOpen)return;
   const dismiss=(event:PointerEvent)=>{if(!displayRef.current?.contains(event.target as Node))setDisplayOpen(false);};
-  const escape=(event:globalThis.KeyboardEvent)=>{if(event.key==='Escape'){setDisplayOpen(false);displayButton.current?.focus();}};
+  const escape=(event:globalThis.KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();setDisplayOpen(false);displayButton.current?.focus();}};
   document.addEventListener('pointerdown',dismiss);document.addEventListener('keydown',escape);
   return()=>{document.removeEventListener('pointerdown',dismiss);document.removeEventListener('keydown',escape);};
  },[displayOpen]);
@@ -94,20 +94,18 @@ export function PlanCanvas({drawing,label='Selected plan',onStyleChange,source,r
  const updateAnnotations=(update:(current:AnnotationData)=>AnnotationData)=>annotationStore.update(storageKey,identity,update);
  const setDraft=(next:AnnotationDraft|null)=>updateAnnotations(current=>({...current,draft:next}));
  const choose=(key:string)=>{if(!drawing.graph.rooms.some(row=>row.key===key))return;setPicked('');setRoom(key);onSelectElement?.(key);};
- const forwardAsk=(text:string,roomKey=room)=>{
-  if(!text.trim()||!onAsk)return;
-  const selectedRoom=drawing.graph.rooms.find(row=>row.key===roomKey),roomContext=selectedRoom?`${selectedRoom.name} (${selectedRoom.key})`:'all rooms';
+ const addViewContext=()=>{
+  if(!onAsk)return;
+  const selectedRoom=picked?undefined:drawing.graph.rooms.find(row=>row.key===room);
+  const roomContext=selectedRoom?`${selectedRoom.name} (${selectedRoom.key})`:'all rooms';
   const viewContext=tab==='3d'?'3D cutaway':`2D floor plan · ${view==='linework'?'linework':'presentation'}`;
-  onAsk(`${text.trim()}\n\nViewport context: ${viewContext}; room: ${roomContext}; planId: ${drawing.planId}; version: ${drawing.version}; fingerprint: ${drawing.fingerprint}.`);
+  onAsk(`Viewport context: ${viewContext}; room: ${roomContext}; planId: ${drawing.planId}; version: ${drawing.version}; fingerprint: ${drawing.fingerprint}.`);
  };
- const ask=(event:FormEvent<HTMLFormElement>)=>{event.preventDefault();if(!askDraft.trim()||!onAsk)return;forwardAsk(askDraft);setAskDraft('');};
  const tabKey=(event:KeyboardEvent<HTMLButtonElement>,current:'2d'|'3d')=>{
   if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
   event.preventDefault();const next=event.key==='Home'?'2d':event.key==='End'?(can3d?'3d':'2d'):current==='2d'?(event.key==='ArrowRight'&&can3d?'3d':'2d'):(event.key==='ArrowLeft'?'2d':'3d');
   setTab(next);requestAnimationFrame(()=>document.getElementById(`${id}-tab-${next}`)?.focus());
  };
- const closeAsk=()=>{setAskOpen(false);requestAnimationFrame(()=>reopen.current?.focus());};
- const openAsk=()=>{setAskOpen(true);requestAnimationFrame(()=>askInput.current?.focus());};
  const retryAnnotations=()=>{
   const wasReadError=!annotationStore.getSnapshot(storageKey).loaded,ok=annotationStore.retry(storageKey,identity,drawing.graph.rooms);
   setStatusMessage(ok?wasReadError?'Local comments loaded.':'Local comments saved in this browser.':'Local comments could not be saved. Retry when browser storage is available.');
@@ -115,12 +113,14 @@ export function PlanCanvas({drawing,label='Selected plan',onStyleChange,source,r
  const beginDraft=(roomKey:string,x:number,y:number)=>{
   if(readOnly||!annotationsReady||!validRoomAnchor(drawing.graph.rooms,roomKey,x,y))return;
   if(commentsDirty){setCommentPanel('draft');setStatusMessage('Save or discard the current comment draft before starting another.');return;}
+  commentReturn.current=document.activeElement as HTMLElement|SVGElement|null;
   choose(roomKey);setActiveCommentId('');setDraft({roomKey,x,y,text:''});setCommentPanel('draft');setStatusMessage('');
  };
  const openComment=(comment:ViewportComment)=>{
   if(!annotationsReady)return;
   if(!readOnly&&draft&&draft.commentId!==comment.id&&(!draft.commentId||commentsDirty)){setCommentPanel('draft');setStatusMessage('Save or discard the current comment draft before switching comments.');return;}
   if(!readOnly&&draft?.commentId&&draft.commentId!==comment.id&&!commentsDirty)setDraft(null);
+  if(commentPanel==='closed'||commentPanel==='list')commentReturn.current=document.activeElement as HTMLElement|SVGElement|null;
   choose(comment.roomKey);setActiveCommentId(comment.id);
   if(draft?.commentId===comment.id)setCommentPanel('draft');
   else setCommentPanel('comment');
@@ -158,7 +158,8 @@ export function PlanCanvas({drawing,label='Selected plan',onStyleChange,source,r
   const ok=updateAnnotations(data=>({...data,comments:data.comments.filter(row=>row.id!==comment.id),draft:data.draft?.commentId===comment.id?null:data.draft}));
   setActiveCommentId('');setCommentPanel('list');setStatusMessage(ok?`Comment #${comment.number} removed from this plan version.`:`Comment #${comment.number} removed in memory, but the browser could not save it.`);
  };
- const openCommentList=()=>{setCommentPanel('list');setActiveCommentId('');setStatusMessage('');};
+ const closeComments=()=>{setCommentPanel('closed');requestAnimationFrame(()=>commentReturn.current?.isConnected&&commentReturn.current.focus());};
+ const openCommentList=()=>{commentReturn.current=document.activeElement as HTMLElement|SVGElement|null;setCommentPanel('list');setActiveCommentId('');setStatusMessage('');};
  const exportView=async(format:'png'|'pdf')=>{
   const name=`datumm-plan-v${drawing.version}-${tab}`;
   try{
@@ -205,7 +206,17 @@ export function PlanCanvas({drawing,label='Selected plan',onStyleChange,source,r
      <p>Display preferences affect the preview. Geometry and native review stay separate.</p>
     </section>}
    </div>
-   {onAsk&&canvasInputEnabled&&!askOpen&&<button ref={reopen} className={styles.reopenAsk} type="button" aria-controls={`${id}-viewport-form`} aria-expanded="false" aria-label="Reopen floating viewport input" title="Ask DATUMM" onClick={openAsk}><Eye size={14}/></button>}
+   {onAsk&&<button type="button" className={styles.addContextButton} onClick={addViewContext} aria-label={`Add ${picked?'current view':selected?.name??'current view'} version ${drawing.version} to message`} title={`Add ${picked?'this view':selected?.name??'this view'} · v${drawing.version} to message`}><ArrowUp size={14}/><span>Add {picked?'view':selected?'selection':'view'} to message</span></button>}
+   <details className={styles.selectionProperties} onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.currentTarget.open=false;event.currentTarget.querySelector('summary')?.focus();}}}>
+    <summary><PanelRight size={14}/><span>Properties</span></summary>
+    <section aria-label="Selected geometry properties">
+      <strong>{pickedName||selected?.name||'Plan geometry'}</strong>
+      <label>Room<select aria-label="Select room to inspect" value={room} onChange={event=>choose(event.target.value)}>{drawing.graph.rooms.map(row=><option key={row.key} value={row.key}>{row.name}</option>)}</select></label>
+      <dl>{metrics.map(([name,value])=><div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}</dl>
+      <small>Proposed geometry · millimetres<br/>Plan {drawing.planId} · v{drawing.version}<br/>Fingerprint {drawing.fingerprint}</small>
+      {onProperties&&<button type="button" onClick={onProperties}>More plan details</button>}
+    </section>
+   </details>
   </div>
   <div className={styles.viewport} id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-tab-${tab}`} tabIndex={0}>
     {annotationState.error&&<div className={styles.persistenceAlert} role="alert"><span>{readOnly?annotationState.errorKind==='read'?'Could not read local comments. Open the editable plan view to retry.':'Could not save local comments. Changes remain in memory; open the editable plan view to retry.':annotationState.errorKind==='read'?'Could not read local comments. Retry to load them.':'Could not save local comments. Changes remain in memory; retry before leaving this plan.'}</span>{!readOnly&&<button type="button" onClick={retryAnnotations}>Retry</button>}</div>}
@@ -240,11 +251,8 @@ export function PlanCanvas({drawing,label='Selected plan',onStyleChange,source,r
     <button type="button" aria-label={`All comments, ${openComments.length} open`} title="All comments" aria-expanded={commentPanel==='list'} className={commentPanel==='list'?styles.toolActive:''} disabled={!annotationsReady} onClick={openCommentList}><MessagesSquare size={15} aria-hidden="true"/>{openComments.length>0&&<span className={styles.commentCount}>{openComments.length}</span>}</button>
     <button type="button" aria-label="Fit drawing to view" title="Fit to view" onClick={fit}><MaximizeIcon/></button>
    </div>
-     {onAsk&&canvasInputEnabled&&<>
-      {askOpen?<form className={styles.askForm} id={`${id}-viewport-form`} onSubmit={ask}><label className={styles.srOnly} htmlFor={`${id}-viewport-input`}>Ask about this viewport</label><Eye size={15} aria-hidden="true"/><input ref={askInput} id={`${id}-viewport-input`} value={askDraft} onChange={event=>setAskDraft(event.target.value)} maxLength={2000} placeholder="Ask about this view…"/><span className={styles.askContext} title={`${selected?.name??'All rooms'} · ${tab==='3d'?'3D':'2D'} · version ${drawing.version}`}>{selected?.name??'All rooms'} · {tab==='3d'?'3D':'2D'} · v{drawing.version}</span>{typeof voiceControl==='function'?voiceControl(forwardAsk):voiceControl}<button type="submit" disabled={!askDraft.trim()} aria-label="Send viewport context"><ArrowUp size={15}/></button><button type="button" onClick={closeAsk} aria-label="Close floating viewport input" title="Close input"><X size={14}/></button></form> :null}
-     </>}
-     {commentPanel!=='closed'&&<section className={styles.commentPopover} role="dialog" aria-label={commentPanel==='list'?'All plan comments':'Room comment'}>
-      <div className={styles.commentTop}><strong>{commentPanel==='list'?'Comments':commentPanel==='draft'?(draft?.commentId?`Edit comment #${savedComment?.number??''}`:'New comment'):`Comment #${displayedComment?.number??''}`}</strong><button type="button" aria-label="Close comment panel" title="Close" onClick={()=>setCommentPanel('closed')}><X size={14}/></button></div>
+     {commentPanel!=='closed'&&<section className={styles.commentPopover} role="dialog" aria-label={commentPanel==='list'?'All plan comments':'Room comment'} onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();closeComments();}}}>
+      <div className={styles.commentTop}><strong>{commentPanel==='list'?'Comments':commentPanel==='draft'?(draft?.commentId?`Edit comment #${savedComment?.number??''}`:'New comment'):`Comment #${displayedComment?.number??''}`}</strong><button type="button" aria-label="Close comment panel" title="Close" onClick={closeComments}><X size={14}/></button></div>
       {commentPanel==='list'?<div className={styles.commentBody}>
         {draft&&<div className={styles.draftNotice}><p>An unsent draft is saved for {drawing.graph.rooms.find(row=>row.key===draft.roomKey)?.name??'this room'}{readOnly?'. Open the editable plan view to continue it.':'.'}</p>{!readOnly&&<button type="button" onClick={()=>{setActiveCommentId(draft.commentId??'');setRoom(draft.roomKey);setCommentPanel('draft');}}>Continue draft</button>}</div>}
        {annotations.comments.length===0?<p className={styles.emptyComments}>No comments on this plan version yet.</p>:<>
@@ -268,14 +276,6 @@ export function PlanCanvas({drawing,label='Selected plan',onStyleChange,source,r
      {statusMessage&&<span className={styles.srOnly} role="status" aria-live="polite">{statusMessage}</span>}
   </div>
    {source&&<div className={`plan-source-controls ${styles.sourceControls}`}><label><input type="checkbox" checked={overlay} onChange={event=>setOverlay(event.target.checked)}/>Reference overlay: {source.name}{source.page?` · page ${source.page}`:''}</label>{overlay&&<label>Opacity<input type="range" min={0} max={1} step={.05} value={opacity} onChange={event=>setOpacity(Number(event.target.value))} aria-label="Reference overlay opacity"/></label>}<small>{registered?`Source footprint registered to this exact graph; dimensions ${reference!.confirmed?'confirmed by you':'unconfirmed, review required'}. This is a proposed reconstruction.`:reference?'Source is stale or differs from this reconstruction. Choose its exact source before reviewing registration.':'Visual comparison only. Source scale and position are not registered to plan coordinates; this does not verify reconstruction.'}</small></div>}
-  {persistentProperties&&<div className={styles.properties} aria-label="Persistent geometry properties">
-   <div className={`${styles.propertyGlyph} ${selected?styles.selectedRoomGlyph:''}`} aria-hidden="true"><span/></div>
-   <div className={styles.propertyName}><strong>{pickedName||(selected?.name??'Plan geometry')}</strong><small>{pickedOpening?`Opening · in wall ${pickedOpening.wallKey}`:pickedWall?`${pickedWall.kind==='interior'?'Interior wall':pickedWall.kind==='exterior'?'Exterior wall':'Wall'} · cut in plan`:selected?'Room · level not provided':`Plan · version ${drawing.version}`}</small></div>
-   <dl className={styles.propertyMetrics}>
-    {metrics.map(([name,value])=><div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}
-   </dl>
-   {onProperties?<button type="button" className={styles.propertyDetailsButton} aria-label="Open detailed properties" title="Detailed properties" onClick={onProperties}><PanelRight size={15} aria-hidden="true"/></button>:<details className={styles.propertyDetails}><summary aria-label="Open detailed properties" title="Detailed properties"><PanelRight size={15} aria-hidden="true"/></summary><div className={styles.detailsPopover}><strong>Geometry properties</strong><label>Room<select aria-label="Select room" value={room} onChange={event=>choose(event.target.value)}><option value="">Plan geometry</option>{drawing.graph.rooms.map(row=><option key={row.key} value={row.key}>{row.name}</option>)}</select></label><p>{selected?`${selected.name} · ${selected.areaMm2.toLocaleString()} mm²`:'Full footprint'}<br/>{drawing.graph.site.widthMm.toLocaleString()} × {drawing.graph.site.depthMm.toLocaleString()} mm</p><small>Plan {drawing.planId} · v{drawing.version}<br/>Fingerprint {drawing.fingerprint}<br/>Proposed geometry · not an imported RVT model</small></div></details>}
-  </div>}
   <div className={styles.canvasStatus}><span><MousePointer2 size={12} aria-hidden="true"/><span>{activeTool==='measure'?(measured?`Measured ${formatLength(measured)}`:measure.length?'Click the second point':'Click two points to measure'):pickedName?`${pickedName} selected`:selected?`${selected.name} selected`:'Select a room, wall or opening to inspect it'}</span></span><span>{drawing.graph.site.widthMm.toLocaleString()} × {drawing.graph.site.depthMm.toLocaleString()} mm · v{String(drawing.version).padStart(2,'0')}</span></div>
  </section>;
 }

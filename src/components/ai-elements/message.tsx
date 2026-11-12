@@ -22,6 +22,8 @@ import {
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
 import { Streamdown } from "streamdown";
+import type { MermaidErrorComponentProps } from "streamdown";
+import { createMermaidPlugin } from "@streamdown/mermaid";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
@@ -306,18 +308,46 @@ export const MessageBranchPage = ({
 
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
+const diagramConfig = {
+  securityLevel: 'strict' as const,
+  startOnLoad: false,
+  suppressErrorRendering: true,
+  maxTextSize: 50000,
+  secure: ['securityLevel', 'startOnLoad', 'maxTextSize', 'suppressErrorRendering', 'secure'],
+};
+const answerPlugins = { mermaid: createMermaidPlugin({ config: diagramConfig }) };
+const answerControls = {
+  // CSV is provided by the answer-output view with explicit scope and safe text cells.
+  table: { copy: false, download: false, fullscreen: true },
+  code: { copy: true, download: false },
+  mermaid: { copy: true, download: false, fullscreen: true, panZoom: true },
+  image: false,
+};
+function DiagramError({ chart, retry }: MermaidErrorComponentProps) {
+  return <div className="rounded-md border border-border p-3 text-sm" role="status">
+    <p>Diagram could not render.</p>
+    <button type="button" className="mt-2 underline underline-offset-4" onClick={retry}>Retry diagram</button>
+    <details className="mt-2"><summary>Diagram source</summary><pre className="max-h-72 overflow-auto whitespace-pre-wrap text-xs">{chart}</pre></details>
+  </div>;
+}
+const answerMermaid = { config: diagramConfig, errorComponent: DiagramError };
+
 export const MessageResponse = memo(
-  ({ className, ...props }: MessageResponseProps) => (
+  ({ className, isAnimating = false, ...props }: MessageResponseProps) => (
     <Streamdown
-      tableMaxHeight={0}
+      tableMaxHeight={360}
+      plugins={answerPlugins}
+      mermaid={answerMermaid}
+      skipHtml
+      isAnimating={isAnimating}
+      controls={isAnimating ? false : answerControls}
       className={cn(
         "datumm-markdown w-full min-w-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
         className
       )}
       {...props}
     />
-  ),
-  (prevProps, nextProps) => prevProps.children === nextProps.children
+  )
 );
 
 MessageResponse.displayName = "MessageResponse";

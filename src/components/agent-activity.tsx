@@ -6,6 +6,7 @@ import {Tool,ToolContent,ToolHeader,ToolInput,ToolOutput,toolStatus} from './ai-
 import type { TaskEvent } from '@/lib/task-projection';
 import type { ContextUsageData } from './agent-memory';
 import { PublicResearchEvidence, PdfReviewEvidence, CompanionReviewEvidence } from './evidence-results';
+import { activityStateLabel } from '@/lib/process-activity.mjs';
 
 
 
@@ -109,7 +110,7 @@ export function AgentActivity({events,nativeMessages=[],active=false,waiting=fal
  const rows=events.filter(event=>stages[event.stage]);
 
  const meaningful=rows.some(row=>!['model_turn','assistant_update','failed','cancelled','interrupted'].includes(row.stage))||evidence.length>0||todos.length>0||Boolean(manifest?.children?.length);
- const publicText=<>{nativeMessages.filter(row=>active||row.finish!=='stop').map(row=><div key={row.id} className="activity-update"><MessageResponse>{row.text}</MessageResponse></div>)}</>;
+ const publicText=<>{nativeMessages.filter(row=>active||row.finish!=='stop').map(row=><div key={row.id} className="activity-update"><MessageResponse isAnimating={active&&!waiting&&!row.finish}>{row.text}</MessageResponse></div>)}</>;
  if(!meaningful)return active&&nativeMessages.length?(compact?<div className="activity-compact">{publicText}<div className="orchestration-live" role="status"><WorkingIndicator/><span className="activity-shimmer">Working</span></div></div>:publicText):active?<div className={compact?'orchestration-live activity-compact':'orchestration-live'} role="status"><WorkingIndicator/><span className="activity-shimmer">Working</span></div>:null;
 
  const latest=rows.at(-1);
@@ -118,7 +119,7 @@ export function AgentActivity({events,nativeMessages=[],active=false,waiting=fal
   const steps=Math.max(evidence.length,rows.filter(row=>row.stage==='tool_completed'||row.stage==='tool_failed').length)||rows.filter(row=>!['model_turn','assistant_update'].includes(row.stage)).length;
   const stepLabel=`${steps} ${steps===1?'step':'steps'}`,live=active&&!waiting;
   const current=latest&&latest.stage.startsWith('tool_')?toolName(latest).replaceAll('_',' '):'';
-  const summary=waiting?'Waiting for your input':live?<span className="activity-shimmer">{current?`Working · ${current}`:'Working'}</span>:<>{failed?`Worked · ${stepLabel} · ${failed} failed`:`Worked · ${stepLabel}`}{manifest?.elapsedMs!=null?` · ${(manifest.elapsedMs/1000).toFixed(1)}s`:''}</>;
+  const summary=waiting?'Waiting for your input':live?<span className="activity-shimmer">{current?`Working · ${current}`:'Working'}</span>:<>{activityStateLabel(manifest?.state,false,false)} · {stepLabel}{failed?` · ${failed} failed`:''}{manifest?.elapsedMs!=null?` · ${(manifest.elapsedMs/1000).toFixed(1)}s`:''}</>;
   const content=<>{publicText}<Reasoning isStreaming={live} forceOpen={waiting} summary={summary}>{showFeed&&<ActivityFeed events={events} active={active} waiting={waiting} compact={compact}/>}<section className="orchestration-trace" aria-label="Agent orchestration">
 
    <div className="orchestration-heading"><strong>{active?(waiting?'Waiting for your input':'DATUMM working'):'Recorded activity'}</strong><span>{completed} tool results{failed?` · ${failed} failed`:``}{manifest?.elapsedMs!=null?` · ${(manifest.elapsedMs/1000).toFixed(1)}s`:``}</span>{todos.length>0&&<span>{todos.filter(todo=>todo.status==='completed').length}/{todos.length} tasks completed</span>}</div>
@@ -127,7 +128,7 @@ export function AgentActivity({events,nativeMessages=[],active=false,waiting=fal
 
    {manifest&&<details className="orchestration-evidence"><summary>Main agent · {manifest.model} · {manifest.state}</summary><p>Parent session {manifest.sessionId??'not recorded'} / {manifest.elapsedMs===null||manifest.elapsedMs===undefined?'elapsed time unavailable while running':(manifest.elapsedMs/1000).toFixed(1)+'s'} · {manifest.budget?.calls??'unknown'} shared metered calls · ${manifest.budget?.reservedUsd.toFixed(4)??'unknown'} reserved</p><small>Waiting for input, interruption and failure remain explicit; idle does not imply completion.</small></details>}
 
-   {Boolean(manifest?.children?.length)&&<details className="orchestration-evidence"><summary>Native specialists · {manifest!.children.length}/2</summary>{manifest!.children.map(child=><details key={child.sessionId}><summary>{child.role} · {child.model} · {child.state}</summary><p>{child.calls} total metered calls · ${child.reservedUsd.toFixed(4)} reserved · {child.knownCostCalls?`$${child.reportedUsd.toFixed(4)} reported${child.knownCostCalls<child.calls?' · partial':''}`:'Reported cost unavailable'} · {child.state==='running'?'running':`${(child.elapsedMs/1000).toFixed(1)}s`}</p><small>Native session {child.sessionId} · shared task budget · read-only</small>{child.result&&<pre>{child.result}</pre>}</details>)}</details>}
+   {Boolean(manifest?.children?.length)&&<details className="orchestration-evidence"><summary>Recorded specialists · {manifest!.children.length}</summary>{manifest!.children.map(child=><details key={child.sessionId}><summary>{child.role} · {child.model} · {child.state}</summary><p>{child.calls} total metered calls · ${child.reservedUsd.toFixed(4)} reserved · {child.knownCostCalls?`$${child.reportedUsd.toFixed(4)} reported${child.knownCostCalls<child.calls?' · partial':''}`:'Reported cost unavailable'} · {child.state==='running'?'running':`${(child.elapsedMs/1000).toFixed(1)}s`}</p><small>Native session {child.sessionId} · shared task budget · read-only</small>{child.result&&<pre>{child.result}</pre>}</details>)}</details>}
 
    {(rows.length>0||evidence.length>0)&&<details className="orchestration-background"><summary><ChevronDown size={14} aria-hidden="true"/><span>Background activity</span><small>{rows.length} recorded steps</small></summary><div className="orchestration-background-content">
 
@@ -148,7 +149,6 @@ export function AgentActivity({events,nativeMessages=[],active=false,waiting=fal
   <footer className="orchestration-footer"><Square size={12} aria-hidden="true"/><strong>{manifest?.mode??mode}</strong><details className="activity-runtime"><summary>Runtime details</summary><span>{manifest?.model??model}</span></details>{active&&<span className="orchestration-live" role="status" aria-live="polite">{waiting?<CircleHelp size={12}/>:<WorkingIndicator/>}{waiting?'Waiting for you':<span className="activity-shimmer">{latest?.stage==='tool_running'?'Calling tool':'Working'}</span>}</span>}</footer>
 
  </section></Reasoning><PublicResearchEvidence evidence={evidence}/><PdfReviewEvidence evidence={evidence}/><CompanionReviewEvidence evidence={evidence}/></>;
-  return compact
   return compact?<div className="activity-compact">{content}</div>:content;
 
 }
