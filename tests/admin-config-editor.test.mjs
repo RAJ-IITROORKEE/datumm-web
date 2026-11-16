@@ -441,6 +441,72 @@ test('admin shell hides nav items the backend reports off and shows the missing 
   assert.ok(navLinks(render('/admin')).includes('/admin/audit'), 'Without capabilities every nav item stays visible');
 });
 
+test('the Traces nav item and page need adminTraces on; unknown counts as off', () => {
+  const ResultState = loadResultState();
+  const slots = [], configState = { dirty: false, saving: false };
+  let cursor = 0, resource = {};
+  const hooks = { ...React, useEffect: () => {}, useContext: () => configState,
+    useState(initial) {
+      const i = cursor++;
+      if (!(i in slots)) slots[i] = initial;
+      return [slots[i], () => {}];
+    },
+    useRef(value) { const i = cursor++; return slots[i] ??= { current: value }; } };
+  const exports = {};
+  const url = new URL('../src/components/admin/admin-shell.tsx', import.meta.url);
+  const source = readFileSync(url, 'utf8');
+  const options = {
+    module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022,
+  };
+  runInNewContext(ts.transpileModule(source, { compilerOptions: options }).outputText, {
+    exports, require(name) {
+      if (name === 'react') return hooks;
+      if (name === 'react/jsx-runtime') return jsxRuntime;
+      if (name === 'next/navigation') return { usePathname: () => '/admin', useRouter: () => ({}) };
+      if (name === './form') {
+        return { AdminConfigProvider: 'Provider', useSharedAdminConfig: () => configState };
+      }
+      if (name === '@/lib/utils') return { cn: (...parts) => parts.filter(Boolean).join(' ') };
+      if (name === 'next/link') return { default: 'Link' };
+      if (name === './use-admin') return { useAdminResource: () => resource, ResultState };
+      if (name === '@/lib/capabilities.mjs') return capabilities;
+      return new Proxy({}, { get: (_target, key) => key });
+    } });
+  const render = activePath => {
+    const props = { email: 'a@example.test', children: 'traces page', activePath };
+    const shell = exports.AdminShell(props);
+    cursor = 0;
+    return elements(shell.props.children.type(shell.props.children.props));
+  };
+  const links = () => {
+    const nav = render('/admin').find(node => node.type?.name === 'Nav');
+    return elements(nav.type(nav.props)).filter(node => node.type === 'Link')
+      .map(node => node.props.href);
+  };
+  const text = node => typeof node === 'string' ? [node]
+    : React.isValidElement(node) ? text(node.props.children)
+      : Array.isArray(node) ? node.flatMap(text) : [];
+  const page = () => render('/admin/traces').find(node => node.type === ResultState);
+  const features = extra => ({ capabilities: { version: 1,
+    features: { adminAudit: true, ...extra } } });
+  const loaded = data => { resource = { data, result: { ok: true, data } }; };
+
+  resource = { data: null };
+  assert.equal(page().props.result, null, 'a strict page waits for the config');
+  for (const data of [null, features({}), features({ adminTraces: false })]) {
+    loaded(data);
+    assert.ok(!links().includes('/admin/traces'), JSON.stringify(data));
+    assert.ok(links().includes('/admin/audit'), 'other items keep unknown-is-visible');
+    const missing = page();
+    assert.equal(missing.props.result.reason, 'missing');
+    assert.match(text(missing.type(missing.props)).join(''), /Not provided by this backend/);
+  }
+  loaded(features({ adminTraces: true }));
+  assert.ok(links().includes('/admin/traces'));
+  assert.equal(render('/admin/traces').find(node => node.type === ResultState), undefined);
+  assert.ok(render('/admin/traces').some(node => text(node).includes('traces page')));
+});
+
 test('unadded chip text is registered until added, cleared or the section unmounts', () => {
   const pending=new Map(),h=formHarness({setPendingChip:(id,value)=>value?pending.set(id,value):pending.delete(id)});
   const changes=[],props={label:'Allowed models',values:[],max:20,onChange:value=>changes.push(value)};

@@ -1,5 +1,5 @@
 export type FeatureState = 'on' | 'off' | 'unknown';
-export type CapabilityFeature = 'adminConfig' | 'adminAudit' | 'adminOverview' | 'adminKnowledge' | 'planningGoals' | 'frontendContext' | 'displayActions';
+export type CapabilityFeature = 'adminConfig' | 'adminAudit' | 'adminOverview' | 'adminKnowledge' | 'planningGoals' | 'frontendContext' | 'displayActions' | 'adminTraces' | 'feedback';
 export type Capabilities = { version: 1 | null; features: Record<CapabilityFeature, FeatureState> };
 export const CAPABILITY_VERSION: 1;
 export const CAPABILITY_FEATURES: CapabilityFeature[];

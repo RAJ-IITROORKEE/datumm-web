@@ -10,6 +10,8 @@ import ts from 'typescript';
 import { planSheet, pointInRoom, wallLength, formatLength, rectangularClearDimensions } from '../src/lib/plan-geometry.mjs';
 import { answerOutputs, answerTableCsv } from '../src/lib/answer-outputs.mjs';
 import { answerPreview, isCompactProse, validateAnswerPresentation } from '../src/lib/answer-presentation.mjs';
+import * as feedbackLib from '../src/lib/answer-feedback.mjs';
+import * as traces from '../src/lib/admin-traces.mjs';
 
 // Exercise component handlers and effect lifecycles without a DOM runtime or new dependencies.
 function componentHarness(file, modules, globals = {}) {
@@ -46,6 +48,7 @@ function componentHarness(file, modules, globals = {}) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 },
   }).outputText, context);
   return { exports, render(name, props) { cursor = 0; return exports[name](props); },
+    call(name, ...args) { cursor = 0; return exports[name](...args); },
     flushEffects() { while (effects.length) effects.shift()(); },
     flushFrames() { while (pendingFrames.length) pendingFrames.shift()?.(); } };
 }
@@ -359,4 +362,168 @@ test('changing task ownership invalidates an export of an otherwise identical dr
  elements(tree).find(node=>node.type==='button'&&text(node)==='PNG').props.onClick();
  h.render('PlanCanvas',{drawing,exportOwnerKey:'task-b'});
  assert.equal(guard(),false);finish();await Promise.resolve();
+});
+
+// A1 answer feedback and admin traces.
+const tick = () => new Promise(resolve => setImmediate(resolve));
+const TURN = '3f2b8c1e-9a4d-4e6f-8b2a-1c3d5e7f9a0b', HASH = 'a'.repeat(64);
+const savedAnswer = { text: 'Saved answer.', turnId: TURN, answerHash: HASH,
+  source: { key: 'a', taskId: 'task-a', conversationIndex: 0, state: 'saved' } };
+function feedbackHarness(getContext) {
+  return componentHarness('../src/components/workspace/output-workspace.tsx', {
+    react: { useContext: () => getContext() }, '@/lib/answer-outputs.mjs': { answerOutputs },
+    '@/lib/answer-presentation.mjs': { answerPreview, isCompactProse, validateAnswerPresentation },
+    '@/lib/answer-feedback.mjs': feedbackLib,
+    '../ai-elements/message': { MessageResponse: 'message-response' },
+    '../vendor/affectui/message-actions-clean': { MessageActions: 'message-actions' },
+  });
+}
+const feedbackContext = (answerFeedback, taskId = 'task-a') =>
+  ({ scope: { ...copyScope('A', 1), taskId }, register() {}, answerFeedback });
+const actionBar = tree => elements(tree).find(node => node.type === 'message-actions');
+
+test('thumbs appear only on a proven saved answer, seeded from the loaded votes', () => {
+  const store = { votes: { [TURN]: 'up' }, save: async () => true };
+  let context = feedbackContext(store);
+  const h = feedbackHarness(() => context);
+  const bar = props => actionBar(h.render('AnswerContent', props));
+  const shown = bar(savedAnswer);
+  assert.deepEqual(Array.from(shown.props.actions), ['copy', 'feedback']);
+  assert.equal(shown.props.defaultVote, 'up');
+  assert.deepEqual(Array.from(shown.props.reasons), feedbackLib.FEEDBACK_REASON_LABELS);
+  const source = state => ({ ...savedAnswer.source, state });
+  const hidden = {
+    streaming: [{ ...savedAnswer, source: source('streaming') }],
+    partial: [{ ...savedAnswer, source: source('partial') }],
+    unproven: [{ ...savedAnswer, answerHash: undefined }],
+    // Without a verified completion ConversationAnswer passes neither the turn id nor the hash.
+    'needs connection': [{ text: 'Revit needed.', source: source('partial') }],
+    'votes not loaded': [savedAnswer, feedbackContext({ ...store, votes: null })],
+    'shared view of another task': [savedAnswer, feedbackContext(store, 'task-b')],
+    'replayed without a handler': [savedAnswer, feedbackContext(undefined)],
+  };
+  for (const [name, [props, next]] of Object.entries(hidden)) {
+    context = next ?? feedbackContext(store);
+    const actions = bar(props);
+    assert.deepEqual(Array.from(actions.props.actions), ['copy'], name);
+    assert.equal(actions.props.onFeedback, undefined, name);
+    assert.equal(actions.props.defaultVote, undefined, name);
+  }
+  const output = answerOutputs('# Report', savedAnswer.source)[0];
+  context = { ...feedbackContext(store), activeOutput: output, outputs: [output] };
+  const panel = actionBar(feedbackHarness(() => context).render('OutputPanel'));
+  assert.deepEqual(Array.from(panel.props.actions), ['copy']);
+  assert.equal(panel.props.onFeedback, undefined);
+});
+
+test('a thumbs-down reason is saved only after the thumb itself', async () => {
+  const calls = [], gates = [];
+  const save = (taskId, body) => {
+    calls.push([taskId, body]);
+    return new Promise(done => gates.push(done));
+  };
+  const h = feedbackHarness(() => feedbackContext({ votes: {}, save }));
+  const bar = actionBar(h.render('AnswerContent', savedAnswer));
+  bar.props.onFeedback('down');
+  bar.props.onFeedback('down', 'Too long');
+  await tick();
+  assert.deepEqual(calls, [['task-a', { turnId: TURN, answerHash: HASH, rating: 'down' }]]);
+  gates[0](true); await tick();
+  assert.deepEqual(calls[1],
+    ['task-a', { turnId: TURN, answerHash: HASH, rating: 'down', reason: 'too_long' }]);
+});
+
+test('a failed save remounts the bar on the saved vote; a later success keeps it', async () => {
+  let saved = false;
+  const store = { votes: { [TURN]: 'up' }, save: async () => saved };
+  const h = feedbackHarness(() => feedbackContext(store));
+  let bar = actionBar(h.render('AnswerContent', savedAnswer));
+  const first = bar.key;
+  bar.props.onFeedback('down'); await tick();
+  bar = actionBar(h.render('AnswerContent', savedAnswer));
+  assert.notEqual(bar.key, first, 'the bar no longer shows the unsaved thumb');
+  assert.equal(bar.props.defaultVote, 'up');
+  const failed = bar.key;
+  saved = true;
+  bar.props.onFeedback('down'); await tick();
+  assert.equal(actionBar(h.render('AnswerContent', savedAnswer)).key, failed);
+});
+
+test('a later successful save clears the failure notice, and no other notice', async () => {
+  const outcomes = [];
+  const api = async (_path, method) => {
+    if (method !== 'POST') return [];
+    if (!outcomes.shift()) throw Object.assign(Error('failed'), { status: 500 });
+    return {};
+  };
+  const h = componentHarness('../src/components/workspace/use-answer-feedback.ts', {
+    './use-workspace-state': { api }, '@/lib/answer-feedback.mjs': feedbackLib,
+  });
+  let notice = '';
+  const announce = next => { notice = typeof next === 'function' ? next(notice) : next; };
+  const hook = () => h.call('useAnswerFeedback', true, 'task-a', announce);
+  hook(); h.flushEffects(); await tick();
+  const body = { turnId: TURN, answerHash: HASH, rating: 'up' };
+  outcomes.push(false, true);
+  assert.equal(await hook().save('task-a', body), false);
+  assert.match(notice, /not saved/);
+  assert.equal(await hook().save('task-a', body), true);
+  assert.equal(notice, '');
+  assert.deepEqual({ ...hook().votes }, { [TURN]: 'up' });
+  outcomes.push(false, true);
+  await hook().save('task-a', body);
+  notice = 'Saved task updates are unavailable.';
+  await hook().save('task-a', body);
+  assert.equal(notice, 'Saved task updates are unavailable.');
+});
+
+test('the mode filter is offered only for ask, plan and build', () => {
+  const h = componentHarness('../src/components/admin/trace-rows.tsx', {
+    '@/components/ui/badge': { Badge: 'badge' }, '@/lib/admin-traces.mjs': traces,
+  });
+  const { rows } = traces.parseTraces({ schemaVersion: 1,
+    rows: ['other', 'ask', 'plan', 'build'].map(mode => ({ traceId: `t-${mode}`, mode })) });
+  const tree = h.render('TraceRows', { rows, onPick() {} });
+  const picks = elements(tree)
+    .filter(node => node.type?.name === 'PickButton' && node.props.kind === 'mode');
+  assert.deepEqual(picks.map(node => node.props.value), ['ask', 'plan', 'build']);
+  assert.match(text(tree), /other/);
+});
+
+test('Refresh drops loaded-more rows and a next page still in flight', async () => {
+  const page = (id, nextCursor) =>
+    ({ schemaVersion: 1, rows: [{ traceId: id }], nextCursor, stats: {} });
+  let loads = 0;
+  const pending = [], first = page('r1', 'c1');
+  const resource = { result: { ok: true, data: first }, data: first, load() { loads++; } };
+  const icons = { Activity: 'i', Loader2: 'i', RefreshCw: 'i', Search: 'i', X: 'i' };
+  const h = componentHarness('../src/components/admin/traces-section.tsx', {
+    '@/lib/admin-traces.mjs': traces, 'lucide-react': icons,
+    './trace-rows': { TRACE_HEAD: [], TraceRows: 'trace-rows' },
+    './use-admin': { ResultState: 'result-state', useAdminResource: () => resource,
+      useAdminClient: () => () => new Promise(resolve => pending.push(resolve)) },
+    '@/components/ui/button': { Button: 'ui-button' },
+    '@/components/ui/input': { Select: 'select' },
+    './data-sections': { EmptyState: 'empty-state', Table: 'table' },
+    './form': { Field: 'field', PageHeader: 'page-header' },
+  });
+  const render = () => h.render('TracesSection');
+  const find = (tree, type) => elements(tree).filter(node => node.type === type);
+  const ids = tree => Array.from(find(tree, 'trace-rows')[0].props.rows, row => row.traceId);
+  const more = tree => find(tree, 'ui-button').find(node => text(node).includes('Load more'));
+  const refresh = tree => find(tree, 'page-header')[0].props.actions.props.onClick();
+  let tree = render(); h.flushEffects(); tree = render();
+  more(tree).props.onClick();
+  pending.shift()({ ok: true, data: page('r2', 'c2') }); await tick();
+  tree = render();
+  assert.deepEqual(ids(tree), ['r1', 'r2']);
+  refresh(tree); tree = render(); h.flushEffects(); tree = render();
+  assert.deepEqual(ids(tree), ['r1']);
+  assert.equal(loads, 1);
+  more(tree).props.onClick();
+  refresh(tree);
+  pending.shift()({ ok: true, data: page('r3', null) }); await tick();
+  tree = render();
+  assert.deepEqual(ids(tree), ['r1'], 'a page requested before Refresh never lands');
+  assert.ok(more(tree), 'the cursor restarts from the refreshed first page');
 });

@@ -5,6 +5,7 @@ import { ArrowUpRight, Download, FileText, GitBranch, Table2, X } from 'lucide-r
 import { MessageResponse } from '../ai-elements/message';
 import { MessageActions } from '../vendor/affectui/message-actions-clean';
 import { answerOutputs, answerTableCsv, type AnswerOutput, type AnswerSource } from '@/lib/answer-outputs.mjs';
+import { FEEDBACK_REASON_LABELS, feedbackBody, type FeedbackKind } from '@/lib/answer-feedback.mjs';
 import { answerPreview, isCompactProse, validateAnswerPresentation, type AnswerPresentation } from '@/lib/answer-presentation.mjs';
 export type { AnswerPresentation } from '@/lib/answer-presentation.mjs';
 import styles from './output-workspace.module.css';
@@ -16,7 +17,7 @@ const Context = createContext<OutputWorkspaceValue | null>(null);
 const icons = { report: FileText, table: Table2, diagram: GitBranch };
 type OutputRecord = {scope: WorkScope; sources: Record<string, AnswerOutput[]>; activeId: string | null};
 
-export function OutputWorkspaceProvider({ children, scopeKey, scopeInput, onOpen, onClose }: OutputWorkspaceProps) {
+export function OutputWorkspaceProvider({ children, scopeKey, scopeInput, onOpen, onClose, answerFeedback }: OutputWorkspaceProps) {
   if (scopeKey !== scopeInput.key) throw new Error('Output workspace scope keys must agree.');
   const [stored, setRecord] = useState<OutputRecord>(() => ({scope: {...scopeInput, epoch: 1}, sources: {}, activeId: null}));
   let record = stored;
@@ -65,7 +66,7 @@ export function OutputWorkspaceProvider({ children, scopeKey, scopeInput, onOpen
       else document.querySelector<HTMLElement>('[data-output-focus-fallback]')?.focus();
     });
   }, [current, scope, dismissOutput]);
-  const value = useMemo<OutputWorkspaceValue>(() => ({scope, outputs, activeOutput, openOutput, closeOutput, dismissOutput, register}), [scope, outputs, activeOutput, openOutput, closeOutput, dismissOutput, register]);
+  const value = useMemo<OutputWorkspaceValue>(() => ({scope, outputs, activeOutput, openOutput, closeOutput, dismissOutput, register, answerFeedback}), [scope, outputs, activeOutput, openOutput, closeOutput, dismissOutput, register, answerFeedback]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 
@@ -76,7 +77,7 @@ export function useOutputWorkspace(): OutputWorkspaceValue {
 }
 
 /** Answer projection, never an authoritative schedule or a native-model action. */
-export function AnswerContent({ text, source, presentation, turnId, onPresentation }: { text: string; source: AnswerSource; presentation?: unknown; turnId?: string; onPresentation?: (presentation: AnswerPresentation | null) => void }) {
+export function AnswerContent({ text, source, presentation, turnId, answerHash, onPresentation }: { text: string; source: AnswerSource; presentation?: unknown; turnId?: string; answerHash?: string; onPresentation?: (presentation: AnswerPresentation | null) => void }) {
   const context = useContext(Context);
   const { key, taskId, conversationIndex, answerNumber, state } = source;
   const outputs = useMemo(() => answerOutputs(text, { key, taskId, conversationIndex, answerNumber, state }), [text, key, taskId, conversationIndex, answerNumber, state]);
@@ -102,6 +103,20 @@ export function AnswerContent({ text, source, presentation, turnId, onPresentati
   const inlineComplete = state === 'saved' && (isCompactProse(text) || compactList);
   const visibleOutputs = outputs.filter(output => !(inlineComplete && output.kind === 'report'));
   const readyTables = outputs.filter(output => output.kind === 'table' && output.complete);
+  // Rating needs a proven saved answer in this task, a handler, and the owner's votes (for defaultVote).
+  const feedback = context?.answerFeedback;
+  const votes = feedback?.votes ?? null;
+  const rateable = Boolean(feedback && votes && turnId && answerHash && taskId && state === 'saved' && context?.scope.taskId === taskId);
+  const sending = useRef<Promise<void>>(Promise.resolve());
+  // A failed save remounts the bar, so it shows the last saved vote instead of the unsaved thumb.
+  const [unsaved, setUnsaved] = useState(0);
+  // The bar reports a thumb and then its reason as two calls; queue them so the reason lands last.
+  const rate = (kind: FeedbackKind | null, reason?: string) => {
+    const body = taskId ? feedbackBody({ turnId, answerHash, kind, reason }) : null;
+    if (!feedback || !taskId || !body) return;
+    sending.current = sending.current.then(() => feedback.save(taskId, body))
+      .then(saved => { if (!saved) setUnsaved(count => count + 1); });
+  };
   useEffect(() => { register?.(key, outputs); }, [key, outputs, register]);
   useEffect(() => () => { register?.(key, []); }, [key, register]);
   return <>
@@ -109,7 +124,8 @@ export function AnswerContent({ text, source, presentation, turnId, onPresentati
       {preview.shortened && preview.text && <span className={styles.previewLabel}>Preview</span>}
       {preview.text ? <p>{preview.text}</p> : state === 'saved' && readyTables.length ? <p>{readyTables.length === 1 ? `Table ready · ${readyTables[0].rows?.length ?? 0} rows` : `${readyTables.length} tables ready to review`}</p> : text.trim() ? <p>Open the full answer to view its contents.</p> : null}
     </div>}
-    {text !== '' && <MessageActions key={JSON.stringify([context?.scope.key, context?.scope.epoch, key])} text={text} disabled={state === 'streaming'} actions={['copy']} quiet={false} label="Full answer actions" copySuccessLabel="Copied full answer."/>}
+    {text !== '' && <MessageActions key={JSON.stringify([context?.scope.key, context?.scope.epoch, key, rateable, unsaved])} text={text} disabled={state === 'streaming'} actions={rateable ? ['copy', 'feedback'] : ['copy']} quiet={false} label="Full answer actions" copySuccessLabel="Copied full answer."
+      {...(rateable && turnId ? { reasons: FEEDBACK_REASON_LABELS, defaultVote: votes?.[turnId] ?? null, onFeedback: rate } : {})}/>}
     {context && visibleOutputs.length > 0 && <div className={styles.links} aria-label="Open answer outputs">
       {visibleOutputs.map(output => {
         const Icon = icons[output.kind];

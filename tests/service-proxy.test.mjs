@@ -17,7 +17,7 @@ test('Ask, Plan and project controls reach v2 without opening native routes or c
   }};
   runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,context);
   const proxy=async(path,method='POST')=>context.exports[method](new Request(`https://preview.example/api/service/${path}?after=3`,{method,body:method==='GET'?undefined:'{"answer":"Keep the plan"}'}),{params:Promise.resolve({path:path.split('/')})});
-  for(const [action,method] of [['questions/answer','POST'],['cancel','POST'],['queue','POST'],['queue/resume','POST'],['queue/1234-abcd','DELETE'],['design-review','POST'],['commands','POST'],['events','GET'],['title','POST'],['project','POST'],['share','POST'],['share','GET'],['share','DELETE'],['goal','POST']]){
+  for(const [action,method] of [['questions/answer','POST'],['cancel','POST'],['queue','POST'],['queue/resume','POST'],['queue/1234-abcd','DELETE'],['design-review','POST'],['commands','POST'],['events','GET'],['title','POST'],['project','POST'],['share','POST'],['share','GET'],['share','DELETE'],['goal','POST'],['feedback','GET'],['feedback','POST']]){
     calls.length=0;
     assert.equal((await proxy(`tasks/canary-task/${action}`,method)).status,200,action);
     assert.equal(calls.length,1);
@@ -45,7 +45,7 @@ test('Ask, Plan and project controls reach v2 without opening native routes or c
     assert.equal((await proxy(path)).status,404,path);
     assert.equal(calls.length,0,'Connector start/token claims are not browser proxy routes');
   }
-  for(const action of ['build/approve','design/build','queue/not-a-hex-id','questions/unknown','unknown','history/done','goal/extra']){
+  for(const action of ['build/approve','design/build','queue/not-a-hex-id','questions/unknown','unknown','history/done','goal/extra','feedback/extra']){
     calls.length=0;
     assert.equal((await proxy(`tasks/canary-task/${action}`)).status,404,action);
     assert.equal(calls.length,0);

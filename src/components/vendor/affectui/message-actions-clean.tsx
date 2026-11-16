@@ -42,6 +42,8 @@ export type MessageActionsProps = {
   regenerating?: boolean;
   /** "up" or "down" when a thumb is pressed, null when it is taken back, and "down" with a reason when the feedback row is sent */
   onFeedback?: (kind: FeedbackKind | null, reason?: string) => void;
+  /** Saved vote shown pressed on mount (initial value only; the bar stays uncontrolled afterwards) */
+  defaultVote?: FeedbackKind | null;
   /** Quick reasons in the feedback row. "Other" opens a small text field */
   reasons?: string[];
   /** Called with true when Read aloud starts and false when it stops */
@@ -167,6 +169,7 @@ export function MessageActions({
   onRegenerate,
   regenerating = false,
   onFeedback,
+  defaultVote = null,
   reasons = DEFAULT_REASONS,
   onSpeak,
   speaking,
@@ -191,7 +194,7 @@ export function MessageActions({
   /* ----- Versions ----- */
   const [inner, setInner] = useState(() => Math.min(count - 1, Math.max(0, whole(defaultVersion, count - 1))));
   const [seenCount, setSeenCount] = useState(count);
-  const [vote, setVote] = useState<FeedbackKind | null>(null);
+  const [vote, setVote] = useState<FeedbackKind | null>(defaultVote);
   const [panel, setPanel] = useState(false);
   const [reason, setReason] = useState<string | null>(null);
   const [other, setOther] = useState("");

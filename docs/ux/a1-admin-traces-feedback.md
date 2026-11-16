@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **approved, build in progress** |
+| Status | **done 16 Nov 2026** (local; not pushed or deployed) |
 | Depends on | N3 (done 16 Nov) for lifecycle fields; C1 (done) for capability gating |
 | Approved by / date | User, 16 Nov ("Approve A1, recommended"): every decision takes its recommended option (A) |
 | Base commits | Web `a57d866` on `codex/ui-ux-foundation-2026-11-12`; backend `48bbd1d` on `codex/web-ui-harness-20261116` |
@@ -198,13 +198,17 @@ Revert the backend and web commits. The UI hides both features (flags absent mea
 9. **Pinned schema check:** `generate_task_schemas.py --check` cannot pass today (N3 item 9); `FeedbackRequest` changes its output. Not run.
 10. **Proxy and admin:** the proxy forwards `admin/*` for any signed-in user; the backend 403 is the only server-side admin check (plus the layout's email gate). This is acceptable but should stay tested.
 
-## 11. Result (fill at checkpoint)
+## 11. Result
 
 | Item | Outcome |
 | --- | --- |
-| Commit | |
-| Gates run (command, Node version, counts, date) | |
-| Browser evidence (tool, URL, scenario, result) | |
-| Not run or not verified | |
-| Limits found | |
-| Next step | |
+| Commit | Backend and web A1 commits on their branches (see `git log`); not pushed |
+| Backend change | `traces.py` (constant Mongo projections, closed enums and regex-checked strings, `extra='forbid'` models, keyed `ownerHash`, rows from `run_events`, cursor paging with an anchor time, 5,000-run scan cap and a 1,000-run cap under a `signal` filter, `truncated`); `GET /v1/admin/traces` behind `require_admin`; `POST`/`GET /v2/tasks/{id}/feedback` bound to the N1 completion proof by `answerHash`, one document per `taskId:turnId`, `cleared`, 30 writes per owner per minute, duplicate-key retry; capability flags `adminTraces`, `feedback` (local app false); indexes `runs (created_at, _id)`, `answer_feedback` TTL, `feedback_limits` TTL; `trace_owner_hash_secret` setting; `test_traces.py`, `test_feedback.py` |
+| Web change | Capability flags with `unknown` = off; proxy entries; defensive trace parser (drops unknown keys at every level, `turnId` only in the client UUID form, `usd` up to 12 decimals); `/admin/traces` page and nav (strict gating, direct visit shows "Not provided by this backend"); thumbs only on proven saved answers via `answerFeedback`, votes loaded for `defaultVote`, saves queued so a reason lands after its thumb, a failed save remounts the bar on the saved vote and announces it; vendored `message-actions-clean.tsx` patched for `defaultVote` only (+169 bytes, digest `10b58462…` to `c023f70b…`, recorded in `PROVENANCE.md`); dev fixtures "Feedback and traces" and an admin traces state |
+| Gates run (16 Nov, Node 24.18.0, Python 3.12.10, orchestrator after all changes) | Backend `uv run --frozen pytest`: 334 passed + 26 subtests (baseline 291 + 26); `lat check` passed. Web `npm run typecheck`, `npm run build`, `npm test` 689 / 689 (baseline 669), `lat check` passed; runtime smoke `--production` 18 / 18 on a fresh `next start` (port 3100) |
+| Failing-first evidence | New backend test files failed at import on `48bbd1d`; every review fix on both sides had a test that failed first (11 backend and 7 web failures before the fixes); thumbs-presence and nav-gating web tests were added as coverage and passed on arrival |
+| Browser evidence | Built-in browser, local dev server, `/dev/ux` "Feedback and traces" and "Admin fixture". 1 (1280 px): thumbs up gave a pressed thumb, the trace row "Up" and the summary 1 · 0. 2: thumbs down plus "Not accurate" gave "Down · Inaccurate", no free-text input; the Down filter showed 1 of 3 rows, Up showed none, stats listed the reason. 3: streaming and unproven answers showed Copy only. 4: remount kept the vote. 5: with save forced to fail the thumbs stayed on the saved vote and the status read "Your rating was not saved. Try again." with no "Thanks". 6: row details opened with Enter; neither the table nor the details held any word from the fixture answer. 7: capability on showed Traces and 3 rows; off hid it and a direct visit read "Not provided by this backend". 8 (390 px, dark): no page overflow, the table scrolled inside its region. The browser run found a dev-fixture bug (it served capabilities on `admin/config` instead of `config`, so Traces never appeared in its Ready state); production wiring was correct and the fixture is fixed |
+| Independent review | 16 findings. Fixed: user-chosen text reaching traces through `turnId` (the idempotency key), a canary test that could not catch it, an index not matching the scan sort, scan cost under a `signal` filter, long cost strings silently dropped, truncation flag missed by the feedback filter, a double-click 500, `servedModels` second layer, Refresh mixing snapshots, a failed save that still looked saved, a mode filter that 422'd on `other`, duration text, stale `PROVENANCE.md` text, missing thumbs and nav tests, long lines in new files |
+| Not run or not verified | Real Mongo or Cosmos behavior (index use, TTL, `$regex` on `_id`, duplicate-key retry, index build time), hosted behavior (G1); screen-reader reading |
+| Limits found | Each traces request rescans up to 5,000 runs (1,000 under a `signal` filter) in memory on the single worker. Without `TRACE_OWNER_HASH_SECRET` every `ownerHash` is null and the owner filter is ignored; the secret is not wired into the deploy stack (`infra/orchestrator/stack.json`) and needs provisioning before G1. Server-written fields (`servedModels`, `failureCode`, `recoveryAction`) pass through if someone writes them into Mongo by hand; closing that needs closed sets from `failure_taxonomy` and the admin model list. Deleted chats stay in the database (existing behavior) and are only hidden from traces. Mode `other` is emitted but not filterable. `turnId` is null for non-UUID request keys (local runtime, recorded replays) |
+| Next step | Write the A2 packet (versioned config and audit), then N4 |

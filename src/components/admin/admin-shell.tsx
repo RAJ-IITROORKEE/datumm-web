@@ -4,16 +4,17 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { ArrowLeft, BookOpen, Bot, ChevronRight, Globe, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen, Plug, Puzzle, ScrollText, Server, UserRound, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Bot, ChevronRight, Globe, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen, Plug, Puzzle, ScrollText, Server, Activity, UserRound, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { featureState, parseCapabilities, type Capabilities, type CapabilityFeature } from '@/lib/capabilities.mjs';
+import { featureEnabled, featureState, parseCapabilities, type Capabilities, type CapabilityFeature } from '@/lib/capabilities.mjs';
 import { AdminConfigProvider, useOptionalAdminConfig, useSharedAdminConfig } from './form';
 import { ResultState, useAdminResource } from './use-admin';
 
-type Item = { href: string; label: string; icon: typeof Bot; feature?: CapabilityFeature };
+// `strict` features are off until the backend says on: no deployed backend serves them yet.
+type Item = { href: string; label: string; icon: typeof Bot; feature?: CapabilityFeature; strict?: boolean };
 const groups: { label: string; items: Item[] }[] = [
   { label: 'Workspace', items: [{ href: '/admin', label: 'Overview', icon: LayoutDashboard, feature: 'adminOverview' }] },
   { label: 'Agent', items: [
@@ -22,9 +23,12 @@ const groups: { label: string; items: Item[] }[] = [
     { href: '/admin/mcp', label: 'MCP servers', icon: Server, feature: 'adminConfig' },
   ] },
   { label: 'Release', items: [{ href: '/admin/plugin', label: 'Plugin', icon: Plug }] },
-  { label: 'System', items: [{ href: '/admin/audit', label: 'Audit log', icon: ScrollText, feature: 'adminAudit' }] },
+  { label: 'System', items: [
+    { href: '/admin/traces', label: 'Traces', icon: Activity, feature: 'adminTraces', strict: true },
+    { href: '/admin/audit', label: 'Audit log', icon: ScrollText, feature: 'adminAudit' },
+  ] },
 ];
-const hiddenByBackend = (caps: Capabilities, item?: Item) => Boolean(item?.feature && featureState(caps, item.feature) === 'off');
+const hiddenByBackend = (caps: Capabilities, item?: Item) => Boolean(item?.feature && (item.strict ? !featureEnabled(caps, item.feature) : featureState(caps, item.feature) === 'off'));
 
 function Nav({ collapsed, path, caps, onNavigate }: { collapsed: boolean; path: string; caps: Capabilities; onNavigate: (event: MouseEvent<HTMLAnchorElement>, href: string) => void }) {
   return (
@@ -105,7 +109,11 @@ function AdminShellContent({ email, children, activePath, onNavigate }: ShellPro
   const path = activePath ?? pathname;
   const current = groups.flatMap(group => group.items).find(item => item.href === path);
   const config = useSharedAdminConfig();
-  const caps = parseCapabilities(useAdminResource<unknown>('config').data);
+  const configResource = useAdminResource<unknown>('config');
+  const caps = parseCapabilities(configResource.data);
+  // A strict page waits for the config so it never calls a backend that may not serve it.
+  const content = !configResource.result && current?.strict ? <ResultState result={null} />
+    : hiddenByBackend(caps, current) ? <ResultState result={{ ok: false, reason: 'missing', message: '' }} /> : children;
   const navigate = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const leaving = href === '/';
@@ -158,7 +166,7 @@ function AdminShellContent({ email, children, activePath, onNavigate }: ShellPro
             </ol>
           </nav>
         </header>
-        <main id="admin-main" tabIndex={-1} className="admin-main"><div className="admin-content">{hiddenByBackend(caps, current) ? <ResultState result={{ ok: false, reason: 'missing', message: '' }} /> : children}</div></main>
+        <main id="admin-main" tabIndex={-1} className="admin-main"><div className="admin-content">{content}</div></main>
       </div>
     </div>
   );

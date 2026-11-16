@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { AnswerOutput } from '@/lib/answer-outputs.mjs';
 import type { ReviewReport } from '@/lib/review-report.mjs';
 import type { ComposerSource } from '@/components/composer-media';
+import type { AnswerFeedbackBody, FeedbackKind } from '@/lib/answer-feedback.mjs';
 export type WorkAreaSection = 'design' | 'activity' | 'assets' | 'exports';
 export interface WorkScope { key: string; epoch: number; accountKey: string; taskId: string | null; sourceKey: string }
 export interface PlanIdentity { planId: string; version: number; fingerprint: string }
@@ -31,15 +32,23 @@ export interface PlanDetailsSelectionProps {
   scope: WorkScope;
   onSelectAlternative: (selection: AlternativeSelection) => Promise<void>;
 }
+/** Present only when the backend reports `feedback`; it rates one proven answer at a time. */
+export interface AnswerFeedback {
+  /** The owner's saved votes for this task by turn id; null while they load. */
+  votes: Readonly<Record<string, FeedbackKind>> | null;
+  /** Never rejects: resolves false after announcing a failed save, true once it is saved. */
+  save(taskId: string, body: AnswerFeedbackBody): Promise<boolean>;
+}
 export interface OutputWorkspaceProps {
   scopeKey: string; scopeInput: Omit<WorkScope, 'epoch'>; children: ReactNode;
-  onOpen?: () => void; onClose?: () => void;
+  onOpen?: () => void; onClose?: () => void; answerFeedback?: AnswerFeedback;
 }
 export interface OutputWorkspaceValue {
   scope: WorkScope; outputs: AnswerOutput[]; activeOutput: AnswerOutput | null;
   register(key: string, outputs: AnswerOutput[]): void;
   openOutput(output: AnswerOutput | string, opener?: HTMLElement | null): void;
   closeOutput(): void; dismissOutput(): void;
+  answerFeedback?: AnswerFeedback;
 }
 
 export interface Bound<T> { value: T; accountKey: string; taskId: string | null; sourceKey: string }

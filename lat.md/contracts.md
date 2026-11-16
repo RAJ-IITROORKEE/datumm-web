@@ -98,13 +98,13 @@ Dirty state compares configs independent of key order, and domain chips are norm
 
 ## Admin proxy routes
 
-The service proxy opens only the admin config, audit, overview and knowledge source routes, mapped to backend v1 admin paths, and rejects every other admin path.
+The service proxy opens only the admin config, audit, overview, traces and knowledge source routes, mapped to backend v1 admin paths (traces with its query string), and rejects every other admin path, including `admin/traces/x`.
 
 ## Capability parsing
 
 The backend config's `capabilities` object is read as a tri-state per feature; anything missing or malformed is unknown, never off, so older backends keep working.
 
-Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. See `src/lib/capabilities.mjs`.
+Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. `adminTraces` and `feedback` are the exception: unknown is off, because no deployed backend serves them yet. See `src/lib/capabilities.mjs`.
 
 ## Durable completion proof
 
@@ -121,3 +121,15 @@ The envelope `{v:1, viewport, workArea:{open, section, preview}, selection, acti
 Actions arrive as `presentation.actions`, an object with `schemaVersion` 1, `kind` `display-actions`, the answer hash, task, turn and at most two items. They apply only once, on the live run that produced the answer, in the scope and epoch captured at submit, after the completion proof verifies; `history`, `stale`, `missing_target`, `unknown` and `unbound` actions never apply. The registry imports nothing, so no action can send a command, call the API or write a draft. `suggest_followup` text is only ever the empty composer's placeholder. Each applied action records the fields it changed and offers one-level Undo, disabled once the user changed that target or the scope changed. Below 1,180 px opening the work area is offered, not applied, so the answer is never hidden.
 
 The vectors in `tests/fixtures/display-action-vectors.json` are shared with the backend validator.
+
+## Admin traces parsing
+
+The traces page shows one text-free row per hosted turn, and the browser keeps only the allowlisted keys, so no later backend change can put a question, answer, note or owner id on screen.
+
+`src/lib/admin-traces.mjs` rebuilds every row, call, tool, specialist and stats object key by key. Unknown keys are dropped. Model ids, tool names and codes must match fixed patterns, enums fall back to `other` or null, and counts are clamped. Unreported call usage stays null instead of becoming 0. The owner is only a 16-hex keyed hash that the backend produces; with no server secret every `ownerHash` is null and the owner filter is simply unavailable. Traces and the `feedback` capability are admin-only conveniences: the backend 403 is the real gate. See `src/components/admin/traces-section.tsx`.
+
+## Answer feedback binding
+
+A rating is accepted by the client only for a saved answer whose completion proof just verified, and it always carries that proof's turn id and answer hash.
+
+`feedbackBody` in `src/lib/answer-feedback.mjs` refuses without `turnId` and a 64-hex `answerHash`, maps the five reason labels to the service enum, and never produces free text; the last label is "Something else" so the vendored text input stays hidden. `AnswerContent` shows the thumbs only with a verified proof, the `feedback` capability on, the owner's votes loaded (for `defaultVote`) and never while streaming, partial, shared, replayed or in the output panel. Saves are queued so a reason lands after its thumb, and a failed save is announced in the composer status line, never reported as saved.

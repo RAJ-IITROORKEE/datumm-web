@@ -10,10 +10,10 @@ import { CORPORA } from '@/lib/admin-config.mjs';
 import styles from './data-sections.module.css';
 
 const when = (iso?: string) => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(+d) ? d.toLocaleString() : iso || 'Not supplied'; };
-function Table({ caption, head, children }: { caption: string; head: string[]; children: ReactNode }) {
+export function Table({ caption, head, children }: { caption: string; head: string[]; children: ReactNode }) {
   return <div className={styles.tableScroll} role="region" aria-label={caption+', scroll to see all columns'} tabIndex={0}><table className={styles.table}><caption className="sr-only">{caption}</caption><thead><tr>{head.map(h => <th key={h} scope="col">{h}</th>)}</tr></thead><tbody>{children}</tbody></table></div>;
 }
-function EmptyState({ icon: Icon, title, children }: { icon: typeof BookOpen; title: string; children: ReactNode }) {
+export function EmptyState({ icon: Icon, title, children }: { icon: typeof BookOpen; title: string; children: ReactNode }) {
   return <div className={styles.empty}><Icon size={24} aria-hidden/><h2>{title}</h2><p>{children}</p></div>;
 }
 function RecordSearch({ value, onChange, label }: { value: string; onChange: (value: string) => void; label: string }) {

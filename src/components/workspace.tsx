@@ -58,6 +58,7 @@ import installerRelease from '../../public/downloads/release.json';
 import { DesktopSettings } from './desktop-settings';
 import { ProjectContext } from './project-context';
 import { useWorkspaceState, api, type Run, type WorkspaceState } from './workspace/use-workspace-state';
+import { useAnswerFeedback } from './workspace/use-answer-feedback';
 import { Sidebar } from './workspace/sidebar';
 import { PanelRight as WorkAreaCloseIcon, PanelRightOpen as WorkAreaOpenIcon } from './workspace/sidebar-icons';
 import { ConversationPanel } from './workspace/conversation';
@@ -84,7 +85,9 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
   const [reportSelection, setReportSelection] = useState<ReportSelection | null>(null);
   const [outputOpenId, setOutputOpenId] = useState(0);
   const reportTrigger = useRef<HTMLElement | null>(null), nextReportOpenId = useRef(0);
-  return <OutputWorkspaceProvider scopeKey={w.workspaceScopeInput.key} scopeInput={w.workspaceScopeInput} onOpen={() => {
+  // A failed rating is announced in the composer's status line; the bar never claims more than it knows.
+  const answerFeedback = useAnswerFeedback(featureEnabled(w.capabilities, 'feedback'), w.workspaceScopeInput.taskId, w.setConnectionNotice);
+  return <OutputWorkspaceProvider scopeKey={w.workspaceScopeInput.key} scopeInput={w.workspaceScopeInput} answerFeedback={answerFeedback} onOpen={() => {
     setOutputOpenId(value => value + 1);
     setReportSelection(null); w.closeProperties(); w.setCanvasOpen(false); w.selectWorkAreaSection(w.workAreaSection === 'exports' ? 'exports' : 'assets');
   }}><WorkspacePanels w={w} reportSelection={reportSelection} setReportSelection={setReportSelection} reportTrigger={reportTrigger} nextReportOpenId={nextReportOpenId} outputOpenId={outputOpenId}/></OutputWorkspaceProvider>;
