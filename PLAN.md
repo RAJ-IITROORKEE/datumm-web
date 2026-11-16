@@ -27,7 +27,7 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | A4 | Admin: MCP and skills registry | Proposed | Roadmap |
 | N5 | Provider streaming and measured performance | Proposed | Roadmap |
 | U1 | Next.js security upgrade (16.4.3 to 16.4.6) | Done 17 Nov (local, not pushed); `next` pinned at 16.4.6, 5 of 5 builds exit 0 | [Packet](docs/ux/u1-nextjs-security-upgrade.md) |
-| G1 | Go-live: backend on AWS, web on Vercel | Plan approved 17 Nov with all recommended options (D1 to D12); nothing pushed or deployed. Each push, merge, deploy and AWS step needs its own approval; AWS steps are run by the user (D8 option A) | [Go-live plan](docs/ux/g1-go-live-plan.md) |
+| G1 | Go-live: backend on AWS, web on Vercel | Plan approved 17 Nov with all recommended options (D1 to D12); nothing pushed or deployed. Each push, merge, deploy and AWS step needs its own approval; AWS steps are run by the user (D8 option A). [AWS checks runbook](docs/ux/g1-aws-checks.md) prepared, not yet run | [Go-live plan](docs/ux/g1-go-live-plan.md) |
 
 ## Confirmed decisions
 
