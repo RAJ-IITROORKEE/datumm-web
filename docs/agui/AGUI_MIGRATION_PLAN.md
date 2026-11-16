@@ -2,6 +2,8 @@
 
 16 November 2026. **Approved direction; currently held for the user's progress review.** [Current audit](AGUI_CURRENT_ARCHITECTURE_AUDIT.md) → [feature research](AGUI_FEATURE_RESEARCH.md) → [gap analysis](AGUI_GAP_ANALYSIS.md) → [target architecture](AGUI_TARGET_ARCHITECTURE.md). The earlier count implementation stays paused in [HANDOFF](../ux/HANDOFF.md).
 
+> **Order superseded, 16 November 2026.** The N1–N5 order and the "right work area and admin deferred" scope below are replaced by the [roadmap](../ux/roadmap-2026-11-16.md) (decisions D22 and D23 in [PLAN.md](../../PLAN.md)). Phase definitions, acceptance requirements and the measurement protocol here still apply as inputs. Do not follow the older sequencing.
+
 ## Review checkpoint — 16 November 2026
 
 User requested updated progress and handoff before continuing. **Do not start the next phase automatically.** Resume only after their next instruction. This checkpoint supersedes historical automatic progression and “producer not implemented” notes later in this document; phase definitions and acceptance requirements remain the target.

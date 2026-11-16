@@ -1,33 +1,32 @@
 # DATUMM UI/UX plan
 
-Updated 16 November 2026. This is the current plan index. Historical migration logs are retained in [the archived plan](docs/ux/history/plan-before-workspace-acceptance-2026-11-15.md); their old “next” instructions do not reopen resolved repairs.
+Updated 16 November 2026. This file holds the decisions, the phase table and the design reference map. Current state and the next step are in [docs/ux/HANDOFF.md](docs/ux/HANDOFF.md); rules for agents are in [AGENTS.md](AGENTS.md). Earlier narrative status is in Git history and in [the archived plan](docs/ux/history/plan-before-workspace-acceptance-2026-11-15.md); old "next step" text there does not reopen anything.
 
-## Active authorized work
+## Phases
 
-**Review hold, 16 November 2026:** the user requested a consolidated progress/plan handoff and will review before continuing. No further implementation or automatic phase progression until they return. [Current handoff](docs/ux/HANDOFF.md) is the status authority; [AG-UI phase checkpoint](docs/agui/AGUI_MIGRATION_PLAN.md#review-checkpoint--16-november-2026) separates implemented, locally tested, pending and deferred scope. Component reference map below remains unchanged.
+Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/PACKET_TEMPLATE.md). A phase starts after its packet is approved and ends at a checkpoint: gates run, packet result filled, handoff overwritten, this table updated, commit.
 
-Current local checkpoint: AG-UI transport/grouped-question continuation, compact process/history and the illustrative composition producer→checkpoint→public projection→client path are implemented. 603 frontend tests, 180 backend tests + 26 subtests, TypeScript/build/21 runtime checks passed. Browser evidence distinguishes actual hosted Ask/resume from controlled local composition replay. Live-provider composition, deployment, durable proof beyond the event tail, frontend capability actions and performance acceptance remain open. [Latest implementation packet](docs/ux/agui-composition-producer.md).
-
-**Latest instruction:** user approved AG-UI Option B through A, narrowed to the **middle chat**. Implement transport/lifecycle first, then actual producer observability and agent-composed interactive responses/questions, validating each slice. Right work area/floor-plan state migration is deferred. Earlier count-clarification work stays paused at local commit `4eb6135`, undeployed. [Current roadmap and chat addendum](docs/agui/AGUI_MIGRATION_PLAN.md) govern; original Component reference map remains the visual foundation. [Current handoff](docs/ux/HANDOFF.md) distinguishes completed tests from pending gates. Older continuation paragraphs below are historical.
-
-[Alternative-count clarification](docs/ux/alternative-count-clarification.md) is paused on its preserved local commit and excluded from the composition candidate. It is not the active next step. Its package/container/real-planner/live qualification remains pending; the rejected default-one experiment stays historical.
-
-[Workspace acceptance upgrade](docs/ux/workspace-acceptance-upgrade.md) is implemented and qualified for the inspected chat, Design/Activity/Assets/Exports and responsive journeys. Terra 6.1 High workers, independent review, 535 frontend tests, TypeScript, production build, 13 runtime checks and actual Codex browser testing passed. This is scoped acceptance, not full-product release or whole-catalog pixel parity.
-
-| Package | Required result | Current state |
-| --- | --- | --- |
-| Chat | Quiet expandable real process/tools, concise Streamdown output, readable grouped questions and Later/Show | Passed actual grouped questions, retained drafts, pause/reload/continue and short summary/table preview; identity guards preserved |
-| Work area | Drawing-only Design; process/checklist-first Activity with honest usage; clear Assets; saved-output-first Exports | Passed preview/history/CSV, filtering and drawing continuity; exact source/revision bindings preserved |
-| Responsive | Contained 320–1440 px layouts, usable phone controls, preserved desktop navigation choice, keyboard drawer/resize behavior | Passed measured width matrix, pointer/keyboard resize, drawer Escape/focus and Settings continuity |
-| Plan and handoff | One current status/next-step index with linked historical evidence | Consolidated and final evidence recorded; old chronology retained in linked snapshots |
-
-## Qualified baseline and remaining product scope
-
-The current hosted backend is `188ebc0bc0599ff84f3760aaef24711e522972ae`. [Saved revision confidence](docs/ux/saved-revision-confidence.md) qualifies generation, planned revision, no-checklist revision and reload for the tested web journey. Earlier count, footprint, progress, reporting and save-confidence failures remain historical evidence, not current next tasks.
-
-Hosted [Project Brief & decisions](docs/ux/project-brief-persistence.md) and [proposed concept room-schedule history](docs/ux/report-revision-history.md) are qualified within their documented scopes. This does not establish native BOQ history, RVT import, richer desktop parity or full-product release. Admin expansion is deferred by the user. Paid billing/entitlements, wider native approval/execution/read-back, research quality and release remain separate; see the [current gap register](docs/ux/full-migration-gap-register.md). The new [“one home” interpretation finding](docs/ux/workspace-acceptance-count-finding.md) is a bounded product-policy question; it is not evidence of count loss during pause/resume.
-
-The accepted Elephant–Goldfish design remains [design_draft.md](docs/egm/design_draft.md), with [consolidated review](docs/egm/consolidated_review_report.md), [work-area contract](docs/ux/work-area-contracts.md) and [adapter/source contracts](docs/ux/affectui-adapter-contracts.md). Later explicit decisions below and the active packet govern superseded layout/presentation details. References are design evidence, never proof that every catalog capability ships.
+| ID | Phase | Status | Packet / evidence |
+| --- | --- | --- | --- |
+| P0 | Repository cleanup and safe save | Done 16 Nov | Cleanup record in the handoff; commits `1b90d9c` to `172b4f9` |
+| P1 | Agent rules, design map, READMEs | Done 16 Nov | `76564d3`: AGENTS.md, CLAUDE.md, DESIGN.md |
+| P2 | Plan → build tracking format | Done 16 Nov | [PACKET_TEMPLATE.md](docs/ux/PACKET_TEMPLATE.md), this table, the handoff |
+| P3 | Research: Panda-agent reference and harness capability inventory | Done 16 Nov | [Research record](docs/ux/research-reference-and-harness-2026-11-16.md) |
+| P4 | Revised phased plan | Proposed, awaiting approval | [roadmap](docs/ux/roadmap-2026-11-16.md) |
+| S0 | Source verification and backend baseline (fresh branch at `188ebc0`) | Proposed | Roadmap |
+| C1 | Capability contract and config consistency | Proposed | Roadmap |
+| N1 | Durable completion proof | Proposed | Roadmap |
+| N3 | Tool, task and sub-agent lifecycle | Proposed | Roadmap |
+| N2 | Frontend capability awareness and reversible actions | Proposed | Roadmap |
+| A1 | Admin: traces and feedback | Proposed | Roadmap |
+| A2 | Admin: versioned config and audit | Proposed | Roadmap |
+| N4 | Evidence-backed compositions | Proposed | Roadmap |
+| Q1 | Rules pre-router and latency measurement (model router deferred) | Proposed | Roadmap |
+| A3 | Admin: model registry | Proposed | Roadmap |
+| W1 | Right work area on AG-UI state | Proposed; separate go or no-go | Roadmap |
+| A4 | Admin: MCP and skills registry | Proposed | Roadmap |
+| N5 | Provider streaming and measured performance | Proposed | Roadmap |
+| G1 | Hosted gate | Blocked: AWS access unavailable | Roadmap |
 
 ## Confirmed decisions
 
@@ -54,6 +53,8 @@ The accepted Elephant–Goldfish design remains [design_draft.md](docs/egm/desig
 | D19 | Generate → review → revise a concept leads the web first-use journey | Confirmed13 November. Import/model review and connected automation are secondary paths; generation and revision are qualified within the current handoff; broader native/import work remains separate. |
 | D20 | Project Brief & decisions before personal memory across chats | Confirmed13 November. Units, footprint, orientation, room needs and confirmed choices need visible sources/editability; hosted persistence, editing, bounded history and cross-chat/reload behavior are qualified; explicit Use in chat is required. |
 | D21 | Compact project-centered navigation | Confirmed13 November. Keep Design / Activity / Assets / Exports; add Running / Needs your input filters to the project task/chat overview and place Brief & decisions under Project context. No separate top-level Tasks/Memory screens in this direction. Preserve the approved compact structure; current implementation/evidence is indexed in the handoff. |
+| D22 | AG-UI with shadcn-style affectUI components across the whole app | Confirmed 16 November. Every agent-facing surface moves to AG-UI and the affectUI component set, in phases: the middle chat first, then the right work area, settings and admin, each with its own approved plan. This lifts the earlier "chat only" narrowing; native writes, direct drafting and billing stay out of scope until separately approved. |
+| D23 | Connect the UI to the existing harness first, then expand admin capability | Confirmed 16 November. First update the UI/UX so the harness's current features work well; then add admin capability to the harness. Panda-agent (`Pandabyte/Panda-agent`, local and live) is a read-only design reference; nothing there is changed. No Panda-agent orchestration idea, such as a model router, is adopted until P4 evaluates it and the user approves. |
 
 Product framing from the user: **a Cursor for Revit**. The web workspace supports architectural reasoning and review; native modifications still require exact approval and verified execution.
 
