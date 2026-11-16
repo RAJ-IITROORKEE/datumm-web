@@ -1,6 +1,6 @@
 # G1 — go-live plan for the UI/UX phases
 
-Status: **proposed, awaiting user approval.** Written 17 November 2026 from the two local repositories and recorded evidence only. No AWS, Vercel, Clerk or MongoDB system was contacted; nothing was built, pushed, merged or deployed.
+Status: **decisions D1 to D12 approved by the user on 17 Nov with every recommended option (A). This approves the approach only: each push, merge to a remote, tag, deploy, AWS action and Vercel promotion still needs its own approval at the time.** D10 is done (`scripts/check-ux-http.py` in the backend repo, commit `9c87ed6`). Written 17 November 2026 from the two local repositories and recorded evidence only. No AWS, Vercel, Clerk or MongoDB system was contacted; nothing was built, pushed, merged or deployed.
 
 Labels: **O** = observed in source or a recorded result (`path:line`); **I** = inferred, verify before acting.
 

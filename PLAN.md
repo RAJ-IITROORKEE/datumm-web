@@ -26,7 +26,7 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | W1 | Right work area on AG-UI state | Proposed; separate go or no-go | Roadmap |
 | A4 | Admin: MCP and skills registry | Proposed | Roadmap |
 | N5 | Provider streaming and measured performance | Proposed | Roadmap |
-| G1 | Go-live: backend on AWS, web on Vercel | Plan proposed 17 Nov, awaiting user approval of decisions D1 to D12; nothing deployed. AWS steps need access the user provides or runs themselves | [Go-live plan](docs/ux/g1-go-live-plan.md) |
+| G1 | Go-live: backend on AWS, web on Vercel | Plan approved 17 Nov with all recommended options (D1 to D12); nothing pushed or deployed. Each push, merge, deploy and AWS step needs its own approval; AWS steps are run by the user (D8 option A) | [Go-live plan](docs/ux/g1-go-live-plan.md) |
 
 ## Confirmed decisions
 
