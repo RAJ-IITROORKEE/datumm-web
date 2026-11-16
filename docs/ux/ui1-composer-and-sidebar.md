@@ -55,34 +55,34 @@ left resize handle, text chips, the picker's groups and facts, and the composer 
 
 ## 3. Decisions for the user (recommendation first)
 
-1. **Meter data.** **(A) Web-only now** from `data.usage`: used = `lastProviderInputTokens +
+1. **UI1-a Meter data.** **(A) Web-only now** from `data.usage`: used = `lastProviderInputTokens +
    lastProviderOutputTokens` when `lastProviderCallState` is `completed`, else
    `estimatedInputTokens` labeled "estimated"; max = `modelCapacityTokens`; card shows input,
    output, cost (`lastProviderReportedUsd`), "Model calls in this chat" (`cumulative.modelCalls`),
    and says it covers the latest model call. No cached row. (B) Backend S now: add
    `context.turn = {peakTokens, inputTokens, outputTokens, steps, usd}` over this turn's calls
    (Panda's "largest step"), behind capability `turnUsage`; ships with the next backend release.
-2. **Picker facts.** **(A) Additive `modelInfo` in `/v1/config` behind capability `modelInfo`**
+2. **UI1-b Picker facts.** **(A) Additive `modelInfo` in `/v1/config` behind capability `modelInfo`**
    (section 5), shown only when on; on `70ce912` the picker shows name + provider as today. (B)
    Web-only: provider from the id, no price or context.
-3. **Privacy hint.** **(A) Omit per-model hints** (no source exists, item 5); one static line under
+3. **UI1-c Privacy hint.** **(A) Omit per-model hints** (no source exists, item 5); one static line under
    the list: "Requests go to the model provider through OpenRouter." (B) Add an admin-set
    `retention` field (belongs in A4a or later).
-4. **Picker groups.** **(A) By provider**, default model first in its group, server order kept.
+4. **UI1-d Picker groups.** **(A) By provider**, default model first in its group, server order kept.
    (B) Flat list as today. (Panda's Free / More groups have no meaning here.)
-5. **Ring tones.** **(A) Panda's thresholds:** neutral below 70%, warning 70–90%, danger above 90%,
+5. **UI1-e Ring tones.** **(A) Panda's thresholds:** neutral below 70%, warning 70–90%, danger above 90%,
    using the `warning` and `danger` tokens (DESIGN.md front matter). (B) Warning only at 90%.
-6. **Date groups.** **(A) Today / Yesterday / Previous 7 days / Older**, by `created_at` (keeps the
+6. **UI1-f Date groups.** **(A) Today / Yesterday / Previous 7 days / Older**, by `created_at` (keeps the
    server order inside each group; no reordering while a chat runs). (B) By last activity
    (`transcript[-1].at`): matches Panda, but rows jump between groups and order no longer matches
    the server's 100-item window.
-7. **Width and drawer.** **(A) Render the left handle with 220–360 px** (default 224 kept; stored
+7. **UI1-g Width and drawer.** **(A) Render the left handle with 220–360 px** (default 224 kept; stored
    values outside are clamped) **and keep the 899 px drawer breakpoint** (all CSS and focus code
    use it). (B) Also move the drawer to 760 px (touches `workspace.tsx`, three CSS files and their
    checks).
-8. **Chips.** **(A) Text chips** "Working" (running) and "Needs attention" (needs answer, failed,
+8. **UI1-h Chips.** **(A) Text chips** "Working" (running) and "Needs attention" (needs answer, failed,
    interrupted, Revit check), from one pure rule; unread dot stays. (B) Keep dots, add tooltips.
-9. **Splitting files.** **(A) Do not split the three oversized files in UI1;** touch them for
+9. **UI1-i Splitting files.** **(A) Do not split the three oversized files in UI1;** touch them for
    wiring only (≤15 lines each). Extract from `sidebar.tsx` the account menu
    (`sidebar-account.tsx`) and the chat sections (`sidebar-chats.tsx`) so it ends under 400 lines;
    new UI goes in new files. (B) Also split `workspace.tsx` (separate phase; larger diff and
