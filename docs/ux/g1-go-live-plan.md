@@ -198,7 +198,11 @@ The user chose to let the orchestrator use the existing `datumm` AWS CLI profile
 | P2 rollback image | Both `6af54c87...` (pushed 15 Nov 10:57 IST) and the previous `bb49ed58...` (09:41 IST) are in `datumm-opencode-builder-hosted-opencode`. The G1 rollback target is the running `6af54c87...` in that same repository, so `RepositoryArn` does not change on rollback. **Q-2 is answered** |
 | P4 backups | Daily dumps exist; newest `20261116T203030Z.archive.gz`, 31.5 MiB. Restore is still untested |
 
-Not yet checked: P3 (the live `/v1/config` and `/v1/admin/config` values, which need a signed-in session on the live site), P5 (document counts, which need an SSM command on the host), P8 (Vercel environment variable names, dashboard only).
+**P5 counts (read-only SSM command on the host, `estimatedDocumentCount` per collection in `datumm_staging`, 17 Nov, approved by the user):** about 35,900 documents in 84 collections (18,739 in 63 collections on 11 Nov). The ones this release touches or indexes: `task_events` 4,443; `runs` 427; `run_events` 5,560; `admin_audit` 2; `app_config` 1; `report_revisions` 22; `tasks` 128; `graph_writes` 19,978; `graph_checkpoints` 4,039. None of the new collections exist yet (`config_history`, `model_tests`, `answer_feedback`, `feedback_limits`), as expected. The new indexes on `runs`, `task_events` and `admin_audit` are on collections of a few thousand documents at most, so builds at startup should take well under a second (still inferred, not measured). About 45 empty `validation_*` collections from 1 Oct are left over; not part of G1.
+
+`app_config` already holds one document, so the live admin config exists. Whether its `models` list is non-empty decides what the A3 migration blesses and what C1 shows at deploy (P3).
+
+Not yet checked: P3 (the live `/v1/config` and `/v1/admin/config` values, which need a signed-in session on the live site or a read-only projection of `models`, `defaultModel` and effort from `app_config`), P8 (Vercel environment variable names, dashboard only).
 
 **New finding (Q-10):** a Vercel preview URL is not in `ClerkAuthorizedParties`, so sign-in on a preview (steps W1 and W2) would fail. Adding an origin changes a stack parameter, which replaces the task and costs the same 1 to 3 minutes of downtime as an image change. Cheapest fix: add the stable preview alias in the **same** change set as the backend image at B3, instead of a second outage. Decision for the user before B3.
 
