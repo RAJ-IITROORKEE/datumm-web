@@ -61,7 +61,7 @@ Localhost3001 was available when implementation ended; temporary production3100 
 
 | Checkout | Branch / source | State |
 | --- | --- | --- |
-| Web root `E:/Web development/PROJECTS-FULL STACK/datumm-web` | `codex/ui-ux-foundation-2026-11-12` | Existing dirty/untracked UI work preserved; no reset/cleanup/merge |
+| Web root `E:/Web development/PROJECTS-FULL STACK/datumm-web` | `codex/ui-ux-foundation-2026-11-12` | All prior dirty/untracked work committed locally on 16 November (see cleanup record below); not pushed, not merged |
 | `artifacts/ux/agui-presentation/candidate` | `codex/agui-chat-presentation-20261116`, base `188ebc0bc0599ff84f3760aaef24711e522972ae` | Uncommitted producer/projection/storage changes plus a byte-exact copy of the earlier Plan-intent repair; locally qualified, undeployed |
 | `artifacts/ux/checklist-completion/candidate` | `codex/agui-plan-intent-20261116`, same base 188 | Original five-file Plan-intent repair uncommitted and unchanged; preserve its manifest |
 | Preserved branch in original backend clone | `codex/alternative-count-clarification-20261116`, commit `4eb6135862fcd6083d798f5eaff4f9c1e4a79f00` | Paused and excluded from producer candidate. Exact package/container/real-planner/live gates open. Prior commit normalized only knowledge-file line endings; whole archive not byte-qualified |
@@ -69,6 +69,19 @@ Localhost3001 was available when implementation ended; temporary production3100 
 Backend candidates are in ignored artifacts. Preserve those folders/manifests; web Git does not capture them. Backend instructions require graph/knowledge navigation and post-change checks. Python tests reused the original candidate's `apps/domain-api/.venv/Scripts/python.exe` with the new candidate working directory; no dependencies installed.
 
 Last recorded deployed backend remains source 188, image `sha256:6af54c878220f1117b316c3a414dda35f88f93ec3cee3dd7470270f4e88d378c`. It was **not revalidated on AWS** in this slice. No new commit, push, deployment, merge or release occurred.
+
+## Repository cleanup record — 16 November 2026
+
+User-approved cleanup before further AG-UI work. No application behavior changed.
+
+- **Saved:** the whole working tree is committed locally. Both live backend candidate diffs are backed up as byte-exact patches in [docs/backend-candidates](../backend-candidates/README.md). Nothing is pushed.
+- **Line endings:** `.gitattributes` keeps LF so recorded source hashes stay valid. All 32 hashes in `artifacts/ux/agui-presentation/qualification.json` matched before and after.
+- **Moved:** Elephant–Goldfish reports are in `docs/egm/`; AG-UI research and plan are in `docs/agui/`. Relative links were rewritten.
+- **Archived, not deleted:** older evidence moved to the sibling folder `datumm-web-artifacts-archive-2026-11-16/` (old packets cite it as `artifacts/ux/<name>`). `artifacts/ux/` keeps the nine folders current documents cite, including both candidates and `report-revision-history` (the frozen candidate's Git origin).
+- **Removed:** regenerable caches (`.next`, `.npm-cache`, `.pytest_cache`, TypeScript build info) and three source files nothing imported: `ai-elements/reasoning.tsx`, `lib/studio-pipeline.ts`, `vendor/opencode-question.ts` with its licence file.
+- **Git:** three merged sibling worktrees and 17 merged local branches removed; local `main` fast-forwarded to `origin/main` (`7495879`). `datumm-web-ask-recovery` (`codex/independent-ask`, unmerged, two uncommitted files) is untouched.
+- **Checks run after cleanup (Node 24.18.0):** `npm run typecheck` passed, `npm test` 603 passed, `npm run build` passed. Runtime smoke, backend tests and browser checks were not rerun.
+- **Node:** `npm test` needs Node 22.18 or later because one test imports a `.ts` file. The default `node` on this machine is 20.13.1; Node 24.18.0 is at `%LOCALAPPDATA%\Programs\node-v24.18.0-win-x64`.
 
 ## Remaining work — proposed review order
 

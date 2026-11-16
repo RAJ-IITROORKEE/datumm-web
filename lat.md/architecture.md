@@ -36,7 +36,7 @@ Chat-first center: the conversation owns the center until the current chat has r
 
 Agent work is collapsed by default behind a single "Worked · N steps" row; the answer renders as markdown and result cards stay secondary.
 
-The [[src/components/ai-elements/reasoning.tsx#Reasoning]] panel opens while a run streams or waits for input and collapses when it settles, still showing failed counts. Each tool call uses [[src/components/ai-elements/tool.tsx#Tool]] with a status badge and bounded, escaped input and output.
+Each tool call uses [[src/components/ai-elements/tool.tsx#Tool]] with a status badge and bounded, escaped input and output.
 
 ### Agent panel
 
