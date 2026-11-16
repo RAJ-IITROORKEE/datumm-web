@@ -103,3 +103,7 @@ The service proxy opens only the admin config, audit, overview and knowledge sou
 The backend config's `capabilities` object is read as a tri-state per feature; anything missing or malformed is unknown, never off, so older backends keep working.
 
 Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. See `src/lib/capabilities.mjs`.
+
+## Durable completion proof
+
+A saved answer keeps its completion proof when its own answer events have left the event window. The client checks exact identity, unique binding, visible contradictions and the full-answer SHA-256, not event presence.

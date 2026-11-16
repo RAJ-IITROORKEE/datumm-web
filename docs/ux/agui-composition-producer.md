@@ -21,7 +21,7 @@ presentation: {composition: {schemaVersion:1, taskId, turnId,
 
 The client checks exact identity, unique binding and conflicting later lifecycle events, then asynchronously verifies SHA-256 of the full UTF-8 answer within the current workspace scope/epoch. Missing or invalid binding cannot bypass through older event proof. Later failure, partial result, approval/input wait, reconciliation or supersession denies proof. Existing literal historical answer-table eligibility remains separate; no model/native authority is granted by an answer export.
 
-**Retention limit:** projection currently derives proof from the retained2,000 task-event tail. Old answers can lose composition when their evidence is evicted. Their literal answer remains available. This is not a persisted proof ledger or complete replay solution; durable per-answer evidence beyond that tail remains future work.
+**Retention limit:** proof is now derived from a targeted read of each answer's proof-stage events (N1), so it survives more than 2,000 later events; an execution whose proof-stage rows fall partly outside the newest 512 such rows gets no proof (literal answer kept); real-Mongo index use is unverified until G1. Their literal answer always remains available. No proof ledger is persisted; see [durable completion proof](n1-durable-completion-proof.md).
 
 ## Isolation and source map
 

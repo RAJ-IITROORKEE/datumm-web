@@ -42,10 +42,16 @@ export function HarnessReplay({snapshot}:{snapshot:RecordedReplayRun}){
    setRecord(saved);setState('Replay completed · recorded local harness output');
   }catch(failure){if(active.current===controller&&!controller.signal.aborted){setError(failure instanceof Error?failure.message:'Replay unavailable.');setState('Replay stopped');}}
  };
+ const showEvicted=()=>{
+  active.current?.abort();active.current=null;
+  const answer=conversationTurns(snapshot.conversation??[]).find(row=>row.completion);
+  setRecord({...snapshot,events:answer?(snapshot.events??[]).filter(event=>event.turnId!==answer.turnId):snapshot.events});
+  setError('');setState('Rendered captured answer without its events · no network');
+ };
  return <section aria-label="Recorded local harness replay" style={{marginTop:32,borderTop:'1px solid var(--separator)',paddingTop:20}}>
   <h2 style={{fontSize:16}}>Saved harness response</h2>
   <p style={{color:'var(--muted-foreground)',marginBlock:12}}>Captured from the local agent graph with controlled model decisions, saved through its checkpoint and public task projection. Replay uses the AG-UI adapter and client. No live provider or Revit execution.</p>
-  <Button onClick={()=>void replay()} disabled={state==='Replaying captured events'}>Replay saved harness response</Button><p role="status" style={{marginBlock:12}}>{state}</p>{error&&<p role="alert">{error}</p>}
+  <Button onClick={()=>void replay()} disabled={state==='Replaying captured events'}>Replay saved harness response</Button><Button onClick={()=>showEvicted()}>Saved answer after eviction</Button><p role="status" style={{marginBlock:12}}>{state}</p>{error&&<p role="alert">{error}</p>}
   {record&&<OutputWorkspaceProvider scopeKey={`controlled-replay:${record.id}`} scopeInput={{key:`controlled-replay:${record.id}`,accountKey:'controlled-replay',taskId:record.id,sourceKey:'captured-harness-answer'}}><ReplayAnswers record={record}/></OutputWorkspaceProvider>}
  </section>;
 }

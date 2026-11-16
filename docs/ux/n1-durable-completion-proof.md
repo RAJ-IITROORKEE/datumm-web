@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **approved, build in progress** |
+| Status | **done 16 Nov 2026** (local; not pushed or deployed) |
 | Depends on | C1 (done 16 Nov) |
 | Approved by / date | User, 16 Nov ("Approve N1, option A"); decisions 2–5 take the recommended option |
 | Base commits | Web `codex/ui-ux-foundation-2026-11-12` (C1 checkpoint); backend `c188add` on `codex/web-ui-harness-20261116` |
@@ -147,13 +147,17 @@ Revert the backend and web commits. Option A leaves only the extra index behind;
 6. **Roadmap size M:** with option A the backend is size S.
 7. **Handoff source table** lists the backend at `e8cefa7`; the branch HEAD is `c188add` (the C1 commit).
 
-## 12. Result (fill at checkpoint)
+## 12. Result
 
 | Item | Outcome |
 | --- | --- |
-| Commit | |
-| Gates run (command, Node version, counts, date) | |
-| Browser evidence (tool, URL, scenario, result) | |
-| Not run or not verified | |
-| Limits found | |
-| Next step | |
+| Commit | Backend and web N1 commits on their branches (see `git log`); not pushed |
+| Backend change | `task_events.py`: `DENY_STAGES`, `PROOF_STAGES`, `PROOF_ROW_CAP = 512`, `proof_rows()` (newest-first, at most two queries); `task_controller.py`: public tail read kept for `events` only, one `proof_rows` call for completed, owned, task-linked candidates with a unique command, deny list from `DENY_STAGES`; `storage.py`: index `(taskId, executionId, stage)`; `test_durable_completion_proof.py` (15 tests); `lat.md/chat-projection.md`; README code map |
+| Web change | No application logic. `tests/completion-after-eviction.test.mjs` (6 tests, including the shared completion-hash vector `A\u{1F3E0}é\r\nB` → `5525e8e7…b5e96b`, checked in Python and JS); dev fixture "Saved answer after eviction" in `harness-replay.tsx`; `lat.md/contracts.md` section; producer doc retention note |
+| Gates run (16 Nov, Node 24.18.0, Python 3.12.10, orchestrator after all changes) | Backend `uv run --frozen pytest`: 197 passed + 26 subtests (baseline 182 + 26); `lat check` passed. Web `npm run typecheck`, `npm run build`, `npm test` 613 / 613 (baseline 607), `lat check` passed; runtime smoke `--production` 18 / 18 on a fresh `next start` (port 3100) |
+| Failing-first evidence | The eviction test failed on `c188add` (`KeyError: 'completion'`); the multi-run over-cap test failed on the first N1 version before the cap fix |
+| Browser evidence | Built-in browser, local dev server `http://localhost:3001/dev/chat-composition`, controlled fixture. 1: "Saved answer after eviction" renders the composed view (1280 px); the disclosure opens and closes with the Enter key; Copy writes text identical to the fixture answer; no `/api/agui` or `/api/service` request. 2: same at 390 px, no horizontal overflow. 3: "Tamper answer hash" and "Different task" remove the composed table (plain-answer fallback). Light and dark emulation both render the page's dark styling, so light mode was not meaningfully exercised. A page reload was not separately repeated after the first check |
+| Independent review | 7 findings. Fixed: the cap removed proof from every answer once a task passed 512 proof rows (now only executions cut off by the window lose proof; multi-run and pre-N1-equivalence tests added), producer doc and lat wording, explicit `é` escape, dev fixture no-answer edge case. Recorded: possible index choice by the planner (G1) |
+| Not run or not verified | Real Mongo or Cosmos query plans and index build time (G1); hosted behavior; reload of an evicted hosted task (G1) |
+| Limits found | An execution whose proof-stage rows fall partly outside the newest 512 gets no proof (literal answer kept). The task list projects every task, so it makes one or two extra indexed queries per task. mongomock ignores `to_list(length)`; the code relies on `.limit()` |
+| Next step | Write the N3 packet (tool, task and sub-agent lifecycle) for approval |
