@@ -1,0 +1,216 @@
+{
+  "status": "completed",
+  "created_at": "2026-01-01T00:00:00+00:00",
+  "events": [
+    {
+      "schemaVersion": 2,
+      "eventId": "task:1",
+      "sequence": 1,
+      "taskId": "task",
+      "stepId": null,
+      "jobId": null,
+      "operationId": null,
+      "goalVersion": 1,
+      "planVersion": 0,
+      "stage": "answer",
+      "type": "activity",
+      "summary": "😀 Sequence\n\n| Stage | Value |\n| --- | --- |\n| Plan | 2 |",
+      "progress": null,
+      "artifactRefs": [],
+      "at": "2026-11-15T23:05:56.934894+00:00",
+      "index": 0,
+      "detail": "😀 Sequence\n\n| Stage | Value |\n| --- | --- |\n| Plan | 2 |",
+      "tool": null,
+      "note": null,
+      "controlOutcome": null,
+      "failureCode": null,
+      "recoveryAction": null,
+      "counts": null,
+      "agent": null,
+      "parentStepId": null,
+      "activityId": null,
+      "executionId": "run",
+      "turnId": "turn"
+    },
+    {
+      "schemaVersion": 2,
+      "eventId": "task:2",
+      "sequence": 2,
+      "taskId": "task",
+      "stepId": null,
+      "jobId": null,
+      "operationId": null,
+      "goalVersion": 1,
+      "planVersion": 0,
+      "stage": "agent_stage_complete",
+      "type": "activity",
+      "summary": "finish_answer",
+      "progress": null,
+      "artifactRefs": [],
+      "at": "2026-11-15T23:05:56.935893+00:00",
+      "index": 1,
+      "detail": "finish_answer",
+      "tool": null,
+      "note": null,
+      "controlOutcome": "finish",
+      "failureCode": null,
+      "recoveryAction": null,
+      "counts": null,
+      "agent": null,
+      "parentStepId": null,
+      "activityId": null,
+      "executionId": "run",
+      "turnId": "turn"
+    },
+    {
+      "schemaVersion": 2,
+      "eventId": "task:3",
+      "sequence": 3,
+      "taskId": "task",
+      "stepId": null,
+      "jobId": null,
+      "operationId": null,
+      "goalVersion": 1,
+      "planVersion": 0,
+      "stage": "completed",
+      "type": "activity",
+      "summary": "Agent finished this task.",
+      "progress": null,
+      "artifactRefs": [],
+      "at": "2026-11-15T23:05:56.937940+00:00",
+      "index": 2,
+      "detail": "Agent finished this task.",
+      "tool": null,
+      "note": null,
+      "controlOutcome": null,
+      "failureCode": null,
+      "recoveryAction": null,
+      "counts": null,
+      "agent": null,
+      "parentStepId": null,
+      "activityId": null,
+      "executionId": "run",
+      "turnId": "turn"
+    }
+  ],
+  "data": {
+    "agent_advice": [],
+    "agent_advice_binding": {
+      "documentId": null,
+      "revision": null,
+      "deviceId": null,
+      "sessionId": null,
+      "capturedAt": "2026-11-15T23:05:56.933892+00:00"
+    },
+    "agent_result": {
+      "status": "completed",
+      "answer": "😀 Sequence\n\n| Stage | Value |\n| --- | --- |\n| Plan | 2 |",
+      "documentId": null,
+      "design": null,
+      "observations": [
+        {
+          "kind": "response_ready"
+        }
+      ],
+      "findings": []
+    },
+    "answer": "😀 Sequence\n\n| Stage | Value |\n| --- | --- |\n| Plan | 2 |",
+    "error": null,
+    "agent_scheduler": null,
+    "reportHistoryState": null,
+    "build_feedback": [],
+    "build_revision_count": 0
+  },
+  "id": "task",
+  "taskLifecycle": {
+    "schemaVersion": 1,
+    "state": "completed",
+    "canContinue": false,
+    "requiresReconciliation": false
+  },
+  "modelOutcome": {
+    "state": "no_write",
+    "verified": false,
+    "present": null,
+    "missing": null,
+    "warnings": null
+  },
+  "eventCursor": 3,
+  "schemaVersion": 2,
+  "taskId": "task",
+  "executionId": "run",
+  "taskVersion": 1,
+  "originalPrompt": "Explain the sequence",
+  "goalVersion": 1,
+  "title": "Explain the sequence",
+  "projectId": null,
+  "mode": "ask",
+  "model": "m",
+  "reasoningEffort": "high",
+  "currentPlanRef": null,
+  "acceptance": null,
+  "transcript": [
+    {
+      "commandId": "turn",
+      "type": "submit",
+      "text": "Explain the sequence",
+      "at": "2026-01-01T00:00:00+00:00"
+    }
+  ],
+  "conversation": [
+    {
+      "prompt": "Explain the sequence",
+      "turnId": "turn"
+    },
+    {
+      "answer": "😀 Sequence\n\n| Stage | Value |\n| --- | --- |\n| Plan | 2 |",
+      "completion": {
+        "schemaVersion": 1,
+        "taskId": "task",
+        "turnId": "turn",
+        "executionId": "run",
+        "answerHash": "d3a96153416ae1c394feb38758c715ecb368f611fa7c2f322721ad8ace566a27",
+        "status": "completed",
+        "completionSequence": 3
+      },
+      "presentation": {
+        "composition": {
+          "schemaVersion": 1,
+          "kind": "illustrative-explanation",
+          "answerHash": "d3a96153416ae1c394feb38758c715ecb368f611fa7c2f322721ad8ace566a27",
+          "root": {
+            "type": "stack",
+            "children": [
+              {
+                "type": "text",
+                "text": {
+                  "start": 0,
+                  "end": 11
+                }
+              },
+              {
+                "type": "bars",
+                "source": {
+                  "start": 13,
+                  "end": 57
+                }
+              }
+            ]
+          },
+          "taskId": "task",
+          "turnId": "turn"
+        }
+      },
+      "turnId": "turn"
+    }
+  ],
+  "commandReceipts": [
+    {
+      "commandId": "turn",
+      "state": "applied",
+      "taskVersion": 1,
+      "error": null
+    }
+  ],
+  "goalStatus": "completed"
+}

@@ -1,7 +1,7 @@
 import { hostedCommand, postHostedCommand } from '@/lib/hosted-command.mjs';
 import { createUIMessageStream, createUIMessageStreamResponse } from 'ai';
 import { backend } from '@/lib/backend';
-import { chatStartResult } from '@/lib/chat-start';
+import { admissionMessage, chatStartResult, serviceErrorMessage } from '@/lib/chat-start';
 import { requestBody } from '@/lib/request-body';
 export const maxDuration=240;
 export async function POST(request:Request){
@@ -30,9 +30,10 @@ export async function POST(request:Request){
   while(true){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});
    let split;while((split=buffer.indexOf('\n\n'))>=0){const packet=buffer.slice(0,split);buffer=buffer.slice(split+2);
     if(!packet.startsWith('data: '))continue;const event=JSON.parse(packet.slice(6));
-    writer.write({type:'data-progress',data:event,transient:true});
+    const displayEvent=event.stage==='failed'?{...event,detail:admissionMessage(serviceErrorMessage(event.detail),event.failureCode)}:event;
+    writer.write({type:'data-progress',data:displayEvent,transient:true});
      if(event.stage==='answer'){if(!answered)writer.write({type:'text-start',id:'answer'});answered=true;writer.write({type:'text-delta',id:'answer',delta:event.detail});}
-    if(event.stage==='failed'){writer.write({type:'text-start',id:'failure'});writer.write({type:'text-delta',id:'failure',delta:`\n\n${event.detail}`});writer.write({type:'text-end',id:'failure'});}
+    if(event.stage==='failed'){writer.write({type:'text-start',id:'failure'});writer.write({type:'text-delta',id:'failure',delta:`\n\n${displayEvent.detail}`});writer.write({type:'text-end',id:'failure'});}
    }
   }
    if(answered)writer.write({type:'text-end',id:'answer'});writer.write({type:'finish'});

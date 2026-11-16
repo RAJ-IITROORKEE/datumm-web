@@ -3,91 +3,59 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   applyAppearance,
+  appearanceBackupKey,
   appearanceTokens,
-  customTokens,
   defaultAppearance,
-  palettes,
   parseAppearance,
+  readAppearance,
   saveAppearance,
   type Appearance,
 } from '@/lib/appearance';
 import { Button } from './ui/button';
 import styles from './theme-settings.module.css';
 
-const paletteLabels: Record<Appearance['palette'], string> = {
-  affectui: 'DATUMM Studio',
-  'oc-2': 'OpenCode OC-2',
-  datumm: 'DATUMM classic',
-  opencode: 'OpenCode TUI (legacy)',
-  nord: 'Nord',
-  tokyonight: 'Tokyo Night',
-  'one-dark': 'One Dark',
-  catppuccin: 'Catppuccin',
-};
-
-const paletteKeys = ['affectui', ...Object.keys(palettes).filter((name) => name !== 'affectui')] as Appearance['palette'][];
-
-const modeLabels: Record<Appearance['mode'], string> = {
-  system: 'System',
-  light: 'Light',
-  dark: 'Dark',
-};
-
-const modeDescriptions: Record<Appearance['mode'], string> = {
-  system: 'Follow this device',
-  light: 'Use a light appearance',
-  dark: 'Use a dark appearance',
-};
-
-function MiniApp({ tokens }: { tokens: Record<string, string> }) {
-  return (
-    <span
-      className={styles.miniApp}
-      style={{ backgroundColor: tokens.background, color: tokens.foreground, borderColor: tokens.border }}
-    >
-      <span className={styles.miniSidebar} style={{ backgroundColor: tokens.card, borderColor: tokens.border }}>
-        <span className={styles.miniBrand} style={{ backgroundColor: tokens['trace-accent'] }} />
-        <span className={styles.miniNav} style={{ backgroundColor: tokens['muted-foreground'] }} />
-        <span className={styles.miniNavShort} style={{ backgroundColor: tokens['muted-foreground'] }} />
-      </span>
-      <span className={styles.miniScreen}>
-        <span className={styles.miniToolbar} style={{ backgroundColor: tokens.secondary }} />
-        <span className={styles.miniTitle} style={{ backgroundColor: tokens.foreground }} />
-        <span className={styles.miniPanel} style={{ backgroundColor: tokens.card, borderColor: tokens.border }}>
-          <span className={styles.miniText} style={{ backgroundColor: tokens['muted-foreground'] }} />
-          <span className={styles.miniTextShort} style={{ backgroundColor: tokens['muted-foreground'] }} />
-          <span className={styles.miniAccent} style={{ backgroundColor: tokens['trace-accent'] }} />
-        </span>
-      </span>
-    </span>
-  );
+function readBackup() {
+  try { return localStorage.getItem(appearanceBackupKey); } catch { return null; }
 }
 
 export function ThemeSettings({ motionRow, advancedControl }: { motionRow: ReactNode; advancedControl: ReactNode }) {
   const [density, setDensity] = useState('comfortable');
   const [scale, setScale] = useState('100');
+  const [contrast, setContrast] = useState('normal');
+  const [motion, setMotion] = useState('full');
   const [saved, setSaved] = useState<Appearance>(defaultAppearance);
   const [draft, setDraft] = useState<Appearance>(defaultAppearance);
+  const [backup, setBackup] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const draftRef = useRef<Appearance>(defaultAppearance);
 
-  const layout = (name: 'density' | 'scale', value: string) => {
+  const layout = (name: 'density' | 'scale' | 'contrast' | 'motion', value: string) => {
     document.documentElement.dataset[name] = value;
-    localStorage.setItem('datumm-' + name, value);
     if (name === 'density') setDensity(value);
-    else setScale(value);
+    if (name === 'scale') setScale(value);
+    if (name === 'motion') setMotion(value);
+    if (name === 'contrast') {
+      setContrast(value);
+      applyAppearance(draftRef.current);
+      window.dispatchEvent(new Event('datumm-contrast-changed'));
+    }
+    try { localStorage.setItem('datumm-' + name, value); }
+    catch { setError('The preference changed for this visit but could not be saved. Allow browser storage and try again.'); }
   };
 
   useEffect(() => {
-    setDensity(localStorage.getItem('datumm-density') ?? 'comfortable');
-    setScale(localStorage.getItem('datumm-scale') ?? '100');
     try {
-      const value = parseAppearance(JSON.parse(localStorage.getItem('datumm-appearance') ?? JSON.stringify(defaultAppearance)));
-      draftRef.current = value;
-      setSaved(value);
-      setDraft(value);
+      setDensity(localStorage.getItem('datumm-density') ?? 'comfortable');
+      setScale(localStorage.getItem('datumm-scale') ?? '100');
+      setContrast(localStorage.getItem('datumm-contrast') === 'high' ? 'high' : 'normal');
+      setMotion(localStorage.getItem('datumm-motion') === 'reduce' ? 'reduce' : 'full');
     } catch {}
+    const value = readAppearance();
+    draftRef.current = value;
+    setSaved(value);
+    setDraft(value);
+    setBackup(readBackup());
   }, []);
 
   const preview = (value: Appearance) => {
@@ -95,33 +63,15 @@ export function ThemeSettings({ motionRow, advancedControl }: { motionRow: React
     setDraft(value);
     setError('');
     setNotice('');
-    try {
-      applyAppearance(parseAppearance(value));
-    } catch (e) {
-      setError((e as Error).message);
-    }
+    try { applyAppearance(parseAppearance(value)); }
+    catch (failure) { setError((failure as Error).message); }
   };
 
-  useEffect(
-    () => () => {
-      try {
-        applyAppearance(parseAppearance(JSON.parse(localStorage.getItem('datumm-appearance') ?? JSON.stringify(defaultAppearance))));
-      } catch {
-        applyAppearance(defaultAppearance);
-      }
-    },
-    [],
-  );
+  useEffect(() => () => applyAppearance(readAppearance()), []);
 
   useEffect(() => {
     const system = matchMedia('(prefers-color-scheme: dark)');
-    const update = () => {
-      try {
-        applyAppearance(parseAppearance(draftRef.current));
-      } catch {
-        applyAppearance(defaultAppearance);
-      }
-    };
+    const update = () => applyAppearance(draftRef.current);
     system.addEventListener('change', update);
     window.addEventListener('datumm-contrast-changed', update);
     return () => {
@@ -131,16 +81,14 @@ export function ThemeSettings({ motionRow, advancedControl }: { motionRow: React
   }, []);
 
   const dark = draft.mode === 'dark' || (draft.mode === 'system' && (typeof window === 'undefined' || matchMedia('(prefers-color-scheme: dark)').matches));
-  const variant = dark ? 'dark' : 'light';
-  const tokens = appearanceTokens({ ...draft, custom: undefined }, dark);
-  const accent = appearanceTokens(draft, dark)['trace-accent'];
+  const accent = appearanceTokens(draft, dark).accent;
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
 
   return (
     <div className={`theme-settings ${styles.settings}`}>
       <header className={styles.intro}>
         <h3>Appearance</h3>
-        <p>Quiet chrome. Clear drawings. A workspace that stays out of your way.</p>
+        <p>Choose how DATUMM adapts to your display.</p>
       </header>
 
       <div className={styles.rows}>
@@ -155,7 +103,9 @@ export function ThemeSettings({ motionRow, advancedControl }: { motionRow: React
             value={draft.mode}
             onChange={(event) => preview({ ...draft, mode: event.target.value as Appearance['mode'] })}
           >
-            {(['system', 'light', 'dark'] as const).map((mode) => <option key={mode} value={mode}>{modeLabels[mode]}</option>)}
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
           </select>
         </div>
         <div className={styles.row}>
@@ -175,103 +125,34 @@ export function ThemeSettings({ motionRow, advancedControl }: { motionRow: React
           </div>
           <span className={styles.accentSwatch} role="img" aria-label={`Accent color ${accent}`} style={{ backgroundColor: accent }} />
         </div>
-        {motionRow}
+        {motionRow ?? <div className={styles.row}>
+          <div className={styles.rowCopy}>
+            <strong>Motion</strong>
+            <small>Reduce interface animations.</small>
+          </div>
+          <select className={styles.rowSelect} aria-label="Motion preference" value={motion} onChange={event => layout('motion', event.target.value)}>
+            <option value="full">Full motion</option>
+            <option value="reduce">Reduced motion</option>
+          </select>
+        </div>}
       </div>
-
-      <details className={styles.browse}>
-        <summary>Browse palettes</summary>
-        <div className={styles.browseContent}>
-          <label className={styles.row}>
-            <span>Color palette</span>
-            <select className={styles.rowSelect} aria-label="Color palette" value={draft.palette} onChange={event => preview({ ...draft, palette: event.target.value as Appearance['palette'] })}>
-              {paletteKeys.map(palette => <option key={palette} value={palette}>{paletteLabels[palette]}</option>)}
-            </select>
-          </label>
-          <section className={styles.section} aria-labelledby="appearance-mode-heading">
-            <div className={styles.sectionHeading}>
-              <div>
-                <h3 id="appearance-mode-heading">Color mode</h3>
-                <p>Choose how DATUMM adapts to your display.</p>
-              </div>
-            </div>
-            <div className={styles.modeGrid} role="group" aria-label="Color mode">
-              {(['light', 'system', 'dark'] as const).map((mode) => {
-                const previewModes = mode === 'system' ? (['light', 'dark'] as const) : ([mode] as const);
-                return (
-                  <button
-                    key={mode}
-                    type="button"
-                    className={styles.modeCard}
-                    aria-label={modeLabels[mode]}
-                    data-mode={mode}
-                    aria-pressed={draft.mode === mode}
-                    onClick={() => preview({ ...draft, mode })}
-                  >
-                    <span className={styles.modePreviews} aria-hidden="true">
-                      {previewModes.map((previewMode) => (
-                        <MiniApp key={previewMode} tokens={appearanceTokens(draft, previewMode === 'dark')} />
-                      ))}
-                    </span>
-                    <span className={styles.modeText}>
-                      <span className={styles.modeLabel}>{modeLabels[mode]}</span>
-                      <span className={styles.modeDescription}>{modeDescriptions[mode]}</span>
-                    </span>
-                    <span className={styles.selectionMark} aria-hidden="true" />
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className={styles.section} aria-labelledby="appearance-palette-heading">
-            <div className={styles.sectionHeading}>
-              <div>
-                <h3 id="appearance-palette-heading">Color palette</h3>
-                <p>Pick a palette for your workspace.</p>
-              </div>
-              <span className={styles.paletteCount}>{paletteKeys.length} palettes</span>
-            </div>
-            <div className={styles.paletteGrid} role="group" aria-label="Color palette">
-              {paletteKeys.map((palette) => {
-                const paletteTokens = appearanceTokens({ ...draft, palette, custom: undefined }, dark);
-                return (
-                  <button
-                    key={palette}
-                    type="button"
-                    className={styles.paletteCard}
-                    aria-label={paletteLabels[palette]}
-                    data-palette={palette}
-                    aria-pressed={draft.palette === palette}
-                    onClick={() => preview({ ...draft, palette })}
-                  >
-                    <MiniApp tokens={paletteTokens} />
-                    <span className={styles.paletteSwatches} aria-hidden="true">
-                      {[paletteTokens.background, paletteTokens.card, paletteTokens.secondary, paletteTokens['trace-accent']].map((color, index) => (
-                        <span key={index} style={{ backgroundColor: color }} />
-                      ))}
-                    </span>
-                    <span className={styles.paletteFooter}>
-                      <span className={styles.paletteName}>{paletteLabels[palette]}</span>
-                      <span className={styles.selectionMark} aria-hidden="true" />
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        </div>
-      </details>
 
       <div className={styles.actions}>
         <Button variant="ghost" size="sm" onClick={() => preview(defaultAppearance)}>Reset to DATUMM</Button>
-        <Button variant="outline" size="sm" onClick={() => preview(saved)}>Cancel preview</Button>
-        <Button size="sm" disabled={!dirty || Boolean(error)} onClick={() => {
+        <Button variant="outline" size="sm" onClick={() => {
+          const value = readAppearance();
+          setSaved(value);
+          preview(value);
+        }}>Cancel preview</Button>
+        <Button size="sm" disabled={!dirty} onClick={() => {
           try {
             saveAppearance(draft);
             setSaved(draft);
+            setBackup(readBackup());
+            setError('');
             setNotice('Appearance applied and saved.');
-          } catch (e) {
-            setError((e as Error).message);
+          } catch (failure) {
+            setError(`Appearance could not be saved. Your preview is still active. ${(failure as Error).message}`);
           }
         }}>Apply appearance</Button>
       </div>
@@ -282,11 +163,20 @@ export function ThemeSettings({ motionRow, advancedControl }: { motionRow: React
       <details className={styles.advanced}>
         <summary>
           <span>Advanced</span>
-          <span>Text size, contrast, custom colors and theme files</span>
+          <span>Text size and contrast</span>
         </summary>
         <div className={styles.advancedContent}>
           <div className={styles.rows}>
-            {advancedControl}
+            {advancedControl ?? <div className={styles.row}>
+              <div className={styles.rowCopy}>
+                <strong>Contrast</strong>
+                <small>Increase text and separator contrast.</small>
+              </div>
+              <select className={styles.rowSelect} aria-label="Contrast preference" value={contrast} onChange={event => layout('contrast', event.target.value)}>
+                <option value="normal">Standard</option>
+                <option value="high">High</option>
+              </select>
+            </div>}
             <div className={styles.row}>
               <div className={styles.rowCopy}>
                 <strong>Reading text size</strong>
@@ -299,60 +189,15 @@ export function ThemeSettings({ motionRow, advancedControl }: { motionRow: React
               </select>
             </div>
           </div>
-          <div className={styles.advancedHeading}>
-            <h3>Custom colors · {variant}</h3>
-            <p>Adjust the active light or dark palette. Imported themes only change supported color tokens.</p>
-          </div>
-          <div className={styles.customColors}>
-            {customTokens.map((name) => (
-              <label key={name}>
-                <span>{name.replaceAll('-', ' ')}</span>
-                <input
-                  type="color"
-                  aria-label={`Theme ${name}`}
-                  value={draft.custom?.[variant]?.[name] ?? tokens[name]}
-                  onChange={(event) => preview({
-                    ...draft,
-                    custom: { ...draft.custom, [variant]: { ...draft.custom?.[variant], [name]: event.target.value } },
-                  })}
-                />
-              </label>
-            ))}
-          </div>
-          <div className={styles.themeFiles}>
-            <label className="settings-field">
-              Import DATUMM theme JSON
-              <input
-                type="file"
-                accept=".json"
-                aria-label="Import theme"
-                onChange={async (event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = '';
-                  if (!file) return;
-                  try {
-                    if (file.size > 8192) throw Error('Theme file must be at most 8 KiB.');
-                    preview(parseAppearance(JSON.parse(await file.text())));
-                  } catch (e) {
-                    setError((e as Error).message);
-                  }
-                }}
-              />
-            </label>
-            <a
-              className={styles.themeExport}
-              download="datumm-theme.json"
-              href={'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(draft, null, 2))}
-            >
-              Export theme JSON
-            </a>
-          </div>
+          {backup !== null && <div className={styles.previousAppearance}>
+            <p>Your previous appearance was retained when DATUMM updated its visual system.</p>
+            <a className={styles.themeExport} download="datumm-appearance-before-affectui-v2.json"
+              href={'data:application/json;charset=utf-8,' + encodeURIComponent(backup)}>Download previous appearance JSON</a>
+          </div>}
         </div>
       </details>
 
-      <p className={styles.note}>
-        Includes OpenCode OC-2 and legacy TUI palettes adapted for this workspace. Text contrast is adjusted for readability; drawings keep their source colors. Preview is temporary until saved.
-      </p>
+      <p className={styles.note}>Preview is temporary until saved. Drawings keep their source colors.</p>
     </div>
   );
 }

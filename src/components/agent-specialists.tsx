@@ -1,5 +1,7 @@
 'use client';
 
+import styles from './agent-specialists.module.css';
+
 export type SpecialistResult = {
  schemaVersion: 1;
  role: string;
@@ -9,15 +11,18 @@ export type SpecialistResult = {
  nativeAuthority: 'none';
 };
 
-export function AgentSpecialists({ results, taskId }: { results?: SpecialistResult[]; taskId: string }) {
+export function AgentSpecialists({ results, taskId, onOpenArtifact }: { results?: SpecialistResult[]; taskId: string; onOpenArtifact?: (artifact: {taskId: string; sha256: string}, opener: HTMLElement) => void }) {
  if (!results?.length) return null;
- return <div className="saved-plan-card" aria-label="Specialist review">
-  <div className="section-caption">SPECIALIST REVIEW<span>Advisory</span></div>
-  {results.map((result, index) => <div key={`${result.role}-${index}`}>
-   <p><strong>{result.role.replaceAll('_', ' ')}</strong> · {result.status}</p>
-   {result.findings.map((finding, i) => <p key={i}>{finding.severity === 'unknown' ? 'Unknown: ' : ''}{finding.message}</p>)}
-   {result.role === 'report_preparer' && result.status === 'completed' && result.artifactRefs.map(ref => <a key={ref} href={`/api/service/tasks/${taskId}/specialist-artifacts/${ref}`} download>Download evidence report (JSON)</a>)}
+ return <div className={styles.reviews} aria-label="Specialist review">
+  {results.map((result, index) => <div className={styles.review} key={`${result.role}-${index}`}>
+   <p className={styles.heading}><strong>{result.role.replaceAll('_', ' ')}</strong><span>{result.status}</span></p>
+   {result.findings.map((finding, i) => <p className={styles.finding} key={i}>{finding.severity === 'unknown' ? 'Unknown: ' : ''}{finding.message}</p>)}
+   {result.artifactRefs.map((ref,i) => result.role === 'report_preparer' && result.status === 'completed' && /^[a-f0-9]{64}$/.test(ref)
+    ? onOpenArtifact ? <button type="button" key={`${ref}-${i}`} onClick={event => onOpenArtifact({taskId,sha256:ref},event.currentTarget)}>Download evidence report (JSON)</button>
+      : <a key={`${ref}-${i}`} href={`/api/service/tasks/${encodeURIComponent(taskId)}/specialist-artifacts/${ref}`} download>Download evidence report (JSON)</a>
+    : null)}
+   {result.artifactRefs.some(ref => !(result.role === 'report_preparer' && result.status === 'completed' && /^[a-f0-9]{64}$/.test(ref))) && <details className={styles.source}><summary>Source details</summary>{result.artifactRefs.filter(ref => !(result.role === 'report_preparer' && result.status === 'completed' && /^[a-f0-9]{64}$/.test(ref))).map((ref, i) => <p key={`${ref}-${i}`}>Artifact reference: {ref} · Download unavailable</p>)}</details>}
   </div>)}
-  <small>Optional reviews may be unavailable. Findings do not approve a plan or a model change.</small>
+  <p className={styles.note}>Advisory findings do not approve a plan or a model change. Optional reviews may be unavailable.</p>
  </div>;
 }

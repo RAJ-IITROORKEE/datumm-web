@@ -1,81 +1,90 @@
-.page {min-height:100dvh;background:var(--background);color:var(--foreground);font-family:inherit}
-.header {height:84px;padding:0 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
-.brand {display:flex;align-items:center;gap:10px;font-size:15px;font-weight:650;letter-spacing:.08em;text-decoration:none}
+.page {min-height:100dvh;background:var(--page);color:var(--ink);font-family:inherit}
+.header {height:64px;padding:0 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+.brand {display:flex;align-items:center;gap:10px;font-size:15px;font-weight:500;letter-spacing:0;text-decoration:none}
 .brand img,.loading img {object-fit:contain}
-.signIn {min-height:100dvh;background:var(--background);color:var(--foreground);padding:32px 40px}
+.signIn {min-height:100dvh;background:var(--page);color:var(--ink);padding:32px 40px}
 .signInContent {max-width:400px;margin:8vh auto 40px}
-.signInContent>h1 {font-size:31px;line-height:1.25;letter-spacing:-.03em;font-weight:550;margin:0 0 13px;text-wrap:balance}
-.signInContent>p {font-size:14px;line-height:1.7;color:var(--muted-foreground);margin:0 0 28px}
+.signInContent>h1 {font-size:24px;line-height:32px;letter-spacing:-.24px;font-weight:500;margin:0 0 13px;text-wrap:balance}
+.signInContent>p {font-size:13px;line-height:20px;color:var(--text);margin:0 0 28px}
 .signInContent>.pricingLink {margin-top:24px;font-size:12px;text-align:center}
-.pricingLink a {color:var(--foreground);text-decoration:underline;text-underline-offset:4px}
-.layout {max-width:1100px;margin:0 auto;display:grid;grid-template-columns:280px minmax(0,1fr);gap:88px;padding:70px 40px 48px}
-.aside h2 {font-size:25px;font-weight:550;letter-spacing:-.025em;line-height:1.35;margin:0 0 16px}
-.aside p {font-size:14px;line-height:1.7;color:var(--muted-foreground);margin:0;max-width:28ch}
+.pricingLink a {color:var(--ink);text-decoration:underline;text-underline-offset:4px}
+.layout {max-width:960px;margin:0 auto;display:grid;grid-template-columns:248px minmax(0,600px);gap:64px;padding:64px 24px 48px}
+.aside h2 {font-size:20px;font-weight:500;letter-spacing:-.2px;line-height:26px;margin:0 0 16px}
+.aside p {font-size:13px;line-height:20px;color:var(--text);margin:0;max-width:28ch}
 .stepper {list-style:none;margin:44px 0 70px;padding:0;display:flex;flex-direction:column;gap:26px}
-.stepper li {display:flex;gap:13px;align-items:center;font-size:13px;color:var(--muted-foreground)}
-.stepper li>span {display:flex;align-items:center;justify-content:center;width:25px;height:25px;border:1px solid var(--border);border-radius:50%;font-size:11px;flex:none;font-variant-numeric:tabular-nums}
-.stepper li[data-active=true] {color:var(--foreground);font-weight:600}
-.stepper li[data-active=true]>span,.stepper li[data-complete=true]>span {background:var(--foreground);color:var(--background);border-color:var(--foreground)}
-.stepper small {display:block;font-size:11px;font-weight:400;color:var(--muted-foreground);margin-top:3px}
+.stepper li {display:flex;gap:13px;align-items:center;font-size:13px;color:var(--text)}
+.stepper li>span {display:flex;align-items:center;justify-content:center;width:25px;height:25px;border:1px solid var(--line);border-radius:50%;font-size:11px;flex:none;font-variant-numeric:tabular-nums}
+.stepper li[data-active=true] {color:var(--ink);font-weight:500}
+.stepper li[data-active=true]>span,.stepper li[data-complete=true]>span {background:var(--primary);color:var(--primary-fg);border-color:var(--ink)}
+.stepper small {display:block;font-size:11px;font-weight:400;color:var(--text);margin-top:3px}
 .aside .asideNote {font-size:12px;line-height:1.7}
 .content {min-width:0}
 .contentHeading {margin-bottom:30px}
-.stepCount {display:block;font-size:12px;color:var(--muted-foreground);margin-bottom:14px;font-variant-numeric:tabular-nums}
-.contentHeading h1 {font-size:28px;line-height:1.25;letter-spacing:-.03em;font-weight:580;margin:0 0 12px;text-wrap:balance}
-.contentHeading p {font-size:14px;color:var(--muted-foreground);line-height:1.7;margin:0}
+.stepCount {display:none;font-size:12px;color:var(--text);margin-bottom:14px;font-variant-numeric:tabular-nums}
+.contentHeading h1 {font-size:22px;line-height:30px;letter-spacing:-.22px;font-weight:500;margin:0 0 12px;text-wrap:balance}
+.contentHeading p {font-size:13px;color:var(--text);line-height:20px;margin:0}
 .form {display:flex;flex-direction:column;gap:24px}
 .formBody {border:0;padding:0;margin:0;min-width:0}
 .fields {display:flex;flex-direction:column;gap:23px}
-.fields label {font-size:13px;font-weight:550;display:flex;flex-direction:column;gap:9px}
-.fields input,.fields select {width:100%;height:43px;border:1px solid var(--border);border-radius:8px;background:var(--background);color:var(--foreground);padding:0 12px;font:inherit;font-weight:400;caret-color:var(--foreground);color-scheme:light dark}
-.fields input::placeholder {color:var(--muted-foreground)}
-.fields select option {background:var(--background);color:var(--foreground)}
-.hint {font-size:12px;line-height:1.65;color:var(--muted-foreground);margin:0}
+.fields label {font-size:13px;font-weight:500;display:flex;flex-direction:column;gap:9px}
+.fields input,.fields select {width:100%;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--page);color:var(--ink);padding:0 12px;font:inherit;font-weight:400;caret-color:var(--ink);color-scheme:light dark}
+.fields input::placeholder {color:var(--text)}
+.fields select option {background:var(--page);color:var(--ink)}
+.hint {font-size:12px;line-height:1.65;color:var(--text);margin:0}
 .hint a {text-decoration:underline;text-underline-offset:3px}
-.actions {display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:24px;border-top:1px solid var(--border);margin-top:8px}
+.actions {display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:24px;border-top:1px solid var(--line);margin-top:8px}
 .actionEnd {display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap}
-.primary,.secondary,.back {display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:8px;min-height:39px;padding:9px 15px;font-size:13px;font-weight:550;text-decoration:none;cursor:pointer;transition:background .15s ease,color .15s ease;border:1px solid transparent;font-family:inherit}
-.primary {background:var(--foreground);color:var(--background)}
+.primary,.secondary,.back {display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:8px;min-height:32px;padding:6px 12px;font-size:13px;font-weight:500;text-decoration:none;cursor:pointer;transition:background .15s ease,color .15s ease;border:1px solid transparent;font-family:inherit}
+.primary {background:var(--primary);color:var(--primary-fg)}
 .primary:hover:not(:disabled) {opacity:.86}
-.secondary {border-color:var(--border);color:var(--foreground);background:var(--background)}
-.secondary:hover:not(:disabled),.back:hover:not(:disabled) {background:var(--muted)}
-.back {background:transparent;color:var(--muted-foreground);padding-left:3px;padding-right:3px}
+.secondary {border-color:var(--line);color:var(--ink);background:var(--page)}
+.secondary:hover:not(:disabled),.back:hover:not(:disabled) {background:var(--hover)}
+.back {background:transparent;color:var(--text);padding-left:3px;padding-right:3px}
 .page button:disabled,.editor button:disabled {opacity:.45;cursor:not-allowed}
 .page :is(button,a,input,select):focus-visible,.editor :is(button,input,select):focus-visible {outline:2px solid var(--ring,var(--foreground));outline-offset:3px}
 .contentHeading h1:focus,.page [tabindex="-1"]:focus,.editor [tabindex="-1"]:focus {outline:2px solid var(--ring,var(--foreground));outline-offset:5px;border-radius:3px}
 .fields :is(input,select)[aria-invalid=true] {border-color:var(--destructive)}
-.page ::selection,.editor ::selection {background:var(--foreground);color:var(--background)}
+.page ::selection,.editor ::selection {background:var(--primary);color:var(--primary-fg)}
 .useCases {display:flex;flex-direction:column;gap:23px}
 .useCases fieldset {border:0;padding:0;margin:0;min-width:0}
-.useCases legend {font-size:12px;font-weight:600;margin-bottom:10px}
+.useCases legend {font-size:12px;font-weight:500;margin-bottom:10px}
 .options {display:flex;flex-wrap:wrap;gap:8px}
-.option {display:inline-flex;align-items:center;gap:7px;padding:8px 10px;font-size:12px;border:1px solid var(--border);border-radius:7px;cursor:pointer;line-height:1.4;transition:background .15s ease}
-.option:hover {background:var(--muted)}
-.option[data-selected=true] {border-color:var(--foreground);background:var(--muted)}
-.option input {width:13px;height:13px;accent-color:var(--foreground);margin:0;flex-shrink:0}
+.option {display:inline-flex;align-items:center;gap:7px;padding:8px 10px;font-size:12px;border:1px solid var(--line);border-radius:7px;cursor:pointer;line-height:1.4;transition:background .15s ease}
+.option:hover {background:var(--hover)}
+.option[data-selected=true] {border-color:var(--ink);background:var(--select)}
+.option input {width:13px;height:13px;accent-color:var(--ink);margin:0;flex-shrink:0}
 .formBody:disabled .option {cursor:not-allowed;opacity:.6}
 .formBody>.hint {margin-top:24px}
-.selectionCount {font-size:12px;color:var(--muted-foreground);font-variant-numeric:tabular-nums}
+.selectionCount {font-size:12px;color:var(--text);font-variant-numeric:tabular-nums}
 .connector {font-size:13px;line-height:1.7}
 .connectionIntro {display:flex;align-items:flex-start;gap:15px;margin-bottom:25px}
-.connectionIntro svg {flex:none;margin-top:3px;color:var(--muted-foreground)}
-.connectionIntro h3 {margin:0 0 8px;font-size:15px;font-weight:550;line-height:1.5}
-.connectionIntro p {margin:0;color:var(--muted-foreground)}
+.connectionIntro svg {flex:none;margin-top:3px;color:var(--text)}
+.connectionIntro h3 {margin:0 0 8px;font-size:15px;font-weight:500;line-height:1.5}
+.connectionIntro p {margin:0;color:var(--text)}
 .installSteps {padding-left:20px;margin:0 0 25px;display:flex;flex-direction:column;gap:14px}
 .connector>.hint {margin-top:12px}
 .connectionCheck {display:flex;gap:12px;align-items:center;margin-top:27px;flex-wrap:wrap}
 .connected {display:inline-flex;align-items:center;gap:6px;font-size:12px}
-.status {font-size:12px;margin:10px 0 20px;color:var(--muted-foreground);min-height:18px}
+.status {font-size:12px;margin:10px 0 20px;color:var(--text);min-height:18px}
 .error {font-size:13px;line-height:1.65;color:var(--destructive);margin:0;overflow-wrap:anywhere}
-.loading {min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:var(--background);color:var(--foreground);padding:30px;text-align:center}
-.loading h1 {font-size:22px;font-weight:550;margin:0}
+.loading {min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:var(--page);color:var(--ink);padding:30px;text-align:center}
+.loading h1 {font-size:22px;font-weight:500;margin:0}
 .loading p {font-size:14px;max-width:55ch}
-.editor {display:flex;flex-direction:column;gap:23px;max-width:680px;color:var(--foreground)}
+.editor {display:flex;flex-direction:column;gap:23px;max-width:680px;color:var(--ink)}
 .editor>.formBody {display:flex;flex-direction:column;gap:23px}
-.editor h3 {font-size:14px;font-weight:600;margin:15px 0 -16px}
+.editor h3 {font-size:14px;font-weight:500;margin:15px 0 -16px}
 .spin {animation:spin 1s linear infinite}
 @keyframes spin {to {transform:rotate(360deg)}}
-@media(max-width:900px) {.layout {gap:40px;grid-template-columns:220px minmax(0,1fr);padding:48px 28px}.aside h2 {font-size:22px}.header {padding:0 28px}.contentHeading h1 {font-size:25px}}
-@media(max-width:650px) {.header {height:65px;padding:0 22px}.layout {display:block;padding:28px 22px 40px;max-width:540px}.aside h2,.aside>p {display:none}.stepper {flex-direction:row;gap:18px;margin:0 0 34px;justify-content:space-between}.stepper li {font-size:11px;gap:7px;align-items:flex-start}.stepper li>span {width:21px;height:21px}.stepper small {font-size:10px}.contentHeading h1 {font-size:25px}.stepCount {display:none}.actions {flex-wrap:wrap;align-items:center}.actions>.hint {display:none}.actionEnd {gap:10px}.primary {padding:9px 12px}.selectionCount {font-size:11px}.option {font-size:12px;padding:8px}.contentHeading {margin-bottom:27px}.connectionIntro {gap:12px}}
+@media(max-width:900px) {.layout {gap:40px;grid-template-columns:220px minmax(0,1fr);padding:48px 28px}.aside h2 {font-size:20px}.header {padding:0 28px}.contentHeading h1 {font-size:22px}}
+@media(max-width:650px) {.header {height:65px;padding:0 22px}.layout {display:block;padding:28px 22px 40px;max-width:540px}.aside h2,.aside>p {display:none}.stepper {flex-direction:row;gap:18px;margin:0 0 34px;justify-content:space-between}.stepper li {font-size:11px;gap:7px;align-items:flex-start}.stepper li>span {width:21px;height:21px}.stepper small {font-size:10px}.contentHeading h1 {font-size:22px}.stepCount {display:none}.actions {flex-wrap:wrap;align-items:center}.actions>.hint {display:none}.actionEnd {gap:10px}.primary {padding:9px 12px}.selectionCount {font-size:11px}.option {font-size:12px;padding:8px}.contentHeading {margin-bottom:27px}.connectionIntro {gap:12px}}
 @media(max-width:650px) {.fields input,.fields select {font-size:16px}.actions>.actionEnd {min-width:0;flex:1}}
 @media(prefers-reduced-motion:reduce) {.spin {animation:none}.primary,.secondary,.back,.option {transition:none}}
+
+.setupRecovery {position:fixed;inset-inline-end:16px;top:72px;z-index:45;display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:min(360px,calc(100vw - 32px));padding:12px 16px;border:1px solid var(--line);border-radius:var(--radius-md,8px);background:var(--page);color:var(--ink);box-shadow:var(--panel-shadow);font-size:12px;line-height:1.5}
+.setupRecovery span {flex:1;min-width:180px}
+.setupRecovery button:focus-visible,.signIn a:focus-visible {outline:2px solid var(--ring);outline-offset:3px}
+
+/* Preserve the native form and licensed card-checkbox owner at narrow widths. */
+.fields input,.fields select {color-scheme:inherit;background:var(--panel);border-color:var(--line-strong)}
+.options>:global(.ui-chkc) {max-width:100%;min-width:0}
+@media(max-width:650px) {.primary,.secondary,.back {min-height:44px}.fields input,.fields select {min-height:40px}}

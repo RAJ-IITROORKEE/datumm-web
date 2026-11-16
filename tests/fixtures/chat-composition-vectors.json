@@ -1,0 +1,303 @@
+[
+  {
+    "name": "astral-utf16-bars",
+    "answer": "😀 Sequence\n\n| Stage | Value |\n| --- | --- |\n| Plan | 2 |",
+    "composition": {
+      "schemaVersion": 1,
+      "kind": "illustrative-explanation",
+      "answerHash": "d3a96153416ae1c394feb38758c715ecb368f611fa7c2f322721ad8ace566a27",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 11
+            }
+          },
+          {
+            "type": "bars",
+            "source": {
+              "start": 13,
+              "end": 57
+            }
+          }
+        ]
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "escaped-pipe-and-combining",
+    "answer": "| Room \\| label | Value |\n| --- | --- |\n| Café | 2 |",
+    "composition": {
+      "schemaVersion": 1,
+      "kind": "illustrative-explanation",
+      "answerHash": "b5862ce3ff48ef0fc1ad8b0e512200c69a251c2b0810f09424a577da078dfdd9",
+      "root": {
+        "type": "table",
+        "source": {
+          "start": 0,
+          "end": 53
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "crlf-flow",
+    "answer": "Café\r\n\r\nA -> B",
+    "composition": {
+      "schemaVersion": 1,
+      "kind": "illustrative-explanation",
+      "answerHash": "3ae6c380bb3eb07adfe8a15fbecb33692152ec13787780217dd5668316447871",
+      "root": {
+        "type": "flow",
+        "source": {
+          "start": 9,
+          "end": 15
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "javascript-bom-whitespace",
+    "answer": "A﻿->﻿B",
+    "composition": {
+      "schemaVersion": 1,
+      "kind": "illustrative-explanation",
+      "answerHash": "839dce1c44a118623abc592e96aeca108bae0e0dcac227c023901b7e13072365",
+      "root": {
+        "type": "flow",
+        "source": {
+          "start": 0,
+          "end": 6
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "disclosure-changed-answer",
+    "answer": "Disclosure. 😀 Sequence\n\n| Stage | Value |\n| --- | --- |\n| Plan | 2 |",
+    "composition": {
+      "schemaVersion": 1,
+      "kind": "illustrative-explanation",
+      "answerHash": "d3a96153416ae1c394feb38758c715ecb368f611fa7c2f322721ad8ace566a27",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 11
+            }
+          },
+          {
+            "type": "bars",
+            "source": {
+              "start": 13,
+              "end": 57
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "split-surrogate",
+    "answer": "😀 Sequence\n\n| Stage | Value |\n| --- | --- |\n| Plan | 2 |",
+    "composition": {
+      "schemaVersion": 1,
+      "kind": "illustrative-explanation",
+      "answerHash": "d3a96153416ae1c394feb38758c715ecb368f611fa7c2f322721ad8ace566a27",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 1,
+              "end": 11
+            }
+          },
+          {
+            "type": "bars",
+            "source": {
+              "start": 13,
+              "end": 57
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "partial-block",
+    "answer": "😀 Sequence\n\n| Stage | Value |\n| --- | --- |\n| Plan | 2 |",
+    "composition": {
+      "schemaVersion": 1,
+      "kind": "illustrative-explanation",
+      "answerHash": "d3a96153416ae1c394feb38758c715ecb368f611fa7c2f322721ad8ace566a27",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 11
+            }
+          },
+          {
+            "type": "bars",
+            "source": {
+              "start": 14,
+              "end": 57
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "unknown-property",
+    "answer": "😀 Sequence\n\n| Stage | Value |\n| --- | --- |\n| Plan | 2 |",
+    "composition": {
+      "schemaVersion": 1,
+      "kind": "illustrative-explanation",
+      "answerHash": "d3a96153416ae1c394feb38758c715ecb368f611fa7c2f322721ad8ace566a27",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 11
+            },
+            "html": "<script>"
+          },
+          {
+            "type": "bars",
+            "source": {
+              "start": 13,
+              "end": 57
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "non-numeric-bars",
+    "answer": "😀 Sequence\n\n| Stage | Value |\n| --- | --- |\n| Plan | x |",
+    "composition": {
+      "schemaVersion": 1,
+      "kind": "illustrative-explanation",
+      "answerHash": "5edc4bd7b10b70a8b2d75f0d5b2f9397219ad715444acc756545500e9879d2e6",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 11
+            }
+          },
+          {
+            "type": "bars",
+            "source": {
+              "start": 13,
+              "end": 57
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "non-ascii-digit",
+    "answer": "😀 Sequence\n\n| Stage | Value |\n| --- | --- |\n| Plan | ٣ |",
+    "composition": {
+      "schemaVersion": 1,
+      "kind": "illustrative-explanation",
+      "answerHash": "a67d9a33789713732231190ef72ad9262b1e3d43b22ca856b4723c6dc31b3b87",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 11
+            }
+          },
+          {
+            "type": "bars",
+            "source": {
+              "start": 13,
+              "end": 57
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "boolean-schema-version",
+    "answer": "😀 Sequence\n\n| Stage | Value |\n| --- | --- |\n| Plan | 2 |",
+    "composition": {
+      "schemaVersion": true,
+      "kind": "illustrative-explanation",
+      "answerHash": "d3a96153416ae1c394feb38758c715ecb368f611fa7c2f322721ad8ace566a27",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 11
+            }
+          },
+          {
+            "type": "bars",
+            "source": {
+              "start": 13,
+              "end": 57
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "non-javascript-whitespace",
+    "answer": "A->B",
+    "composition": {
+      "schemaVersion": 1,
+      "kind": "illustrative-explanation",
+      "answerHash": "1ec60a13d6a6b94ea9f77dff4f16a8ed8967c1278f697637dbba400529ee7a4f",
+      "root": {
+        "type": "flow",
+        "source": {
+          "start": 0,
+          "end": 6
+        }
+      }
+    },
+    "valid": false
+  }
+]

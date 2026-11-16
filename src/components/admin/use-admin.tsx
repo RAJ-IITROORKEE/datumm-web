@@ -29,10 +29,10 @@ export function AdminClientProvider({ client, children }: { client: AdminClient;
 export const useAdminClient = () => useContext(AdminClientContext);
 
 /** Loads a GET resource; `pollMs(data)` (optional) returns a refresh interval or 0 to stop. */
-export function useAdminResource<T>(path: string, pollMs?: (data: T) => number) {
+export function useAdminResource<T>(path: string, pollMs?: (data: T) => number, enabled = true) {
   const client = useAdminClient();
   const [result, setResult] = useState<Result<T> | null>(null);
-  const owner = useMemo(() => ({ active: false, request: 0, pending: false }), [path, client]);
+  const owner = useMemo(() => ({ active: false, request: 0, pending: false }), [path, client, enabled]);
   const pollRef = useRef(pollMs);
   pollRef.current = pollMs;
   const load = useCallback(async () => {
@@ -46,11 +46,12 @@ export function useAdminResource<T>(path: string, pollMs?: (data: T) => number) 
     }
   }, [path, client, owner]);
   useEffect(() => {
+    if (!enabled) { setResult(null); return; }
     owner.active = true;
     setResult(null);
     void load();
     return () => { owner.active = false; owner.request++; };
-  }, [load, owner]);
+  }, [load, owner, enabled]);
   const data = result?.ok ? result.data : null;
   const interval = data ? pollRef.current?.(data) ?? 0 : 0;
   useEffect(() => {
@@ -83,15 +84,19 @@ export function ResultState({ result, onRetry }: { result: Result<unknown> | nul
 export type ConfigEnvelope = { config: AdminConfig; effective: Record<string, unknown>; revision: number | string; updatedAt?: string; updatedBy?: string };
 
 /** One editable copy of the global config: dirty state, validation and revision-checked save. */
-export function useAdminConfig() {
+export function useAdminConfig(enabled = true) {
   const client = useAdminClient();
-  const { result, load } = useAdminResource<ConfigEnvelope>('admin/config');
+  const { result, load } = useAdminResource<ConfigEnvelope>('admin/config', undefined, enabled);
   const [draft, setDraft] = useState<AdminConfig | null>(null);
   const [base, setBase] = useState<ConfigEnvelope | null>(null);
   const [saveResult, setSaveResult] = useState<Result<unknown> | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const savingRef = useRef(false);
+  const owner = useMemo(() => ({ active: false, generation: 0 }), [client, enabled]);
+  const currentOwner = useRef(owner);
+  currentOwner.current = owner;
+  useEffect(() => { owner.active = true; savingRef.current = false; setSaving(false); return () => { owner.active = false; }; }, [owner]);
   useEffect(() => {
     if (result?.ok) { setBase(result.data); setDraft({ ...emptyConfig(), ...result.data.config }); setSaveResult(null); }
   }, [result]);
@@ -100,12 +105,15 @@ export function useAdminConfig() {
   const save = async () => {
     if (savingRef.current || !dirty || !draft || !base || Object.keys(errors).length) return;
     savingRef.current = true;
+    const generation = owner.generation;
     setSaving(true); setSaved(false);
     const next = await client<ConfigEnvelope>('admin/config', { method: 'PUT', body: { config: draft, expectedRevision: base.revision } });
+    if (!owner.active || currentOwner.current !== owner || owner.generation !== generation) return;
     savingRef.current = false;
     setSaving(false);
     if (next.ok) { setBase(next.data); setDraft({ ...emptyConfig(), ...next.data.config }); setSaveResult(null); setSaved(true); } else setSaveResult(next);
   };
   const reload = () => { if (savingRef.current) return; setSaveResult(null); setSaved(false); setBase(null); setDraft(null); void load(); };
-  return { result, draft, base, errors, dirty, save, saving, saved, saveResult, reload, update: (patch: Partial<AdminConfig>) => { if (savingRef.current) return; setSaved(false); setDraft(d => (d ? { ...d, ...patch } : d)); } };
+  const discard = () => { owner.generation++; savingRef.current=false; setSaving(false); setSaved(false); setSaveResult(null); setBase(null); setDraft(null); };
+  return { result, draft, base, errors, dirty, save, saving, saved, saveResult, reload, discard, update: (patch: Partial<AdminConfig>) => { if (savingRef.current) return; setSaved(false); setDraft(d => (d ? { ...d, ...patch } : d)); } };
 }

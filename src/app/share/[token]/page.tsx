@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { Check, Circle, X } from 'lucide-react';
 import { MessageResponse } from '@/components/ai-elements/message';
 import { sharedView, svgDataUri, validToken } from '@/lib/share.mjs';
+import styles from '@/components/billing/pricing-plans.module.css';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Shared chat · DATUMM', robots: { index: false, follow: false } };
@@ -22,12 +23,12 @@ export default async function SharedChat({ params }: { params: Promise<{ token: 
   const view = await load((await params).token);
   if (!view) notFound();
   return (
-    <main className="share-page">
+    <main className={styles.sharePage}>
       <header>
         <h1>{view.title}</h1>
         {when(view.createdAt) && <small>Shared {when(view.createdAt)} · read-only</small>}
       </header>
-      <section aria-label="Conversation" className="share-thread">
+      <section aria-label="Conversation" className={styles.shareThread}>
         {view.messages.map((message, index) => (
           <article key={index} data-role={message.role}>
             <strong>{message.role === 'user' ? 'You' : 'DATUMM'}</strong>
@@ -39,13 +40,13 @@ export default async function SharedChat({ params }: { params: Promise<{ token: 
       {view.svg && (
         <section aria-label="Plan">
           <h2>Plan</h2>
-          <img className="share-plan" src={svgDataUri(view.svg)} alt="Floor plan drawing from this chat" />
+          <img className={styles.sharePlan} src={svgDataUri(view.svg)} alt="Floor plan drawing from this chat" />
         </section>
       )}
       {view.steps.length > 0 && (
         <section aria-label="Steps">
           <h2>Steps</h2>
-          <ul className="share-list">
+          <ul className={styles.shareList}>
             {view.steps.map((step, index) => (
               <li key={index}>{step.status === 'completed' || step.status === 'done' ? <Check size={14} aria-hidden="true" /> : step.status === 'failed' ? <X size={14} aria-hidden="true" /> : <Circle size={14} aria-hidden="true" />}<span>{step.title}</span><span className="sr-only">{step.status}</span></li>
             ))}
@@ -55,7 +56,7 @@ export default async function SharedChat({ params }: { params: Promise<{ token: 
       {view.sources.length > 0 && (
         <section aria-label="Sources">
           <h2>Sources</h2>
-          <ul className="share-list">
+          <ul className={styles.shareList}>
             {view.sources.map((source, index) => <li key={index}><a href={source.url} target="_blank" rel="noopener noreferrer nofollow">{source.title}</a></li>)}
           </ul>
         </section>

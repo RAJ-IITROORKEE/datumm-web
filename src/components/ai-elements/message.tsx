@@ -20,10 +20,12 @@ import {
   XIcon,
 } from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
-import { createContext, memo, useContext, useEffect, useState } from "react";
-import { Streamdown } from "streamdown";
+import { createContext, memo, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { defaultRehypePlugins, defaultTranslations, extractTableDataFromElement, Streamdown } from "streamdown";
 import type { MermaidErrorComponentProps } from "streamdown";
 import { createMermaidPlugin } from "@streamdown/mermaid";
+import { accessibleTables } from "@/lib/accessible-tables.mjs";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
@@ -306,7 +308,7 @@ export const MessageBranchPage = ({
   );
 };
 
-export type MessageResponseProps = ComponentProps<typeof Streamdown>;
+export type MessageResponseProps = ComponentProps<typeof Streamdown> & { tableScopeKey?: string };
 
 const diagramConfig = {
   securityLevel: 'strict' as const,
@@ -331,9 +333,34 @@ function DiagramError({ chart, retry }: MermaidErrorComponentProps) {
   </div>;
 }
 const answerMermaid = { config: diagramConfig, errorComponent: DiagramError };
+const defaultAnswerRehypePlugins = [...Object.values(defaultRehypePlugins), accessibleTables];
 
 export const MessageResponse = memo(
-  ({ className, isAnimating = false, ...props }: MessageResponseProps) => (
+  ({ className, isAnimating = false, rehypePlugins, tableScopeKey, ...props }: MessageResponseProps) => {
+    const tablePlugins = useMemo(() => rehypePlugins ? [...rehypePlugins, accessibleTables] : defaultAnswerRehypePlugins, [rehypePlugins]);
+    const [expanded, setExpanded] = useState<{ source: typeof props.children; scope?: string; opener: HTMLButtonElement; headers: string[]; rows: string[][] } | null>(null);
+    const tableRef = useRef<HTMLTableElement>(null);
+    const mounted = useRef(false);
+    const returnFocus = useRef<{ source: typeof props.children; scope?: string; opener: HTMLButtonElement } | null>(null);
+    useLayoutEffect(() => { mounted.current = true; return () => { mounted.current = false; returnFocus.current = null; }; }, []);
+    const current = useRef({ source: props.children, scope: tableScopeKey, isAnimating });
+    current.current = { source: props.children, scope: tableScopeKey, isAnimating };
+    if (returnFocus.current && (returnFocus.current.source !== props.children || returnFocus.current.scope !== tableScopeKey || isAnimating)) returnFocus.current = null;
+    const valid = expanded && expanded.source === props.children && expanded.scope === tableScopeKey && !isAnimating;
+    if (expanded && !valid) setExpanded(null);
+    return <>
+    <div className="min-w-0" onClickCapture={event => {
+        if (event.defaultPrevented || !(event.target instanceof Element)) return;
+        const button = event.target.closest('button');
+        const label = props.translations?.viewFullscreen ?? defaultTranslations.viewFullscreen;
+        if (!(button instanceof HTMLButtonElement) || button.title !== label) return;
+        const wrapper = button.closest('[data-streamdown="table-wrapper"]');
+        const table = wrapper?.querySelector('table');
+        if (!table) return;
+        event.preventDefault(); event.stopPropagation();
+        returnFocus.current = { source: props.children, scope: tableScopeKey, opener: button };
+        setExpanded({ ...extractTableDataFromElement(table), source: props.children, scope: tableScopeKey, opener: button });
+      }}>
     <Streamdown
       tableMaxHeight={360}
       plugins={answerPlugins}
@@ -341,13 +368,32 @@ export const MessageResponse = memo(
       skipHtml
       isAnimating={isAnimating}
       controls={isAnimating ? false : answerControls}
+      rehypePlugins={tablePlugins}
       className={cn(
-        "datumm-markdown w-full min-w-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+        "datumm-markdown w-full min-w-0 text-[14px] leading-[1.6] text-[var(--ink)] [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
         className
       )}
       {...props}
     />
-  )
+    </div>
+    <Dialog open={Boolean(valid)} onOpenChange={open => { if (!open) setExpanded(null); }}>
+      <DialogContent className="answer-table-dialog" aria-describedby={undefined}
+        onOpenAutoFocus={event => { event.preventDefault(); tableRef.current?.focus(); }}
+        onCloseAutoFocus={event => {
+          event.preventDefault();
+          const target = returnFocus.current;
+          returnFocus.current = null;
+          if (mounted.current && target && target.source === current.current.source && target.scope === current.current.scope && !current.current.isAnimating && target.opener.isConnected) target.opener.focus();
+        }}>
+        <DialogTitle>Table</DialogTitle>
+        {valid && <div className="answer-table-dialog-scroll"><table ref={tableRef} tabIndex={0} aria-label="Table, scroll horizontally with arrow keys">
+          <thead><tr>{expanded.headers.map((cell, i) => <th key={i} scope="col">{cell}</th>)}</tr></thead>
+          <tbody>{expanded.rows.map((row, i) => <tr key={i}>{row.map((cell, j) => <td key={j}>{cell}</td>)}</tr>)}</tbody>
+        </table></div>}
+      </DialogContent>
+    </Dialog>
+    </>;
+  }
 );
 
 MessageResponse.displayName = "MessageResponse";

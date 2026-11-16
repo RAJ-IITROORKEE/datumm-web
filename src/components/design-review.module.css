@@ -3,28 +3,28 @@
 .inspect{margin:0 0 14px}
 .inspect button{height:auto;min-height:36px;white-space:normal;font-size:12px}
 .overview{min-width:0}
-.reference{margin-top:18px;padding-top:16px;border-top:1px solid var(--separator,var(--border));font-size:12px;line-height:1.7}
+.reference{margin-top:18px;padding-top:16px;border-top:1px solid var(--separator,var(--line));font-size:12px;line-height:1.7}
 .reference>strong{font-weight:500;overflow-wrap:anywhere}
-.reference>p{max-width:74ch;margin:6px 0;color:var(--muted-foreground)}
+.reference>p{max-width:74ch;margin:6px 0;color:var(--text)}
 .confirm{display:flex;align-items:flex-start;gap:9px;margin-top:14px;font-size:12px;line-height:1.7;cursor:pointer}
-.confirm input{flex:none;width:16px;height:16px;margin-top:3px;accent-color:var(--foreground)}
-.build{margin-top:20px;padding-top:18px;border-top:1px solid var(--separator,var(--border))}
+.confirm input{flex:none;width:16px;height:16px;margin-top:3px;accent-color:var(--ink)}
+.build{margin-top:20px;padding-top:18px;border-top:1px solid var(--separator,var(--line))}
 .build h4,.placement h4{margin:0;font-size:13px;font-weight:600;line-height:1.5}
 .build>div{align-items:flex-start}
 .feedback,.placement{min-width:0;display:grid;gap:14px;font-size:12px;line-height:1.7}
-.feedback p,.placement p{max-width:74ch;margin:0;color:var(--muted-foreground)}
+.feedback p,.placement p{max-width:74ch;margin:0;color:var(--text)}
 .feedback label,.placement label{display:grid;gap:7px;min-width:0;font-size:12px;line-height:1.6}
-.feedback input,.feedback select,.feedback textarea,.placement input,.placement select{min-width:0;max-width:100%;width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:var(--radius-md,7px);background:var(--background);color:var(--foreground);font:inherit;font-size:13px;caret-color:var(--foreground)}
+.feedback input,.feedback select,.feedback textarea,.placement input,.placement select{min-width:0;max-width:100%;width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-md,7px);background:var(--background);color:var(--ink);font:inherit;font-size:13px;caret-color:var(--ink)}
 .feedback textarea{min-height:88px;resize:vertical}
-.feedback hr{height:1px;background:var(--separator,var(--border));border:0;width:100%;margin:2px 0}
+.feedback hr{height:1px;background:var(--separator,var(--line));border:0;width:100%;margin:2px 0}
 .feedback>button,.placement>button,.placement details>button{justify-self:start;max-width:100%;height:auto;min-height:36px;white-space:normal;font-size:12px}
 .feedback select:disabled,.feedback input:disabled,.feedback textarea:disabled,.placement select:disabled,.placement input:disabled{opacity:.6;cursor:not-allowed}
 .fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .comparison{min-width:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .comparison>p{grid-column:1/-1}
-.controls a{display:inline-flex;align-items:center;max-width:100%;min-height:36px;padding:7px 11px;border:1px solid var(--border);border-radius:var(--radius-md,7px);font-size:12px;line-height:1.6;text-decoration:underline;text-underline-offset:3px}
-.controls a:hover{background:var(--secondary)}
-.controls small{color:var(--muted-foreground);font-size:11px;line-height:1.7}
+.controls a{display:inline-flex;align-items:center;max-width:100%;min-height:36px;padding:7px 11px;border:1px solid var(--line);border-radius:var(--radius-md,7px);font-size:12px;line-height:1.6;text-decoration:underline;text-underline-offset:3px}
+.controls a:hover{background:var(--hover)}
+.controls small{color:var(--text);font-size:11px;line-height:1.7}
 .placement details>label{margin:12px 0}
 .placement details>p{margin:10px 0}
 @container(max-width:520px){.fields,.comparison{grid-template-columns:minmax(0,1fr)}.build>div{align-items:stretch}.build>div>p{flex-basis:100%}}

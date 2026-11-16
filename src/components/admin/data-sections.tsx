@@ -4,7 +4,7 @@ import { BookOpen, Download, ExternalLink, Loader2, Plus, RefreshCw, Search, Scr
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input, Select } from '@/components/ui/input';
-import { Field, PageHeader } from './form';
+import { Field, PageHeader, useSharedAdminConfig } from './form';
 import { ResultState, useAdminClient, useAdminResource, type Result } from './use-admin';
 import { CORPORA } from '@/lib/admin-config.mjs';
 import styles from './data-sections.module.css';
@@ -41,7 +41,7 @@ const statusVariant = { ready: 'outline', indexing: 'secondary', failed: 'destru
 export function KnowledgeSection() {
   const { result, load, data } = useAdminResource<Source[]>('admin/knowledge/sources', rows => rows.some(r => r.status === 'indexing') ? 4000 : 0);
   const client=useAdminClient();
-  const [form, setForm] = useState({ url: '', title: '', corpus: 'other' });
+  const shared=useSharedAdminConfig(),form=shared.knowledge,setForm=shared.setKnowledge;
   const [query,setQuery]=useState('');
   const [busy,setBusy]=useState<string|null>(null),busyRef=useRef(false);
   const [action,setAction]=useState<Result<unknown>|null>(null),[notice,setNotice]=useState('');
@@ -58,16 +58,18 @@ export function KnowledgeSection() {
     <PageHeader title="Knowledge" description="Public pages the agent can search and cite. Add a source to make its title, link and short excerpts available."/>
     <div className={styles.stack}>
       <section className={styles.group} aria-labelledby="admin-add-source-heading"><div className={styles.groupHeading}><h2 id="admin-add-source-heading">Add a source</h2><p>HTTPS pages are indexed in the background. PDF sources are not supported yet.</p></div>
-        <form className={styles.sourceForm} noValidate onSubmit={async event=>{event.preventDefault();if(!urlOk||busyRef.current)return;if(await run('add','admin/knowledge/sources','POST',{url:form.url.trim(),corpus:form.corpus,...(form.title.trim()&&{title:form.title.trim()})}))setForm({url:'',title:'',corpus:form.corpus});}}>
-          <fieldset disabled={!!busy} className={styles.sourceFields}>
-            <Field label="Source URL" error={form.url&&!urlOk?'Enter an https:// URL.':undefined}>{p=><Input {...p} type="url" required placeholder="https://" value={form.url} onChange={event=>setForm({...form,url:event.target.value})}/>}</Field>
+        <form className={styles.sourceForm} noValidate onSubmit={async event=>{event.preventDefault();if(!urlOk||busyRef.current||shared.knowledgePending||shared.knowledgeUnknown)return;if(await shared.submitKnowledge())await load();}}>
+          <fieldset disabled={!!busy||shared.knowledgePending} className={styles.sourceFields}>
+            <Field label="Source URL" error={form.url&&!urlOk?'Enter an https:// URL.':undefined}>{p=><Input {...p} type="url" aria-required="true" placeholder="https://" value={form.url} onChange={event=>setForm({...form,url:event.target.value})}/>}</Field>
             <div className={styles.formColumns}><Field label="Title (optional)">{p=><Input {...p} maxLength={120} value={form.title} onChange={event=>setForm({...form,title:event.target.value})}/>}</Field><Field label="Corpus">{p=><Select {...p} value={form.corpus} onChange={event=>setForm({...form,corpus:event.target.value})}>{CORPORA.map(c=><option key={c}>{c}</option>)}</Select>}</Field></div>
-            <div className={styles.formAction}><Button type="submit" disabled={!urlOk||!!busy}>{busy==='add'?<Loader2 className="animate-spin" aria-hidden/>:<Plus aria-hidden/>}Add source</Button></div>
+            <div className={styles.formAction}><Button type="submit" disabled={!urlOk||!!busy||shared.knowledgePending||shared.knowledgeUnknown}>{shared.knowledgePending?<Loader2 className="animate-spin" aria-hidden/>:<Plus aria-hidden/>}Add source</Button></div>
           </fieldset>
         </form>
       </section>
       {action&&<ResultState result={action}/>}
-      <p role="status" className={styles.feedback}>{notice}</p>
+      {shared.knowledgeResult&&!shared.knowledgeUnknown&&<ResultState result={shared.knowledgeResult}/>}
+      {shared.knowledgeUnknown&&<div role="alert" className={styles.feedback}>The request outcome is unknown. Refresh and check the sources list before retrying. <Button type="button" variant="outline" size="sm" onClick={()=>void load()}>Refresh sources</Button> <Button type="button" variant="outline" size="sm" onClick={shared.allowKnowledgeRetry}>I checked; allow retry</Button></div>}
+      <p role="status" className={styles.feedback}>{notice||shared.knowledgeNotice}</p>
       <section aria-label="Knowledge sources"><div className={styles.listHeading}><h2>Sources {data&&<span>{data.length}</span>}</h2><RecordSearch value={query} onChange={setQuery} label="Search sources"/></div>
         <ResultState result={result} onRetry={()=>void load()}/>
         {data&&(data.length===0?<EmptyState icon={BookOpen} title="No sources yet">Add a public page above to start building the agent’s knowledge.</EmptyState>:shown?.length===0?<EmptyState icon={Search} title="No matching sources">Try another title, URL, corpus or status, or clear your search.</EmptyState>:<Table caption="Knowledge sources" head={['Source','Corpus','Status','Chunks','Updated','Actions']}>{shown?.map(source=><tr key={source.id}>

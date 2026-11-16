@@ -1,9 +1,47 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
+import ts from 'typescript';
+import * as jsxRuntime from 'react/jsx-runtime';
+import {renderToStaticMarkup} from 'react-dom/server';
+import * as authorizationModule from '../src/lib/device-authorization.mjs';
 import {authorizationGate,authorizationRequest,authorizationReturnUrl,reviewAuthorization,approveAuthorization} from '../src/lib/device-authorization.mjs';
 
 const id='A'.repeat(42)+'_';
 const json=(body,status=200)=>Response.json(body,{status});
+
+test('actual connect page uses the shared account decision and invalid request recovery precedes it',async()=>{
+  function load(file,imports) {
+    const exports={};
+    runInNewContext(ts.transpileModule(readFileSync(new URL('../'+file,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText,{exports,URL,require(name){
+      if(name==='react/jsx-runtime')return jsxRuntime;
+      if(name in imports)return imports[name];
+      if(name.endsWith('.css'))return {default:{}};
+      if(name==='server-only')return {};
+      throw Error('Unexpected import: '+name);
+    }});
+    return exports;
+  }
+  const {getWebConfiguration}=load('src/lib/web-configuration.ts',{});
+  let hooks=0,requests=0;
+  const fail=()=>{hooks++;throw Error('Clerk hooks must not mount');};
+  const {DeviceAuthorization}=load('src/components/connections/device-authorization.tsx',{'react':{},'@clerk/nextjs':{useAuth:fail,useUser:fail},'lucide-react':{},'@/lib/device-authorization.mjs':{...authorizationModule,reviewAuthorization(){requests++;},approveAuthorization(){requests++;}}});
+  for(const env of [{},{NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:'public-test-value'},{CLERK_SECRET_KEY:'server-test-value'},{NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:'public-test-value',CLERK_SECRET_KEY:'server-test-value'}]) {
+    const Page=load('src/app/connect/page.tsx',{'@/components/connections/device-authorization':{DeviceAuthorization},'@/lib/device-authorization.mjs':authorizationModule,'@/lib/web-configuration':{getWebConfiguration:()=>getWebConfiguration(env)}}).default;
+    const invalid=await Page({searchParams:Promise.resolve({request:'invalid'})});
+    const body=renderToStaticMarkup(invalid);
+    assert.match(body,/Start a new connection from Revit/);
+    assert.doesNotMatch(body,/Account sign-in is unavailable/);
+    if(!getWebConfiguration(env).account.configured) {
+      const valid=await Page({searchParams:Promise.resolve({request:'A'.repeat(32)})});
+      assert.equal(valid.props.request,'A'.repeat(32));
+      assert.equal(valid.props.authConfigured,false);
+      assert.match(renderToStaticMarkup(valid),/Account sign-in is unavailable/);
+    }
+  }
+  assert.equal(hooks,0);assert.equal(requests,0);
+});
 
 test('authorization accepts only one bounded URL-safe request and a local return path',()=>{
   assert.equal(authorizationRequest(id),id);

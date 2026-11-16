@@ -1,15 +1,30 @@
 {
-  "defs": {},
-  "theme": {
-    "primary": { "dark": "#4fb0fe", "light": "#0070d6" },
-    "text": { "dark": "#e8e8e9", "light": "#1f1f1f" },
-    "textMuted": { "dark": "#a1a1a6", "light": "#737373" },
-    "background": { "dark": "#1c1c1e", "light": "#ffffff" },
-    "backgroundPanel": { "dark": "#1f1f22", "light": "#ffffff" },
-    "backgroundElement": { "dark": "#252527", "light": "#f7f7f7" },
-    "border": { "dark": "#3c3c3e", "light": "#ebebeb" },
-    "warning": { "dark": "#ffb35c", "light": "#b25e00" },
-    "error": { "dark": "#ff8a7a", "light": "#c4320a" },
-    "success": { "dark": "#7dcf9f", "light": "#1e8a4f" }
+  "dark": {
+    "page": "#0e0e10", "panel": "#141416", "tray": "#1d1d20", "composer": "#161618",
+    "ink": "rgba(255, 255, 255, 0.9)", "text": "rgba(255, 255, 255, 0.62)",
+    "muted": "rgba(255, 255, 255, 0.45)", "faint": "rgba(255, 255, 255, 0.28)",
+    "line": "rgba(255, 255, 255, 0.08)", "line-soft": "rgba(255, 255, 255, 0.05)", "line-strong": "rgba(255, 255, 255, 0.14)",
+    "hover": "rgba(255, 255, 255, 0.05)", "select": "rgba(255, 255, 255, 0.08)", "chip": "rgba(255, 255, 255, 0.06)",
+    "accent": "#4fb0fe", "primary": "#ededed", "primary-fg": "#121213", "ui-as-focus": "rgba(77, 141, 255, 0.8)",
+    "success": "#5fc88a", "warning": "#ffb35c", "danger": "#ff8a7a", "purple": "#c9a2f5",
+    "success-soft": "#00f04a1f", "warning-soft": "#fb6a0025", "danger-soft": "#ff35232b", "shadow-ink": "rgba(0, 0, 0, 0.4)",
+    "composer-shadow": "rgba(255, 255, 255, 0.1) 0px 0px 0px 0.5px, rgba(0, 0, 0, 0.4) 0px 1px 2px 0px",
+    "send-fill": "rgba(255, 255, 255, 0.92)", "send-ink": "#161618",
+    "send-disabled-fill": "rgba(255, 255, 255, 0.08)", "send-disabled-ink": "rgba(255, 255, 255, 0.3)",
+    "frame-gap": "8px", "side-w": "272px", "radius-panel": "calc(10px + 2px)", "radius-card": "14px", "radius-composer": "16px"
+  },
+  "light": {
+    "page": "#f8f8f8", "panel": "#ffffff", "tray": "#f4f4f4", "composer": "#f5f5f5",
+    "ink": "rgba(0, 0, 0, 0.88)", "text": "rgba(0, 0, 0, 0.61)",
+    "muted": "rgba(0, 0, 0, 0.45)", "faint": "rgba(0, 0, 0, 0.27)",
+    "line": "rgba(0, 0, 0, 0.06)", "line-soft": "rgba(0, 0, 0, 0.04)", "line-strong": "rgba(0, 0, 0, 0.1)",
+    "hover": "rgba(0, 0, 0, 0.03)", "select": "rgba(0, 0, 0, 0.055)", "chip": "rgba(0, 0, 0, 0.04)",
+    "accent": "#0070d6", "primary": "#171717", "primary-fg": "#fff", "ui-as-focus": "rgba(0, 96, 226, 0.7)",
+    "success": "#007d2ee0", "warning": "#b25e00", "danger": "#d72400da", "purple": "#8a35d6",
+    "success-soft": "#00a43319", "warning-soft": "#ff9c0029", "danger-soft": "#f52b0018", "shadow-ink": "rgba(0, 0, 0, 0.12)",
+    "composer-shadow": "rgba(0, 0, 0, 0.06) 0px 0px 0px 0.5px, rgba(0, 0, 0, 0.1) 0px 1px 1px -1px, rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
+    "send-fill": "rgba(0, 0, 0, 0.88)", "send-ink": "#fcfcfc",
+    "send-disabled-fill": "rgba(0, 0, 0, 0.06)", "send-disabled-ink": "rgba(0, 0, 0, 0.27)",
+    "frame-gap": "8px", "side-w": "272px", "radius-panel": "calc(10px + 2px)", "radius-card": "14px", "radius-composer": "16px"
   }
 }

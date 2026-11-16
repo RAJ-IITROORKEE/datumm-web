@@ -2,9 +2,9 @@
 
 import {useRef} from 'react';
 
-export function PanelResize({side,width,onChange,label,direction}:{side:'left'|'right';width:number;onChange:(width:number)=>void;label?:string;direction?:'forward'|'reverse'}) {
+export function PanelResize({side,width,onChange,label,direction,maxWidth}:{side:'left'|'right';width:number;onChange:(width:number)=>void;label?:string;direction?:'forward'|'reverse';maxWidth?:number}) {
   const drag=useRef<{x:number;width:number}|null>(null);
-  const min=side==='left'?180:320,max=side==='left'?440:620,initial=side==='left'?224:380;
+  const min=side==='left'?180:320,defaultMax=side==='left'?440:620,max=Number.isFinite(maxWidth)?Math.max(min,Math.min(defaultMax,maxWidth!)):defaultMax,initial=side==='left'?248:380;
   const sign=direction==='forward'||!direction&&side==='left'?1:-1;
   const resize=(value:number)=>onChange(Math.max(min,Math.min(max,value)));
   return <div className={`panel-resize panel-resize-${side}`} role="separator" aria-label={`Resize ${label??(side==='left'?'navigation':'inspector')} panel`} aria-orientation="vertical" aria-valuemin={min} aria-valuemax={max} aria-valuenow={Math.round(width)} tabIndex={0}

@@ -35,7 +35,7 @@ function harness(client) {
     },
   });
   return {
-    render() { cursor = 0; const value = exports.useAdminConfig(); pendingEffects.splice(0).forEach(fn => fn()); return value; },
+    render(enabled) { cursor = 0; const value = exports.useAdminConfig(enabled); pendingEffects.splice(0).forEach(fn => fn()); return value; },
     resource(path, pollMs) { cursor = 0; const value = exports.useAdminResource(path, pollMs); pendingEffects.splice(0).forEach(fn => fn()); return value; },
     tick() { [...timers.values()].forEach(fn => fn()); },
     replaceClient(next) { client = next; },
@@ -44,6 +44,19 @@ function harness(client) {
     async loaded() { this.render(); await new Promise(setImmediate); this.render(); return this.render(); },
   };
 }
+
+test('admin config fetch is lazy and retained while the activated owner stays mounted', async () => {
+  let reads=0,finish;const writes=[];
+  const h=harness((_path,init)=>{if(init){writes.push(init);return new Promise(resolve=>{finish=resolve;});}reads++;return Promise.resolve({ok:true,data:envelope(3)});});
+  h.render(false);await new Promise(setImmediate);h.render(false);assert.equal(reads,0);
+  h.render(true);await new Promise(setImmediate);h.render(true);h.render(true);assert.equal(reads,1);
+  h.render(true).update({parallelChats:4});h.render(true);h.render(true);
+  assert.equal(reads,1);assert.equal(h.render(true).draft.parallelChats,4);
+  const pending=h.render(true).save();assert.equal(writes[0].body.expectedRevision,3);
+  h.render(true); // The root owner stays mounted as the admin route exits.
+  finish({ok:true,data:{...envelope(4),config:{...config.emptyConfig(),parallelChats:4}}});await pending;
+  assert.equal(h.render(true).base.revision,4);assert.equal(h.render(true).dirty,false);assert.equal(reads,1);
+});
 const envelope = (revision = 4) => ({ config: config.emptyConfig(), effective: {}, revision });
 
 test('a slow polling response can settle without newer timer ticks invalidating it', async () => {
@@ -196,11 +209,29 @@ test('admin config keeps invalid, failed and stale edits until an explicit reloa
   assert.equal(refreshed.draft.parallelChats, 3);
   assert.equal(refreshed.saveResult, null);
 });
+
+test('a save completion from an old admin client cannot update the new owner', async () => {
+  let finishSave;
+  const h = harness((_path, init) => init ? new Promise(resolve => { finishSave = resolve; }) : Promise.resolve({ ok: true, data: envelope(3) }));
+  (await h.loaded()).update({ parallelChats: 4 });
+  const pending = h.render().save();
+  h.replaceClient(() => Promise.resolve({ ok: true, data: envelope(7) }));
+  h.render();
+  finishSave({ ok: true, data: { ...envelope(4), config: { ...config.emptyConfig(), parallelChats: 4 } } });
+  await pending;
+  await new Promise(setImmediate); h.render();
+  assert.equal(h.render().base.revision, 7);
+  assert.equal(h.render().draft.parallelChats, 3);
+  assert.equal(h.render().saved, false);
+  assert.equal(h.render().saving, false);
+});
 function formHarness(configState = {}) {
-  const slots = [];
+  const slots = [], cleanups = [];
   let cursor = 0;
   const hooks = { ...React,
     useId: () => 'field-id',
+    useContext: () => configState,
+    useEffect: fn => { const cleanup = fn(); if (cleanup) cleanups.push(cleanup); },
     useRef(initial) { const i = cursor++; return slots[i] ??= { current: initial }; },
     useState(initial) { const i = cursor++; if (!(i in slots)) slots[i] = initial; return [slots[i], next => { slots[i] = typeof next === 'function' ? next(slots[i]) : next; }]; },
   };
@@ -209,7 +240,7 @@ function formHarness(configState = {}) {
   const useAdminConfig = () => configState;
   const ResultState = () => null;
   runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText, {
-    exports,
+    exports, window: { confirm: () => false },
     require(name) {
       if (name === 'react') return hooks;
       if (name === 'react/jsx-runtime') return jsxRuntime;
@@ -218,7 +249,7 @@ function formHarness(configState = {}) {
       return new Proxy({}, { get: (_target, key) => key });
     },
   });
-  return { render(name, props) { cursor = 0; return exports[name](props); }, ResultState };
+  return { render(name, props) { cursor = 0; return exports[name](props); }, unmount() { cleanups.forEach(fn=>fn()); }, ResultState };
 }
 function elements(tree) {
   if (!React.isValidElement(tree)) return [];
@@ -269,4 +300,163 @@ test('chip entry respects text composition and explains a duplicate without clea
   controls().nodes.find(e => e.type === 'Button').props.onClick();
   assert.deepEqual(Array.from(changes[0]), ['example.org', 'other.org']);
   assert.equal(controls().nodes.find(e => e.type === 'Input').props.value, '');
+});
+
+test('settings groups mount the licensed noninteractive section without changing labels or children', () => {
+  const child=React.createElement('input',{id:'actual-setting',defaultValue:'unsaved value'});
+  const group=formHarness().render('SettingsGroup',{title:'Models',description:'Reported models',children:child});
+  assert.equal(group.type,'Card');
+  assert.equal(group.props.as,'section');
+  assert.equal(group.props['aria-labelledby'],'field-id');
+  assert.equal(group.props.interactive,undefined);
+  assert.equal(group.props.onClick,undefined);
+  const nodes=elements(group);
+  assert.equal(nodes.find(node=>node.type==='h2').props.id,'field-id');
+  assert.equal(group.props.children[1].props.children,child);
+});
+
+test('admin shell retains one config owner and offers stay or leave with focus return', () => {
+  const calls=[], slots=[], configState={dirty:true,saving:false,knowledge:{url:'',title:'',corpus:'other'},discardAll:()=>calls.push(['discard'])}, auth={isLoaded:true,userId:'account-a'};let cursor=0;
+  const hooks={...React,
+    useState(initial){const i=cursor++;if(!(i in slots))slots[i]=initial;return [slots[i],value=>{slots[i]=typeof value==='function'?value(slots[i]):value;}];},
+    useRef(value){const i=cursor++;return slots[i]??={current:value};}, useEffect:()=>{}, useContext:()=>configState};
+  const exports={};
+  const source=readFileSync(new URL('../src/components/admin/admin-shell.tsx',import.meta.url),'utf8');
+  runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText,{
+    exports,require(name){
+      if(name==='react')return hooks;
+      if(name==='react/jsx-runtime')return jsxRuntime;
+      if(name==='next/navigation')return {usePathname:()=>'/admin/agent',useRouter:()=>({refresh(){},push:href=>calls.push(['push',href])})};
+      if(name==='@clerk/nextjs')return {useAuth:()=>auth};
+      if(name==='./form')return {AdminConfigProvider:'AdminConfigProvider',useOptionalAdminConfig:()=>null,useSharedAdminConfig:()=>configState};
+      if(name==='@/lib/utils')return {cn:(...parts)=>parts.filter(Boolean).join(' ')};
+      if(name==='next/link')return {default:'Link'};
+      return new Proxy({}, {get:(_target,key)=>key});
+    }});
+  const shell=exports.AdminShell({email:'a@example.test',children:'section'});
+  assert.equal(shell.type,'AdminConfigProvider');
+  const render=()=>{cursor=0;return shell.props.children.type(shell.props.children.props);};
+  const content=render();
+  const nodes=elements(content);
+  const nav=nodes.find(node=>typeof node.type==='function'&&node.type.name==='Nav');
+  const footer=nodes.find(node=>typeof node.type==='function'&&node.type.name==='SidebarFooter');
+  let prevented=0;
+  const trigger={focus:()=>calls.push(['focus'])};
+  const event={button:0,currentTarget:trigger,preventDefault(){prevented++;}};
+  nav.props.onNavigate(event,'/admin/skills');
+  assert.equal(prevented,0,'Admin navigation retains the shared draft');
+  configState.pendingChipCount=1;
+  nav.props.onNavigate(event,'/admin/skills');
+  assert.equal(prevented,0,'Unadded list text remains in the shared owner between sections');
+  configState.pendingChipCount=0;calls.length=0;prevented=0;
+  footer.props.onNavigate(event,'/');
+  assert.equal(prevented,1,'Stay cancels workspace navigation');
+  let dialog=elements(render()).find(node=>node.type==='DialogContent');
+  assert.match(elements(dialog).find(node=>node.type==='DialogDescription').props.children,/unsaved/);
+  elements(dialog).find(node=>node.type==='Button'&&node.props.children==='Stay').props.onClick();
+  dialog.props.onCloseAutoFocus({preventDefault(){}});assert.deepEqual(calls.pop(),['focus']);
+  footer.props.onNavigate(event,'/');dialog=elements(render()).find(node=>node.type==='DialogContent');
+  elements(dialog).find(node=>node.type==='Button'&&node.props.children==='Leave').props.onClick();
+  assert.deepEqual(calls.pop(),['push','/']);
+  assert.deepEqual(calls.pop(),['discard']);
+  let preventedFocus=0;dialog.props.onCloseAutoFocus({preventDefault(){preventedFocus++;}});
+  assert.equal(preventedFocus,0,'Leaving does not focus an element being unmounted');
+  configState.dirty=false;configState.saving=true;
+  footer.props.onNavigate(event,'/');assert.equal(prevented,3);
+  dialog=elements(render()).find(node=>node.type==='DialogContent');
+  assert.match(elements(dialog).find(node=>node.type==='DialogDescription').props.children,/request is in progress/);
+  const newTab={button:0,ctrlKey:true,preventDefault(){throw Error('New tab must not be blocked');}};
+  footer.props.onNavigate(newTab,'/');
+  const gated=exports.AdminShell({email:'same@example.test',accountId:'account-a',children:'private'});
+  const authorized=gated.type(gated.props);
+  assert.equal(authorized.type,'AdminConfigProvider');
+  assert.match(authorized.key,/account-a/);
+  auth.userId='account-b';
+  const denied=gated.type(gated.props);
+  assert.equal(denied.type,'p');assert.equal(denied.props.role,'status');
+  assert.notEqual(denied.props.children,'private','A different subject cannot retain the old config owner');
+});
+
+test('unadded chip text is registered until added, cleared or the section unmounts', () => {
+  const pending=new Map(),h=formHarness({setPendingChip:(id,value)=>value?pending.set(id,value):pending.delete(id)});
+  const changes=[],props={label:'Allowed models',values:[],max:20,onChange:value=>changes.push(value)};
+  const controls=()=>{const field=h.render('ChipList',props);return elements(field.props.children({id:'models'}));};
+  controls().find(node=>node.type==='Input').props.onChange({target:{value:'model/example'}});
+  assert.equal(pending.get('field-id'),'model/example');
+  assert.equal(controls().find(node=>node.type==='Input').props.value,'model/example','Staying retains the entry');
+  controls().find(node=>node.type==='Button').props.onClick();
+  assert.equal(pending.size,0);assert.deepEqual(Array.from(changes[0]),['model/example']);
+  controls().find(node=>node.type==='Input').props.onChange({target:{value:'unfinished'}});
+  h.unmount();assert.equal(pending.size,0,'Explicitly leaving removes the unmounted entry');
+});
+
+test('stable chip keys restore the exact unadded text after the page remounts', () => {
+  const pending={},state={pendingChips:pending,setPendingChip:(id,value)=>{if(value)pending[id]=value;else delete pending[id];}};
+  const props={draftKey:'mcp:2',label:'Tool allow-list',values:[],max:50,onChange:()=>{}};
+  const read=h=>{const field=h.render('ChipList',props);return elements(field.props.children({id:'tool'})).find(node=>node.type==='Input');};
+  const first=formHarness(state);read(first).props.onChange({target:{value:'  tool_name  '}});first.unmount();
+  assert.equal(pending['mcp:2'],'  tool_name  ');
+  const second=formHarness(state);assert.equal(read(second).props.value,'  tool_name  ');
+});
+
+test('collapsed items retain local entries and deletion waits until they are resolved', () => {
+  const h=formHarness({pendingChipCount:1});
+  const nodes=elements(h.render('ItemCard',{title:'Server',subtitle:'Configured',open:false,onToggle:()=>{},onRemove:()=>{},children:'retained input'}));
+  const body=nodes.find(node=>node.props.id==='field-id');
+  assert.equal(body.props.hidden,true);assert.equal(body.props.children,'retained input');
+  assert.equal(nodes.find(node=>node.type==='Button'&&node.props['aria-label']==='Delete Server').props.disabled,true);
+});
+
+test('admin provider registers reload protection only while edits or a save are pending', () => {
+  const listeners=new Map(),cleanups=[];let state={dirty:false,saving:false};
+  const hooks={...React,useEffect:fn=>cleanups.push(fn()),useContext:()=>state,useState:initial=>[initial,()=>{}],useCallback:fn=>fn,useRef:initial=>({current:initial})};
+  const exports={},window={addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:(name,fn)=>{if(listeners.get(name)===fn)listeners.delete(name);}};
+  const source=readFileSync(new URL('../src/components/admin/form.tsx',import.meta.url),'utf8');
+  runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText,{
+    exports,window,require(name){if(name==='react')return hooks;if(name==='react/jsx-runtime')return jsxRuntime;if(name==='./use-admin')return {useAdminConfig:()=>state,useAdminClient:()=>async()=>({ok:true})};if(name.endsWith('.module.css'))return {default:{}};return new Proxy({}, {get:(_target,key)=>key});}});
+  exports.AdminConfigProvider({children:'page'});assert.equal(listeners.size,0);
+  state={dirty:true,saving:false};exports.AdminConfigProvider({children:'page'});
+  let prevented=0;const event={preventDefault(){prevented++;},returnValue:undefined};listeners.get('beforeunload')(event);
+  assert.equal(prevented,1);assert.equal(event.returnValue,'');
+  cleanups.at(-1)();assert.equal(listeners.size,0);
+});
+
+test('root admin owner lazily activates and retains exact drafts and in-flight Knowledge across route unmounts', async () => {
+  const slots=[], effects=[], listeners=new Map(), calls=[];let cursor=0,finish;
+  const changed=(old,next)=>!old||next.some((value,i)=>!Object.is(value,old[i]));
+  const hooks={...React,
+    useRef(initial){const i=cursor++;return slots[i]??={current:initial};},
+    useState(initial){const i=cursor++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return [slots[i],next=>{slots[i]=typeof next==='function'?next(slots[i]):next;}];},
+    useCallback(fn,deps){const i=cursor++;if(changed(slots[i]?.deps,deps))slots[i]={deps,value:fn};return slots[i].value;},
+    useEffect(fn,deps){const i=cursor++;if(changed(slots[i]?.deps,deps)){const old=slots[i],next=slots[i]={deps};effects.push(()=>{old?.cleanup?.();next.cleanup=fn();});}}};
+  const exports={}, window={addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:(name,fn)=>{if(listeners.get(name)===fn)listeners.delete(name);}};
+  const state={dirty:false,saving:false,discard(){calls.push('discard');}};
+  const source=readFileSync(new URL('../src/components/admin/form.tsx',import.meta.url),'utf8');
+  runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText,{
+    exports,window,require(name){if(name==='react')return hooks;if(name==='react/jsx-runtime')return jsxRuntime;if(name==='./use-admin')return {useAdminConfig:enabled=>{calls.push(['enabled',enabled]);return state;},useAdminClient:()=>async(path,init)=>{calls.push(['request',path,init]);return new Promise(resolve=>{finish=resolve;});}};if(name.endsWith('.module.css'))return {default:{}};return new Proxy({}, {get:(_target,key)=>key});}});
+  const render=()=>{cursor=0;const element=exports.AdminConfigProvider({children:'current route',accountId:'a',deferred:true});effects.splice(0).forEach(fn=>fn());return element.props.value;};
+  let owner=render();assert.equal(calls.at(-1)[1],false,'Ordinary routes do not enable admin config');
+  owner.activate('other');owner=render();assert.equal(calls.at(-1)[1],false);
+  owner.activate('a');owner=render();assert.equal(calls.at(-1)[1],true);
+  owner.setPendingChip('models','model/example');owner.setKnowledge({url:'https://example.invalid/a',title:'Draft',corpus:'revit'});
+  owner=render();assert.equal(owner.pendingChips.models,'model/example');assert.equal(owner.knowledge.title,'Draft');assert.ok(listeners.has('beforeunload'));
+  // Navigating away and back changes children, not this root owner's hooks.
+  owner=render();assert.equal(owner.pendingChips.models,'model/example');assert.equal(owner.knowledge.url,'https://example.invalid/a');
+  const first=owner.submitKnowledge();owner=render();assert.equal(owner.knowledgePending,true);
+  assert.equal(await owner.submitKnowledge(),false,'A route remount cannot submit a second request');
+  owner.setKnowledge({url:'https://example.invalid/b',title:'New draft',corpus:'other'});
+  finish({ok:true,data:null});assert.equal(await first,true);owner=render();
+  assert.equal(owner.knowledge.url,'https://example.invalid/b','A late success cannot clear a newer draft');
+  const pending=owner.submitKnowledge();owner=render();owner.discardAll();owner=render();
+  assert.equal(owner.knowledgePending,true,'A discarded in-flight request still blocks duplicate submission');
+  assert.equal(listeners.has('beforeunload'),false,'Explicit discard suppresses the pending-request unload warning');
+  assert.equal(await owner.submitKnowledge(),false);
+  finish({ok:true,data:null});assert.equal(await pending,false);owner=render();
+  assert.equal(owner.knowledge.url,'');assert.equal(owner.pendingChipCount,0);assert.equal(owner.knowledgePending,false);
+  assert.equal(listeners.has('beforeunload'),false,'Explicit discard clears the unload warning');
+  assert.equal(calls.filter(row=>Array.isArray(row)&&row[0]==='request').length,2);
+  owner.activate('a');owner=render();owner.setKnowledge({url:'https://example.invalid/c',title:'',corpus:'other'});owner=render();
+  const uncertain=owner.submitKnowledge();finish({ok:false,reason:'error',message:'offline'});assert.equal(await uncertain,false);
+  owner=render();assert.equal(owner.knowledgeUnknown,true);assert.equal(await owner.submitKnowledge(),false);
+  owner.allowKnowledgeRetry();owner=render();assert.equal(owner.knowledgeUnknown,false);
 });

@@ -5,6 +5,8 @@ import {UserButton} from '@clerk/nextjs';
 import {ArrowLeft,ArrowRight,Check,Download,Loader2,Monitor,RefreshCw} from 'lucide-react';
 import installerRelease from '../../../public/downloads/release.json';
 import {DOMAINS,USE_CASE_GROUPS,type OnboardingProfile,type OnboardingStep,type ProfileInput} from '@/lib/onboarding-profile.mjs';
+import {Checkbox} from '@/components/vendor/affectui/checkbox-clean';
+import {Loading,Skeleton} from '@/components/vendor/affectui/skeleton-clean';
 import styles from './onboarding.module.css';
 
 type ProfileResponse={profile:OnboardingProfile|null;name?:string};
@@ -12,7 +14,9 @@ type FieldErrors=Partial<Record<'name'|'domain'|'useCases',string>>;
 const emptyProfile:ProfileInput={name:'',domain:'',useCases:[],step:'profile'};
 
 async function profileRequest(input?:ProfileInput,signal?:AbortSignal):Promise<ProfileResponse> {
-  const response=await fetch('/api/account/profile',{method:input?'PUT':'GET',credentials:'same-origin',cache:'no-store',headers:input?{'Content-Type':'application/json'}:undefined,body:input?JSON.stringify(input):undefined,signal});
+  // Stored profiles also contain server-owned version/timestamps; submit only editable fields.
+  const payload=input?{name:input.name,domain:input.domain,useCases:input.useCases,step:input.step}:undefined;
+  const response=await fetch('/api/account/profile',{method:input?'PUT':'GET',credentials:'same-origin',cache:'no-store',headers:input?{'Content-Type':'application/json'}:undefined,body:payload?JSON.stringify(payload):undefined,signal});
   const data=await response.json().catch(()=>null);
   if (!response.ok||!data) throw Error(typeof data?.detail==='string'?data.detail:'Your profile is unavailable. Check your connection and try again.');
   return data;
@@ -38,22 +42,25 @@ function ProfileFields({value,onChange,errors={}}:{value:ProfileInput;onChange:(
 }
 
 function UseCaseFields({value,onChange,error}:{value:ProfileInput;onChange:(value:ProfileInput)=>void;error?:string}) {
-  return <div className={styles.useCases} role="group" aria-label="Your interests" aria-invalid={Boolean(error)} aria-describedby={`datumm-interests-hint${error?' datumm-interests-error':''}`} tabIndex={error?-1:undefined}><p id="datumm-interests-hint" className={styles.hint}>Select at least one interest. You can choose more than one.</p>{error&&<p id="datumm-interests-error" className={styles.error}>{error}</p>}{USE_CASE_GROUPS.map(group=><fieldset key={group.label}><legend>{group.label}</legend><div className={styles.options}>{group.options.map(([id,label])=><label key={id} className={styles.option} data-selected={value.useCases.includes(id)}><input type="checkbox" checked={value.useCases.includes(id)} onChange={event=>onChange({...value,useCases:event.target.checked?[...value.useCases,id]:value.useCases.filter(item=>item!==id)})}/><span>{label}</span></label>)}</div></fieldset>)}</div>;
+  return <div className={styles.useCases} role="group" aria-label="Your interests" aria-invalid={Boolean(error)} aria-describedby={`datumm-interests-hint${error?' datumm-interests-error':''}`} tabIndex={error?-1:undefined}><p id="datumm-interests-hint" className={styles.hint}>Select at least one interest. You can choose more than one.</p>{error&&<p id="datumm-interests-error" className={styles.error}>{error}</p>}{USE_CASE_GROUPS.map(group=><fieldset key={group.label}><legend>{group.label}</legend><div className={styles.options}>{group.options.map(([id,label])=><Checkbox key={id} variant="card" label={label} checked={value.useCases.includes(id)} aria-describedby={error?'datumm-interests-error':undefined} onChange={event=>onChange({...value,useCases:event.target.checked?[...value.useCases,id]:value.useCases.filter(item=>item!==id)})}/>)}</div></fieldset>)}</div>;
 }
 
 function ConnectorStep() {
   const [checking,setChecking]=useState(false),[message,setMessage]=useState(''),[online,setOnline]=useState(false);
+  const checkPending=useRef(false);
   async function checkConnection() {
-    setChecking(true);setMessage('');
+    if(checkPending.current)return;
+    checkPending.current=true;
+    setChecking(true);setOnline(false);setMessage('Checking your Revit devices…');
     try {
       const response=await fetch('/api/service/devices',{cache:'no-store',credentials:'same-origin'});
       if(!response.ok) throw Error('Connection status is unavailable. Try again in the workspace.');
       const devices:unknown=await response.json();
       if(!Array.isArray(devices)) throw Error('Connection status is unavailable. Try again in the workspace.');
-      const connected=devices.some(device=>device.online===true);
+      const connected=devices.some(device=>device&&typeof device==='object'&&device.online===true);
       setOnline(connected);setMessage(connected?'A Revit device is online. Select its model in the workspace before a native task.':'No Revit device is online yet. Finish setup in Revit, then check again.');
     } catch(error) {setOnline(false);setMessage(error instanceof Error?error.message:'Could not check your connection.');}
-    finally {setChecking(false);}
+    finally {checkPending.current=false;setChecking(false);}
   }
   return <div className={styles.connector}>
     <div className={styles.connectionIntro}><Monitor size={26} aria-hidden/><div><h3>Bring your Revit model into the conversation</h3><p>Connect when you’re ready for model context and native tasks. Ask questions and plan on the web without it.</p></div></div>
@@ -106,27 +113,34 @@ export function AccountOnboarding({initial,onComplete,accountControl=<UserButton
 }
 
 export function AccountOnboardingGate({children}:{children:ReactNode}) {
-  const [state,setState]=useState<'loading'|'onboard'|'ready'|'error'>('loading'),[initial,setInitial]=useState<ProfileInput>(emptyProfile),[error,setError]=useState(''),[attempt,setAttempt]=useState(0);
+  const [state,setState]=useState<'loading'|'onboard'|'ready'|'error'|'unconfirmed'|'recovery'>('loading'),[initial,setInitial]=useState<ProfileInput>(emptyProfile),[error,setError]=useState(''),[attempt,setAttempt]=useState(0);
   useEffect(()=>{
     const controller=new AbortController();
     void (async()=>{
       setState('loading');
       try {
         const data=await profileRequest(undefined,controller.signal);
+        if(controller.signal.aborted)return;
         if(data.profile?.completedAt){setState('ready');return;}
         if(!data.profile) {
           // Returning users keep their workspace and saved tasks; setup is available in Account settings.
           const history=await fetch('/api/service/runs',{cache:'no-store',credentials:'same-origin',signal:controller.signal});
-          if(history.ok){const runs:unknown=await history.json();if(Array.isArray(runs)&&runs.length){setState('ready');return;}}
+          if(!history.ok)throw Error('Your saved work could not be checked. Try again.');
+          const runs:unknown=await history.json().catch(()=>null);
+          if(controller.signal.aborted)return;
+          if(!Array.isArray(runs))throw Error('Your saved work could not be checked. Try again.');
+          if(runs.length){setInitial({...emptyProfile,name:data.name??''});setState('unconfirmed');return;}
         }
+        if(controller.signal.aborted)return;
         setInitial(data.profile??{...emptyProfile,name:data.name??''});setState('onboard');
       } catch(error){if(controller.signal.aborted)return;setError(error instanceof Error?error.message:'Your account profile is unavailable.');setState('error');}
     })();
     return ()=>controller.abort();
   },[attempt]);
   if(state==='ready')return children;
+  if(state==='unconfirmed'||state==='recovery')return <><aside className={styles.setupRecovery} aria-label="Account setup recovery"><strong>Account setup is unconfirmed.</strong><span>{state==='recovery'?error:'Your saved work is available. You can finish your profile when you’re ready.'} Setup hasn’t been marked complete.</span><button type="button" className={styles.secondary} onClick={()=>state==='recovery'?setAttempt(value=>value+1):setState('onboard')}>{state==='recovery'?'Retry account setup':'Finish account setup'}</button></aside>{children}</>;
   if(state==='onboard')return <AccountOnboarding initial={initial} onComplete={()=>setState('ready')}/>;
-  return <main className={styles.loading}><img src="/datumm-mark.png" alt="DATUMM" width={32} height={32}/>{state==='loading'?<p role="status">Opening your workspace…</p>:<><h1>Your profile is temporarily unavailable</h1><p role="alert">{error}</p><div className={styles.actionEnd}><button className={styles.secondary} onClick={()=>setAttempt(value=>value+1)}>Try again</button><button className={styles.primary} onClick={()=>setState('ready')}>Continue to workspace</button></div><p className={styles.hint}>Setup hasn’t been marked complete. You can return to your profile in Settings.</p></>}</main>;
+  return <main className={styles.loading}><img src="/datumm-mark.png" alt="DATUMM" width={32} height={32}/>{state==='loading'?<Loading label="Opening your workspace…"><Skeleton width={180} height={12}/><p>Opening your workspace…</p></Loading>:<><h1>Account setup is temporarily unavailable</h1><p role="alert">{error}</p><div className={styles.actionEnd}><button className={styles.secondary} onClick={()=>setAttempt(value=>value+1)}>Try again</button><button className={styles.primary} onClick={()=>setState('recovery')}>Continue to workspace</button></div><p className={styles.hint}>Setup hasn’t been marked complete. You can return to your profile in Settings.</p></>}</main>;
 }
 
 /** Personal profile fields only. Clerk continues to own identity, security and sessions. */
@@ -134,8 +148,8 @@ export function AccountProfileEditor() {
   const [value,setValue]=useState<ProfileInput>(emptyProfile),[loading,setLoading]=useState(true),[loaded,setLoaded]=useState(false),[saving,setSaving]=useState(false),[error,setError]=useState(''),[saved,setSaved]=useState(false),[attempt,setAttempt]=useState(0),[errors,setErrors]=useState<FieldErrors>({});
   const form=useRef<HTMLFormElement>(null),failure=useRef<HTMLParagraphElement>(null),savePending=useRef(false);
   useEffect(()=>{const controller=new AbortController();setLoading(true);setLoaded(false);setError('');void profileRequest(undefined,controller.signal).then(data=>{if(controller.signal.aborted)return;setValue(data.profile??{...emptyProfile,name:data.name??''});setLoaded(true);}).catch(error=>{if(!controller.signal.aborted)setError(error instanceof Error?error.message:'Your profile could not be loaded. Try again.');}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});return()=>controller.abort();},[attempt]);
-  useEffect(()=>{if(Object.keys(errors).length)form.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();},[errors]);
-  useEffect(()=>{if(error)failure.current?.focus();},[error]);
+  useEffect(()=>{if(Object.keys(errors).length&&!form.current?.closest('[hidden]'))form.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();},[errors]);
+  useEffect(()=>{if(error&&!failure.current?.closest('[hidden]'))failure.current?.focus();},[error]);
   async function save(event:FormEvent){event.preventDefault();if(savePending.current)return;const invalid=fieldErrors(value,true,true);setErrors(invalid);setSaved(false);if(Object.keys(invalid).length)return;savePending.current=true;setSaving(true);setError('');try {await profileRequest({...value,step:'complete'});setSaved(true);}catch(error){setError(error instanceof Error?error.message:'Your profile could not be saved.');}finally{savePending.current=false;setSaving(false);}}
   function change(next:ProfileInput){setValue(next);setSaved(false);setErrors({});setError('');}
   if(loading)return <p role="status" className={styles.hint}>Loading your profile…</p>;

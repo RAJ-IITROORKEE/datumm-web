@@ -5,11 +5,11 @@ import type {PlanGraph} from './plan-canvas';
 
 /**
  * Sheet styles travel inside the SVG so an exported copy keeps them. Colours are
- * CSS variables: plan-canvas.module.css sets them per theme, the fallbacks give
- * a black-on-white sheet when the SVG stands alone.
+ * CSS variables: the working canvas supplies its drafting roles independently
+ * of the application theme. Standalone sheets retain black-on-white defaults.
  */
 const SHEET_CSS=`
-.pd text{font-family:Arial,Helvetica,sans-serif;fill:var(--pd-ink,#000);stroke:none;user-select:none;pointer-events:none}
+.pd text{font-family:var(--font-sans,Arial,Helvetica,sans-serif);fill:var(--pd-ink,#000);stroke:none;user-select:none;pointer-events:none}
 .pd-paper{fill:var(--pd-paper,#fff)}
 .pd-room{fill:transparent}
 .pd[data-style=presentation] .pd-room{fill:var(--pd-fill-room,#faf0d8)}
@@ -28,10 +28,10 @@ const SHEET_CSS=`
 .pd [data-wall-key],.pd [data-opening-key]{cursor:pointer}
 `;
 
-type Props={graph:PlanGraph;mode:'hidden'|'presentation';picked?:string;compact?:boolean;className?:string;label?:string;svgRef?:Ref<SVGSVGElement>;onClick?:(event:MouseEvent<SVGSVGElement>)=>void;children?:ReactNode};
+type Props={graph:PlanGraph;mode:'hidden'|'presentation';surface?:'drafting'|'sheet';picked?:string;compact?:boolean;className?:string;label?:string;sheetTitle?:string;sheetPlanId?:string;svgRef?:Ref<SVGSVGElement>;onClick?:(event:MouseEvent<SVGSVGElement>)=>void;children?:ReactNode};
 
 /** The 2D floor plan, drawn from the validated graph in model millimetres (y flipped for the screen). */
-export function PlanDrawing({graph,mode,picked,compact=false,className,label,svgRef,onClick,children}:Props){
+export function PlanDrawing({graph,mode,surface='sheet',picked,compact=false,className,label,sheetTitle,sheetPlanId,svgRef,onClick,children}:Props){
  const w=graph.site.widthMm,d=graph.site.depthMm,t=graph.wallThicknessMm,walls=graph.walls??[],{unit:u,bounds}=planSheet(graph);
  const S=(p:number[])=>`${p[0]} ${d-p[1]}`,edge=t/2;
  const line=(a:number[],b:number[],className:string,key?:string)=><path key={key} className={className} d={`M ${S(a)} L ${S(b)}`}/>;
@@ -51,7 +51,7 @@ export function PlanDrawing({graph,mode,picked,compact=false,className,label,svg
  const chainX=compact?[]:dimensionChain(graph.rooms,'x'),chainY=compact?[]:dimensionChain(graph.rooms,'y');
  const scale=[10000,5000,2000,1000].find(value=>value<=w/3)??500,footY=d+edge+u*3,north=graph.spatialContext?.northDegrees;
  const view=compact?[-t,-t,w+t*2,d+t*2]:bounds;
- return <svg ref={svgRef} xmlns="http://www.w3.org/2000/svg" className={`pd ${className??''}`} data-style={mode} viewBox={view.join(' ')} role="img" aria-label={label} aria-hidden={label?undefined:true} onClick={onClick}>
+ return <svg ref={svgRef} xmlns="http://www.w3.org/2000/svg" className={`pd ${className??''}`} data-style={mode} data-surface={surface} viewBox={view.join(' ')} role="img" aria-label={label} aria-hidden={label?undefined:true} onClick={onClick}>
   <style>{SHEET_CSS}</style>
   <rect className="pd-paper" x={view[0]} y={view[1]} width={view[2]} height={view[3]}/>
   {graph.rooms.map(room=><polygon key={room.key} className="pd-room" data-room-key={room.key} data-kind={room.kind} points={roomPoints(room).map(S).join(' ')}/>)}
@@ -74,7 +74,7 @@ export function PlanDrawing({graph,mode,picked,compact=false,className,label,svg
   {!compact&&<>
    {(graph.furnitureIntents??[]).map((item,index)=><rect key={index} className="pd-thin pd-dash" x={item.rect[0]} y={d-item.rect[3]} width={item.rect[2]-item.rect[0]} height={item.rect[3]-item.rect[1]}/>)}
    {graph.rooms.map(room=>{const points=roomPoints(room),xs=points.map(point=>point[0]),[x,y]=roomCentre(room),size=Math.max(u*.45,Math.min(u,(Math.max(...xs)-Math.min(...xs)-t)/(Math.max(room.name.length,6)*.62)));
-    return <g key={room.key}><text x={x} y={d-y-size*.2} fontSize={size} fontWeight={600} textAnchor="middle">{room.name}</text><text x={x} y={d-y+size} fontSize={size*.8} textAnchor="middle">{(room.areaMm2/1e6).toFixed(1)} m²</text></g>;})}
+    return <g key={room.key}><text x={x} y={d-y-size*.2} fontSize={size} fontWeight={600} textAnchor="middle">{room.name}</text><text x={x} y={d-y+size} fontSize={size*.8} textAnchor="middle">{(room.areaMm2/1e6).toFixed(1)} m²</text><text x={x} y={d-y+size*1.7} fontSize={size*.55} textAnchor="middle">incl. walls</text></g>;})}
    {chainX.length>0&&dimension(chainX,u*3,false,'chain-x')}{dimension([0,w],chainX.length?u*5.5:u*3,false,'overall-x')}
    {chainY.length>0&&dimension(chainY,u*3,true,'chain-y')}{dimension([0,d],chainY.length?u*5.5:u*3,true,'overall-y')}
    <g>
@@ -82,6 +82,8 @@ export function PlanDrawing({graph,mode,picked,compact=false,className,label,svg
     {[0,scale/2,scale].map(value=><text key={value} x={value} y={footY+u*1.25} fontSize={u*.6} textAnchor="middle">{value/1000}{value===scale?' m':''}</text>)}
     <text x={scale+u*2.5} y={footY+u*.45} fontSize={u*.6}>Dimensions in millimetres</text>
    </g>
+   {sheetTitle&&<text x={0} y={footY+u*3.2} fontSize={u*.75} fontWeight={600} {...(sheetTitle.length*u*.46>w?{textLength:w,lengthAdjust:'spacingAndGlyphs' as const}:{})}>{sheetTitle}</text>}
+   {sheetPlanId&&<text x={0} y={footY+u*4.2} fontSize={u*.55} {...(sheetPlanId.length*u*.34>w?{textLength:w,lengthAdjust:'spacingAndGlyphs' as const}:{})}>Drawing reference: {sheetPlanId}</text>}
    <g transform={`translate(${w-u*1.2} ${footY+u*1.4}) rotate(${north??0})`}>
     <title>{north==null?'North not provided; drawn up the sheet':`North ${north}° from sheet up`}</title>
     <circle className={`pd-thin ${north==null?'pd-dash':''}`} r={u*1.1}/><path className="pd-solid" d={`M 0 ${-u*1.1} L ${u*.42} ${u*.7} L 0 ${u*.35} L ${-u*.42} ${u*.7} Z`}/>
@@ -93,23 +95,26 @@ export function PlanDrawing({graph,mode,picked,compact=false,className,label,svg
 }
 
 /** Download the sheet as PNG or one-page PDF, always black on white paper. */
-export async function exportPlanSheet(svg:SVGSVGElement,format:'png'|'pdf',name:string){
+export async function exportPlanSheet(svg:SVGSVGElement,format:'png'|'pdf',name:string,isCurrent:()=>boolean=()=>true){
  const copy=svg.cloneNode(true) as SVGSVGElement,[, ,vw,vh]=(svg.getAttribute('viewBox')??'0 0 1 1').split(' ').map(Number),k=2400/Math.max(vw,vh),width=Math.round(vw*k),height=Math.round(vh*k);
- copy.removeAttribute('class');copy.setAttribute('class','pd');copy.setAttribute('width',String(width));copy.setAttribute('height',String(height));
+ // The live canvas may inherit dark drafting variables or carry a viewport style.
+ // Strip those before serializing so both Working and Sheet export the same paper.
+ copy.removeAttribute('style');copy.setAttribute('data-surface','sheet');copy.setAttribute('class','pd');copy.setAttribute('width',String(width));copy.setAttribute('height',String(height));
  const url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(copy)],{type:'image/svg+xml'}));
  try{
   const image=new Image();image.src=url;await image.decode();
-  await exportRaster(image,width,height,format,name,vw,vh);
+  await exportRaster(image,width,height,format,name,vw,vh,isCurrent);
  }finally{URL.revokeObjectURL(url);}
 }
 
 /** Shared by the 2D sheet and the 3D canvas: paint on white, then save as PNG or wrap the JPEG in a PDF page. */
-export async function exportRaster(source:CanvasImageSource,width:number,height:number,format:'png'|'pdf',name:string,extentW=width,extentH=height){
+export async function exportRaster(source:CanvasImageSource,width:number,height:number,format:'png'|'pdf',name:string,extentW=width,extentH=height,isCurrent:()=>boolean=()=>true){
  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
  const context=canvas.getContext('2d');if(!context)throw Error('Canvas is unavailable.');
  context.fillStyle='#fff';context.fillRect(0,0,width,height);context.drawImage(source,0,0,width,height);
  const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,format==='pdf'?'image/jpeg':'image/png',.92));if(!blob)throw Error('Could not render the view.');
  let file=blob;
  if(format==='pdf'){const {planPdf}=await import('@/lib/plan-pdf');file=new Blob([planPdf(new Uint8Array(await blob.arrayBuffer()),width,height,extentW,extentH) as BlobPart],{type:'application/pdf'});}
+ if(!isCurrent())return;
  const link=document.createElement('a'),href=URL.createObjectURL(file);link.href=href;link.download=`${name}.${format}`;link.click();URL.revokeObjectURL(href);
 }

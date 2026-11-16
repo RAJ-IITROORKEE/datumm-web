@@ -29,7 +29,7 @@ export function AccountAdmission({ status, statusError, actionError, busy, works
   const fixture = status?.kind === 'fixture-auth';
 
   return <div className={styles.window}>
-    <DesktopTitlebar left={true} right={true} onSettings={() => {}} onToggleLeft={() => {}} onToggleRight={() => {}} title="DATUMM account" nativeAvailable/>
+    <DesktopTitlebar left={true} onSettings={() => {}} onToggleLeft={() => {}} title="DATUMM account" nativeAvailable/>
     <main className={`auth-shell ${styles.screen}`} aria-labelledby="account-admission-title">
       <section className="auth-card">
         <div className="auth-brand"><img src="/datumm-mark.png" alt=""/><span>DATUMM</span></div>

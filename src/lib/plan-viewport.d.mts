@@ -1,0 +1,12 @@
+export type Viewport = {zoom:number;x:number;y:number};
+export type ViewportSize = {width:number;height:number;contentWidth?:number;contentHeight?:number};
+export type ViewportPoint = {x:number;y:number};
+export const MIN_ZOOM:number;
+export const MAX_ZOOM:number;
+export function fitViewport():Viewport;
+export function fitContentSize(size:ViewportSize,bounds:number[]):ViewportSize;
+export function boundViewport(view:Viewport,size:ViewportSize):Viewport;
+export function panViewport(view:Viewport,dx:number,dy:number,size:ViewportSize):Viewport;
+export function zoomViewport(view:Viewport,requested:number,point:ViewportPoint,size:ViewportSize):Viewport;
+export function worldToScreen(point:ViewportPoint,view:Viewport,size:ViewportSize):ViewportPoint;
+export function screenToWorld(point:ViewportPoint,view:Viewport,size:ViewportSize):ViewportPoint;

@@ -1,2 +1,3 @@
 import { WorkspaceEntry } from '@/components/workspace-entry';
-export default function Page(){return <WorkspaceEntry authConfigured={Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)}/>;}
+import { getWebConfiguration } from '@/lib/web-configuration';
+export default function Page(){const {account}=getWebConfiguration();return <WorkspaceEntry authConfigured={account.configured} accountReason={account.reason}/>;}

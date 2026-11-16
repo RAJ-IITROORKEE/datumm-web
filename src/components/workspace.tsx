@@ -1,9 +1,18 @@
 'use client';
 
 import './studio-workspace.css';
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {OutputWorkspaceProvider, OutputPanel, useOutputWorkspace} from './workspace/output-workspace';
 import {ReviewReportPanel} from './workspace/review-report';
+import type { AlternativeSelection, AssetRow, Bound, SavedDrawingInput, WorkAreaActions, WorkAreaPreview, WorkScope } from '@/lib/work-area-contract';
+import type { ReviewReport } from '@/lib/review-report.mjs';
+import {projectWorkspaceAssets} from '@/lib/workspace-assets.mjs';
+import {drawingTitle} from '@/lib/drawing-presentation.mjs';
+import {exactConceptName} from '@/lib/drawing-export-identity.mjs';
+import {AssetsPanel} from './workspace/assets-panel';
+import {ExportsPanel} from './workspace/exports-panel';
+import {StudioProperties} from './studio-properties';
+import {BriefChips} from './workspace/brief-chips';
 import {PanelResize} from './panel-resize';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import {
@@ -28,6 +37,7 @@ import {
   Minimize2,
   MessageSquare,
   PanelRight,
+  PanelLeft,
   TableProperties,
 } from 'lucide-react';
 import { AccountAdmission } from './account-admission';
@@ -47,6 +57,7 @@ import { DesktopSettings } from './desktop-settings';
 import { ProjectContext } from './project-context';
 import { useWorkspaceState, api, type Run, type WorkspaceState } from './workspace/use-workspace-state';
 import { Sidebar } from './workspace/sidebar';
+import { PanelRight as WorkAreaCloseIcon, PanelRightOpen as WorkAreaOpenIcon } from './workspace/sidebar-icons';
 import { ConversationPanel } from './workspace/conversation';
 import { PlanDetails } from './workspace/plan-details';
 import { Inspector } from './workspace/inspector';
@@ -62,15 +73,171 @@ export function Workspace({
   desktopPreview?: boolean;
 }) {
   const w = useWorkspaceState({ authConfigured, accountKey, desktopPreview });
-  return <OutputWorkspaceProvider scopeKey={w.run?.id ?? 'draft'}><WorkspaceContent w={w} /></OutputWorkspaceProvider>;
+  return <WorkspaceContent w={w} />;
 }
 
+type ReportSelection = {scope: WorkScope; openId: number};
 function WorkspaceContent({w}: {w: WorkspaceState}) {
-  const {activeOutput, closeOutput, dismissOutput} = useOutputWorkspace();
-  const [reportOpen, setReportOpen] = useState(false);
-  const reportTrigger = useRef<HTMLButtonElement>(null);
-  useEffect(() => { if (activeOutput) setReportOpen(false); }, [activeOutput]);
-  const closeReport = () => { setReportOpen(false); requestAnimationFrame(() => reportTrigger.current?.focus()); };
+  const [reportSelection, setReportSelection] = useState<ReportSelection | null>(null);
+  const [outputOpenId, setOutputOpenId] = useState(0);
+  const reportTrigger = useRef<HTMLElement | null>(null), nextReportOpenId = useRef(0);
+  return <OutputWorkspaceProvider scopeKey={w.workspaceScopeInput.key} scopeInput={w.workspaceScopeInput} onOpen={() => {
+    setOutputOpenId(value => value + 1);
+    setReportSelection(null); w.closeProperties(); w.setCanvasOpen(false); w.selectWorkAreaSection(w.workAreaSection === 'exports' ? 'exports' : 'assets');
+  }}><WorkspacePanels w={w} reportSelection={reportSelection} setReportSelection={setReportSelection} reportTrigger={reportTrigger} nextReportOpenId={nextReportOpenId} outputOpenId={outputOpenId}/></OutputWorkspaceProvider>;
+}
+
+function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger, nextReportOpenId, outputOpenId}: {
+  w: WorkspaceState; reportSelection: ReportSelection | null;
+  setReportSelection: (value: ReportSelection | null) => void;
+  reportTrigger: React.MutableRefObject<HTMLElement | null>; nextReportOpenId: React.MutableRefObject<number>;
+  outputOpenId: number;
+}) {
+  const outputWorkspace = useOutputWorkspace();
+  const deviceDialogHeading = useRef<HTMLHeadingElement>(null);
+  const {scope, activeOutput, closeOutput, dismissOutput} = outputWorkspace;
+  const liveScope = useRef(scope); liveScope.current = scope;
+  const matches = (token: WorkScope) => token.key === liveScope.current.key && token.epoch === liveScope.current.epoch;
+  const [workAreaVisibility, setWorkAreaVisibility] = useState<{key:string;epoch:number;open:boolean}|null>(null);
+  const recordedConcept = w.run?.id === scope.taskId && Boolean(w.run.currentPlanRef || w.run.data.agent_design?.candidates.length);
+  const automaticWorkAreaOpen = Boolean(w.hasRenderablePlan || recordedConcept || activeOutput || reportSelection && matches(reportSelection.scope) || w.canvasOpen || w.workAreaSection !== 'design' || w.studioView !== 'workspace');
+  const workAreaOpen = workAreaVisibility?.key === scope.key && workAreaVisibility.epoch === scope.epoch ? workAreaVisibility.open : automaticWorkAreaOpen;
+  const setWorkAreaOpen = (open: boolean) => { if (matches(scope)) setWorkAreaVisibility({key: scope.key, epoch: scope.epoch, open}); };
+  useEffect(() => { if (outputOpenId > 0) setWorkAreaOpen(true); }, [outputOpenId]);
+  const report = reportSelection && matches(reportSelection.scope) ? reportSelection : null;
+  const liveReport = useRef(report); liveReport.current = report;
+  const [reportRecord, setReportRecord] = useState<{scope: WorkScope; openId: number; value: ReviewReport | null} | null>(null);
+  const parsedReport = reportRecord && report && matches(reportRecord.scope) && reportRecord.openId === report.openId ? reportRecord.value : null;
+  const onReport = useCallback((token: WorkScope, value: ReviewReport | null) => {
+    const current = liveReport.current;
+    if (!current || !matches(token) || current.openId !== report?.openId || current.scope.key !== token.key || current.scope.epoch !== token.epoch) return;
+    setReportRecord({scope: token, openId: current.openId, value});
+  }, [scope.key, scope.epoch, report?.openId]);
+  const [assetNotice, setAssetNotice] = useState<{scope: WorkScope; text: string} | null>(null);
+  const scopedRun = w.run?.id === scope.taskId ? w.run : null;
+  const activeDrawingTitle = w.activeDrawing ? drawingTitle(w.activeDrawing,scopedRun?.data.agent_design?.candidates) : 'Drawing';
+  // The new-chat project and sidebar filter are not proof of this task's project.
+  const contextProject = scopedRun?.projectId ? w.projects.find(project => project.id === scopedRun.projectId) ?? null : !scope.taskId ? w.currentProject ?? null : null;
+  const amendBriefDraft = () => {
+    if (!matches(scope) || !scopedRun || !w.prepareBriefUpdate()) return false;
+    w.setStudioView('workspace'); w.setWorkspacePane('chat');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (!matches(scope)) return;
+      document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message DATUMM"]')?.focus();
+    }));
+    return true;
+  };
+  const useProjectBriefDraft = (text: string) => {
+    if (!matches(scope) || w.busy || w.executing || !contextProject) return false;
+    const result = w.prepareProjectBriefReference(text);
+    if (result !== true) return result;
+    w.setStudioView('workspace');
+    w.setWorkspacePane('chat');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (matches(scope)) document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message DATUMM"]')?.focus();
+    }));
+    return true;
+  };
+  const bound = <T,>(value: T): Bound<T> => ({value, accountKey: scope.accountKey, taskId: scope.taskId, sourceKey: scope.sourceKey});
+  const samePlan = (a: {planId: string; version: number; fingerprint: string} | null | undefined, b: {planId: string; version: number; fingerprint: string} | null | undefined) => Boolean(a && b && a.planId === b.planId && a.version === b.version && a.fingerprint === b.fingerprint);
+  const drawingInputs: Bound<SavedDrawingInput>[] = [];
+  for (const plan of scopedRun?.data.agent_design?.candidates ?? []) drawingInputs.push(bound({plan, current: samePlan(plan, scopedRun?.currentPlanRef), briefId: scopedRun?.data.agent_design?.briefId}));
+  if (scopedRun?.currentPlanRef) drawingInputs.push(bound({plan: scopedRun.currentPlanRef, current: true}));
+  if (scopedRun && w.activeDrawing) drawingInputs.push(bound({plan: w.activeDrawing, current: samePlan(w.activeDrawing, scopedRun.currentPlanRef)}));
+  const assetRows = projectWorkspaceAssets({
+    scope, snapshotTaskId: scopedRun?.id ?? null, drawings: drawingInputs,
+    loadedDrawing: scopedRun && w.activeDrawing ? bound(w.activeDrawing) : null,
+    answers: outputWorkspace.outputs.map(bound),
+    report: scopedRun ? bound({supported: w.runtimeConfig?.supportedExports ? w.runtimeConfig.supportedExports.includes('report-json') : undefined, report: parsedReport}) : null,
+    savedAttachmentIds: (scopedRun?.conversation ?? []).flatMap(turn => (turn.attachmentIds ?? []).map(bound)),
+    savedSources: scopedRun ? w.savedSources.map(bound) : [],
+    specialists: (scopedRun?.data.agent_specialists ?? []).flatMap(result => result.artifactRefs.map(ref => bound({role: result.role, status: result.status, ref}))),
+    draftSources: w.sources.map(value => ({value, accountKey: scope.accountKey, taskId: null, sourceKey: scope.sourceKey})),
+  });
+  const liveAssets = useRef({scope, rows: assetRows}); liveAssets.current = {scope, rows: assetRows};
+  const reportOpen = Boolean(report);
+  const preview: WorkAreaPreview = activeOutput ? {kind:'answer-output',scope,outputId:activeOutput.id} : report && scope.taskId ? {kind:'saved-report',scope,taskId:scope.taskId,openId:report.openId} : {kind:'drawing',scope};
+  const restoreFocus = (token: WorkScope, opener: HTMLElement | null) => requestAnimationFrame(() => {
+    if (!matches(token)) return;
+    if (opener?.isConnected && opener.getClientRects().length && getComputedStyle(opener).visibility !== 'hidden') opener.focus();
+    else document.querySelector<HTMLElement>('[data-output-focus-fallback]')?.focus();
+  });
+  const closeReport = () => { if (!matches(scope)) return; liveReport.current=null; setReportSelection(null); setReportRecord(null); restoreFocus(scope, reportTrigger.current); };
+  const showWorkArea = () => {
+    setWorkAreaOpen(true);
+    if (!w.effectiveLayout.split && document.activeElement instanceof HTMLElement && document.activeElement.closest('#workspace-chat')) {
+      const token = scope;
+      requestAnimationFrame(() => {
+        if (!matches(token) || document.getElementById('datumm-workspace')?.classList.contains('studio-drawing-focused')) return;
+        const tab = document.querySelector<HTMLElement>(`[data-section="${w.workAreaSection}"]`);
+        if (tab?.getClientRects().length && !tab.closest('[hidden],[inert]')) tab.focus();
+      });
+    }
+  };
+  const actions: WorkAreaActions = {
+    selectSection(section) { if (!matches(scope)) return; showWorkArea(); w.selectWorkAreaSection(section); },
+    openProperties() { if (!matches(scope)) return; showWorkArea(); dismissOutput(); setReportSelection(null); w.openProperties(); },
+    closeProperties() { if (!matches(scope)) return; const focused=document.activeElement; if(focused instanceof HTMLElement&&focused.closest('[aria-label="Drawing properties"]')) document.querySelector<HTMLElement>('[data-output-focus-fallback]')?.focus(); w.closeProperties(); },
+    openDrawing() { if (!matches(scope)) return; showWorkArea(); dismissOutput(); setReportSelection(null); w.selectWorkAreaSection('design'); },
+    openAnswerOutput(id, opener) { if (!matches(scope)) return; showWorkArea(); outputWorkspace.openOutput(id, opener); },
+    openSavedReport(opener) {
+      if (!matches(scope) || !scope.taskId || !w.run || w.runtimeConfig?.supportedExports && !w.runtimeConfig.supportedExports.includes('report-json')) return;
+      showWorkArea(); reportTrigger.current=opener??(document.activeElement instanceof HTMLElement?document.activeElement:null);
+      dismissOutput(); w.closeProperties(); w.selectWorkAreaSection(w.workAreaSection === 'exports' ? 'exports' : 'assets');
+      w.setCanvasOpen(false); setReportRecord(null);
+      setReportSelection({scope,openId:++nextReportOpenId.current});
+    },
+    closePreview() { if (!matches(scope)) return; if(activeOutput)closeOutput(); else if(report)closeReport(); },
+    returnToDrawing() { if (!matches(scope)) return; showWorkArea(); if(activeOutput)closeOutput(); else if(report)closeReport(); w.selectWorkAreaSection('design'); },
+    focusReview(selector) { if(matches(scope))w.focusReview(selector); },
+  };
+  const activateAsset = (row: AssetRow, opener: HTMLElement | null) => {
+    if (!matches(row.scope) || liveAssets.current.scope.key !== row.scope.key || liveAssets.current.scope.epoch !== row.scope.epoch) return;
+    const current = liveAssets.current.rows.find(item => item.id === row.id);
+    if (!current) return;
+    setAssetNotice(null);
+    const destination = current.destination;
+    if (destination.kind === 'drawing') actions.openDrawing(opener);
+    else if (destination.kind === 'saved-source') { w.setSelectedSourceId(destination.sourceId); actions.openDrawing(opener); }
+    else if (destination.kind === 'answer-output') actions.openAnswerOutput(destination.outputId, opener);
+    else if (destination.kind === 'saved-report') actions.openSavedReport(opener);
+    else if (destination.kind === 'specialist-download') {
+      if (destination.taskId !== scope.taskId || !/^[a-f0-9]{64}$/.test(destination.sha256)) return;
+      const anchor=document.createElement('a'); anchor.href=`/api/service/tasks/${encodeURIComponent(destination.taskId)}/specialist-artifacts/${destination.sha256}`; anchor.download='evidence-report.json'; anchor.click();
+    } else setAssetNotice({scope, text: destination.reason});
+  };
+  const taskRetry = useRef<WorkScope | null>(null);
+  const [taskRetryScope, setTaskRetryScope] = useState<WorkScope | null>(null);
+  const retrySelectedTask = async () => {
+    const taskId=scope.taskId;
+    if (!taskId || scopedRun || taskRetry.current && matches(taskRetry.current)) return;
+    const token=scope; taskRetry.current=token; setTaskRetryScope(token); w.setError('');
+    try {
+      const value=await api<Run>(`tasks/${encodeURIComponent(taskId)}`);
+      if (!matches(token)) return;
+      if (value.id !== taskId) throw Error('The saved task response did not match this workspace. Retry the task.');
+      w.setRun(value); w.setMode(value.mode); w.setModel(value.model); w.setReasoningEffort(value.reasoningEffort ?? 'high');
+    } catch (failure) { if (matches(token)) w.setError((failure as Error).message); }
+    finally { if (taskRetry.current === token) taskRetry.current=null; if (matches(token)) setTaskRetryScope(null); }
+  };
+  const onSelectAlternative = async(selection: AlternativeSelection) => { if(matches(selection.scope)) await w.selectAlternative(selection); };
+  const focusSnapshot = useRef<{scope: WorkScope; section: typeof w.workAreaSection; preview: WorkAreaPreview; properties: boolean; opener: HTMLElement | null; widths: typeof w.panelWidths; pane: typeof w.workspacePane} | null>(null);
+  const enterFocus = (opener: HTMLElement) => {
+    setWorkAreaOpen(true);
+    focusSnapshot.current={scope,section:w.workAreaSection,preview,properties:w.propertiesOpen,opener,widths:w.panelWidths,pane:w.workspacePane};
+    w.closeProperties(); w.selectWorkAreaSection('design'); w.setCanvasOpen(true);
+    requestAnimationFrame(()=>{if(matches(scope))document.querySelector<HTMLElement>('button[aria-label="Exit focus drawing"]')?.focus();});
+  };
+  const exitFocus = () => {
+    const saved=focusSnapshot.current; w.setCanvasOpen(false);
+    if(saved&&matches(saved.scope)){
+      w.selectWorkAreaSection(saved.section); if(saved.properties)w.openProperties(); w.setWorkspacePane(saved.pane);
+      const previous=saved.preview;
+      if(previous.kind==='answer-output'&&!outputWorkspace.outputs.some(item=>item.id===previous.outputId))actions.openDrawing();
+      restoreFocus(scope,saved.opener);
+    } else {actions.openDrawing();restoreFocus(scope,null);}
+    focusSnapshot.current=null;
+  };
   const {workspacePane, setWorkspacePane, resizePanel} = w;
   const {authConfigured, desktopPreview} = w;
   const {
@@ -95,16 +262,11 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
     desktopAvailable,
     changeSettingsOpen,
     left,
-    right,
     toggleLeft,
-    showDesktopAssistant,
-    toggleRight,
     currentProject,
     buildUnavailable,
     deviceId,
     selectRun,
-    setRight,
-    setTab,
     refresh,
     studioView,
     viewportReady,
@@ -204,18 +366,54 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
     localConnections,
     setLocalConnections,
   } = w;
+  const navigation = useRef<HTMLDivElement | null>(null);
+  const [navigationNarrow, setNavigationNarrow] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia('(max-width:899px)');
+    const update = () => setNavigationNarrow(media.matches);
+    update(); media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+  useEffect(() => {
+    if (!navigationNarrow || !left || settingsOpen || canvasOpen) return;
+    const shell = navigation.current;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const frame = requestAnimationFrame(() => shell?.querySelector<HTMLButtonElement>('[aria-label="Collapse navigation"]')?.focus());
+    const trap = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab' || event.defaultPrevented || Array.from(document.querySelectorAll('[role="dialog"],[role="menu"]')).some(element => element !== shell && element.getClientRects().length > 0)) return;
+      const controls = Array.from(shell?.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),[tabindex="0"]') ?? [])
+        .filter(element => element.getClientRects().length > 0 && !element.closest('[hidden],[inert]'));
+      const first = controls[0], last = controls.at(-1);
+      if (event.shiftKey && (document.activeElement === first || !shell?.contains(document.activeElement))) {
+        event.preventDefault(); last?.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !shell?.contains(document.activeElement))) {
+        event.preventDefault(); first?.focus();
+      }
+    };
+    document.addEventListener('keydown', trap);
+    return () => {
+      cancelAnimationFrame(frame); document.removeEventListener('keydown', trap);
+      requestAnimationFrame(() => {
+        const focused = document.activeElement;
+        if ((focused === document.body || shell?.contains(focused)) && opener?.isConnected && opener.getClientRects().length) opener.focus();
+      });
+    };
+  }, [navigationNarrow, left, settingsOpen, canvasOpen]);
   useEffect(() => {
     if (!canvasOpen) return;
+    const token=scope;
     const escape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented || Array.from(document.querySelectorAll('[role="dialog"]')).some(element => element.getClientRects().length > 0)) return;
-      event.preventDefault();setCanvasOpen(false);
-      requestAnimationFrame(() => canvasTrigger.current?.focus());
+      if (!matches(token)||event.key !== 'Escape' || event.defaultPrevented || event.target instanceof HTMLElement && event.target.closest('select,[role="combobox"]') || Array.from(document.querySelectorAll('[role="dialog"],[role="menu"]')).some(element => element.getClientRects().length > 0)) return;
+      event.preventDefault(); exitFocus();
     };
     document.addEventListener('keydown', escape);
     return () => document.removeEventListener('keydown', escape);
-  }, [canvasOpen, setCanvasOpen, canvasTrigger]);
-  useEffect(() => {if (activeOutput) {setWorkspacePane('drawing');setStudioView('workspace');}}, [activeOutput?.id, setWorkspacePane]);
-  const conversationPanel = <ConversationPanel {...w} />;
+  }, [canvasOpen, scope.key, scope.epoch]);
+  useLayoutEffect(() => {
+    const focused=document.activeElement;
+    if(focused instanceof HTMLElement&&focused.isConnected&&!focused.getClientRects().length)document.querySelector<HTMLElement>(`.studio-pane-switch button[data-pane="${workspacePane}"]`)?.focus();
+  }, [workspacePane, w.effectiveLayout.split, canvasOpen, settingsOpen]);
+  const conversationPanel = <ConversationPanel {...w} openCanvas={trigger=>enterFocus(trigger)} workAreaActions={actions} />;
   const chatOptions = (
     <DropdownMenuPrimitive.Root>
       <DropdownMenuPrimitive.Trigger asChild>
@@ -316,20 +514,18 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
     );
   return (
     <>
-      <DesktopTitlebar
+      {desktopAvailable && <DesktopTitlebar
         settingsOpen={settingsOpen}
         leftWidth={panelWidths.left}
         nativeAvailable={desktopAvailable}
         onSettings={() => changeSettingsOpen(true)}
         left={left}
-        right={right}
         onToggleLeft={toggleLeft}
-        onToggleRight={showDesktopAssistant ? toggleRight : undefined}
         title={run?.title ?? 'New chat'}
         project={currentProject?.title}
         options={
           <>
-          <ShareButton taskId={run?.id} />
+          <ShareButton key={JSON.stringify([scope.key,scope.epoch])} taskId={run?.id} />
           <details
             className="studio-titlebar-options"
             onKeyDown={(event) => {
@@ -345,8 +541,7 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
                 sessionId={deviceId || undefined}
                 onComplete={(task) => {
                   selectRun(task);
-                  setRight(true);
-                  setTab('preview');
+                  actions.openProperties();
                   void refresh();
                 }}
               />
@@ -355,18 +550,21 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
           </details>
           </>
         }
-      />
+      />}
       <div
         id="datumm-workspace"
+        data-workspace-scene={w.scene}
         className={cn(
           'workspace',
           'desktop-workspace',
           'studio-stable-layout',
           canvasOpen && 'studio-drawing-focused',
           settingsOpen && 'studio-settings-open',
+          !workAreaOpen && 'studio-workarea-closed',
           studioView !== 'workspace' && 'studio-secondary-view',
           !left && 'left-closed',
-          !right && 'right-closed',
+          `studio-scene-${w.scene}`,
+          w.effectiveLayout.split ? 'studio-split' : 'studio-single',
           viewportReady && 'viewport-ready',
           `studio-pane-${workspacePane}`,
         )}
@@ -375,9 +573,12 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
             '--left-panel-width': `${panelWidths.left}px`,
             '--right-panel-width': `${panelWidths.right}px`,
             '--chat-panel-width': `${panelWidths.right}px`,
+            height: desktopAvailable ? undefined : '100dvh',
+            marginTop: desktopAvailable ? undefined : 0,
           } as React.CSSProperties
         }
       >
+        {!desktopAvailable&&!left&&!settingsOpen&&!canvasOpen&&<button type="button" className="studio-web-menu-trigger" aria-label="Open workspace navigation" aria-controls="workspace-navigation" aria-expanded={false} onClick={toggleLeft}><PanelLeft size={16} strokeWidth={1.9} aria-hidden="true"/></button>}
         {settingsOpen && (
           <header className="studio-settings-header">
             <div>
@@ -406,7 +607,13 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
           </div>
         )}
 
-        <Sidebar {...w} />
+        {navigationNarrow && left && !settingsOpen && !canvasOpen && <button type="button" className="sidebar-backdrop" aria-label="Close workspace navigation" onClick={() => { w.setLeft(false); requestAnimationFrame(() => { if (matches(scope)) document.querySelector<HTMLButtonElement>('[aria-label="Open workspace navigation"]')?.focus(); }); }} />}
+        <div id="workspace-navigation" ref={navigation} className="studio-navigation-shell"
+          role={navigationNarrow && left && !settingsOpen && !canvasOpen ? 'dialog' : undefined}
+          aria-modal={navigationNarrow && left && !settingsOpen && !canvasOpen ? true : undefined}
+          aria-label="Workspace navigation" inert={navigationNarrow && !left || canvasOpen}>
+          <Sidebar {...w} scope={scope} externalBackdrop openStudioView={view => { setWorkAreaOpen(true); w.openStudioView(view); }} />
+        </div>
         <Dialog
           open={Boolean(renameTarget)}
           onOpenChange={(open) => {
@@ -593,6 +800,7 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
                   {(run?.data.agent_design?.candidates.findIndex((c) => c.planId === designVersion.planId) ?? -1) + 1} ·
                   version {designVersion.version}
                   <small>{planAccepted ? 'Accepted drawing' : 'The displayed drawing will be used'}</small>
+                  <small>{designVersion.svg.includes('data-renderer="dimensioned-v1"') ? 'Saved vector room areas include a wall allowance; they are not clear areas.' : 'Saved vector room area basis is not specified.'}</small>
                 </span>
               </div>
             )}
@@ -745,14 +953,18 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
           <div className="studio-heading">
             <div>
               <h1>
-                {studioView === 'activity'
+                {!runId&&studioView!=='workspace'&&w.workAreaSection!=='activity'
+                  ? ({design:'Design',assets:'Assets',exports:'Exports',activity:'Activity'}[w.workAreaSection])
+                  : studioView === 'activity'
                   ? 'Activity'
                   : studioView === 'schedules'
                     ? 'Scheduled tasks'
                     : (run?.title ?? 'New chat')}
               </h1>
               <p>
-                {studioView === 'workspace'
+                {!runId&&studioView!=='workspace'&&w.workAreaSection!=='activity'
+                  ? 'Scoped workspace previews and available artifacts'
+                  : studioView === 'workspace'
                   ? (currentProject?.title ?? 'Architectural workspace') +
                     (activeDrawing ? ` · Proposed design v${activeDrawing.version}` : ' · Your next idea starts here')
                   : studioView === 'activity'
@@ -760,63 +972,42 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
                     : 'Scheduling capabilities'}
               </p>
             </div>
-            {studioView === 'workspace' && run && (
-              <span className="studio-status" data-state={workflowState(run).kind}>
-                {workflowState(run).label}
-              </span>
-            )}
           </div>
-          <div className="studio-artifact-actions">
-            <button type="button" className="studio-connection" onClick={() => setDeviceDialog(true)}>
-              <span className={cn('connection-dot', selectedDevice?.online && revitSessions === 1 && 'online')} />
-              {selectedDevice?.online && revitSessions === 1 ? 'Revit connected' : 'Connect Revit'}
-            </button>
-            {hasRenderablePlan && (run?.mode ?? mode) !== 'ask' && studioView === 'workspace' && (
-              <Button
-                className="studio-review-primary"
-                onClick={() =>
-                  focusReview(
-                    queueData?.native_build
-                      ? '[aria-label="Native build review"]'
-                      : queueData?.design
-                        ? '[aria-label="Validated design preview"]'
-                        : '.conversation',
-                  )
-                }
-              >
-                <Check size={15} />
-                Review {queueData?.native_build ? 'proposal' : 'design'}
-              </Button>
-            )}
-          </div>
+          {!workAreaOpen && w.effectiveLayout.split && !canvasOpen && <button type="button" className="studio-workarea-toggle" aria-label="Open work area" title="Open work area" aria-controls="workspace-drawing" aria-expanded={false}
+            onClick={() => { setWorkAreaOpen(true); requestAnimationFrame(() => { if (matches(scope)) document.querySelector<HTMLButtonElement>('[aria-label="Close work area"]')?.focus(); }); }}><WorkAreaOpenIcon size={17} aria-hidden="true" /></button>}
         </header>
         <div className="studio-pane-switch" role="group" aria-label="Workspace panes">
-          <button type="button" aria-pressed={workspacePane === 'chat'} onClick={() => {setCanvasOpen(false);setStudioView('workspace');setWorkspacePane('chat');}}><MessageSquare size={15}/>Chat</button>
-          <button type="button" aria-pressed={workspacePane === 'drawing'} onClick={() => setWorkspacePane('drawing')}><PencilRuler size={15}/>Work area</button>
+          <button type="button" data-pane="chat" aria-pressed={workspacePane === 'chat'} onClick={event => {event.currentTarget.focus();setCanvasOpen(false);setStudioView('workspace');setWorkspacePane('chat');}}><MessageSquare size={15}/>Chat</button>
+          <button type="button" data-pane="drawing" aria-pressed={workspacePane === 'drawing'} onClick={event => {event.currentTarget.focus();setWorkAreaOpen(true);setWorkspacePane('drawing');}}><PencilRuler size={15}/>Work area</button>
         </div>
-        <section id="workspace-chat" className="studio-chat-column studio-assistant-panel" aria-label="Chat">
+        <section id="workspace-chat" className="studio-chat-column studio-assistant-panel" aria-label="Chat" inert={settingsOpen||canvasOpen||!w.effectiveLayout.split&&workspacePane==='drawing'&&w.hasContent}>
+          {w.scene==='task-loading'&&(w.error||taskRetryScope&&matches(taskRetryScope))&&<div className="error-banner" role={w.error?'alert':'status'}><p>{w.error||'Loading the saved task…'}</p><Button variant="secondary" disabled={Boolean(taskRetryScope&&matches(taskRetryScope))} onClick={()=>void retrySelectedTask()}>Retry saved task</Button><Button variant="ghost" onClick={()=>newTask()}>New chat</Button></div>}
           {conversationPanel}
-          <PanelResize side="right" label="chat" direction="forward" width={panelWidths.right} onChange={value => resizePanel('right', value)} />
+          {workAreaOpen && <PanelResize side="right" label="chat and work area" direction="forward" width={panelWidths.right} maxWidth={w.effectiveLayout.chatMaxWidth} onChange={value => resizePanel('right', value)} />}
         </section>
-        <section id="workspace-drawing" className="studio-stage" aria-label="Architectural workspace">
-          <div className="studio-workarea-toolbar">
-            <button type="button" data-output-focus-fallback aria-pressed={!activeOutput && !reportOpen} title={activeDrawing ? `Plan ${activeDrawing.planId} · version ${activeDrawing.version} · ${activeDrawing.fingerprint}` : undefined} onClick={() => {if(activeOutput)closeOutput();setReportOpen(false);setStudioView('workspace');}}><PencilRuler size={15}/>Drawing{activeDrawing ? ` · v${activeDrawing.version}` : ''}</button>
-            {run && (!w.runtimeConfig?.supportedExports || w.runtimeConfig.supportedExports.includes('report-json')) && <button ref={reportTrigger} type="button" aria-pressed={reportOpen} onClick={() => {if(activeOutput)dismissOutput();setCanvasOpen(false);setStudioView('workspace');setWorkspacePane('drawing');setReportOpen(true);}}><TableProperties size={15}/><span>Schedules & BOQ</span></button>}
-            {activeOutput && <span className="studio-open-output-label">Output preview</span>}
-            <span className="studio-workarea-tools"/>
-            <button type="button" aria-label="Open properties" onClick={() => {setTab('preview');setRight(true);}}><PanelRight size={15}/><span>Properties</span></button>
-            <button type="button" aria-label={canvasOpen ? 'Exit focus drawing' : 'Focus drawing'} aria-pressed={canvasOpen} disabled={!hasRenderablePlan && !canvasOpen} title={!hasRenderablePlan ? 'A drawing is needed to focus this work area' : undefined} onClick={event => {if (!canvasOpen) {canvasTrigger.current = event.currentTarget;if(activeOutput)closeOutput();}setReportOpen(false);setStudioView('workspace');setCanvasOpen(!canvasOpen);}}>{canvasOpen ? <Minimize2 size={15}/> : <Maximize2 size={15}/>}<span>{canvasOpen ? 'Exit focus' : 'Focus drawing'}</span></button>
-          </div>
-          {activeOutput && studioView === 'workspace' && <OutputPanel />}
-          {reportOpen && run && studioView === 'workspace' && <ReviewReportPanel taskId={run.id} taskVersion={run.taskVersion} onClose={closeReport}/>}
-          <div className="studio-drawing-content" hidden={reportOpen || Boolean(activeOutput) || studioView !== 'workspace'}>
+        <section id="workspace-drawing" className="studio-stage" aria-label="Architectural workspace" inert={settingsOpen||!canvasOpen&&(!workAreaOpen&&w.effectiveLayout.split||!w.hasContent&&studioView==='workspace'||!w.effectiveLayout.split&&workspacePane==='chat')}>
+          <Inspector scope={scope} section={w.workAreaSection} preview={canvasOpen?{kind:'drawing',scope}:preview} propertiesOpen={w.propertiesOpen} actions={actions}
+            headerAction={w.effectiveLayout.split && !canvasOpen ? <button type="button" className="studio-workarea-toggle" aria-label="Close work area" title="Close work area" aria-controls="workspace-drawing" aria-expanded={true}
+              onClick={() => { setWorkAreaOpen(false); requestAnimationFrame(() => { if (matches(scope)) document.querySelector<HTMLButtonElement>('[aria-label="Open work area"]')?.focus(); }); }}><WorkAreaCloseIcon size={17} aria-hidden="true" /></button> : undefined}
+            slots={{
+            design: <>
+              <div className="studio-workarea-toolbar">
+                <button type="button" data-output-focus-fallback aria-pressed={canvasOpen||preview.kind==='drawing'} title={activeDrawing ? activeDrawingTitle : undefined} onClick={() => actions.openDrawing()}><PencilRuler size={15}/>Drawing{activeDrawing ? ` · v${activeDrawing.version}` : ''}</button>
+                <span className="studio-workarea-tools"/>
+                <button type="button" aria-label="Open properties" onClick={()=>actions.openProperties()}><PanelRight size={15}/><span>Properties</span></button>
+                <button type="button" aria-label={canvasOpen ? 'Exit focus drawing' : 'Focus drawing'} aria-pressed={canvasOpen} disabled={!hasRenderablePlan && !canvasOpen} onClick={event=>canvasOpen?exitFocus():enterFocus(event.currentTarget)}>{canvasOpen ? <Minimize2 size={15}/> : <Maximize2 size={15}/>}<span>{canvasOpen ? 'Exit focus' : 'Focus drawing'}</span></button>
+              </div>
+              <div className="studio-drawing-content">
             {activeDrawing ? (
               <PlanCanvas
                 key={`${activeDrawing.planId}:${activeDrawing.version}:${activeDrawing.fingerprint}`}
                 drawing={activeDrawing}
-                label="Workspace design"
+                exportOwnerKey={JSON.stringify([scope.key,scope.epoch])}
+                exportLabel={w.drawingCurrent ? exactConceptName(activeDrawing, scopedRun?.data.agent_design?.candidates) : undefined}
+                viewStyle={w.drawingStyle}
+                label={`${activeDrawingTitle}${w.drawingCurrent?'':' · Retained reference'}`}
                 selectedElement={selectedDesignElement}
-                onProperties={() => {setRight(true);setTab('preview');}}
+                onProperties={() => actions.openProperties()}
                 onStyleChange={setDrawingStyle}
                 highlights={designHighlights}
                 onSelectElement={setSelectedDesignElement}
@@ -834,8 +1025,15 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
                 {drawingError && <Button variant="secondary" onClick={() => setDrawingRetry(value => value + 1)}>Retry drawing</Button>}
               </div>
             )}
-          </div>
-          {studioView === 'activity' ? (
+
+              </div>
+            </>,
+            assetPreview: <>
+              <div className="studio-preview-output" hidden={!activeOutput} inert={!activeOutput}><OutputPanel/></div>
+              <div className="studio-preview-output" hidden={!report} inert={!report}>{report&&scope.taskId&&<ReviewReportPanel key={JSON.stringify([scope.key,scope.epoch,report.openId])} scope={scope} taskId={scope.taskId} openId={report.openId} taskVersion={run?.taskVersion} taskStatus={run?.status} currentPlan={run?.currentPlanRef} onReport={onReport} onClose={closeReport}/>}</div>
+            </>,
+            properties: <><BriefChips run={run}/>{activeDrawing?<StudioProperties drawing={activeDrawing} selected={selectedDesignElement} onSelect={setSelectedDesignElement} onRequest={askFromCanvas} onReview={!hasRenderablePlan||(run?.mode??mode)==='ask'?undefined:()=>actions.focusReview('[aria-label="Validated design preview"]')}/>:<div className="inspector-body"><h3>{w.contextTitle}</h3><p>{w.contextView}</p>{!selectedDevice?.online&&<Button variant="secondary" onClick={()=>setDeviceDialog(true)}>Connect Revit</Button>}</div>}<PlanDetails {...w} scope={scope} surface="design" onSelectAlternative={onSelectAlternative}/></>,
+            activity: <>{studioView === 'activity' ? (
             <div className="studio-page" tabIndex={-1}>
               <div className="studio-page-heading">
                 <div>
@@ -947,15 +1145,18 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
               </div>
               {run?.data.agent_scheduler && <AgentScheduler value={run.data.agent_scheduler} />}
             </div>
-          ) : null}
+          ) : null }{studioView==='workspace'&&<ActivityPanel key={scope.key} run={run} runId={runId} currentActivity={w.currentActivity} executing={executing} desktopAvailable={desktopAvailable} mode={mode} model={w.model} eventDetail={w.eventDetail}/>}<details className="studio-diagnostics"><summary>Tool diagnostics</summary>{w.mcpToolsError?<p>{w.mcpToolsError}</p>:w.mcpTools.length?w.mcpTools.map(tool=><details key={tool.name}><summary>{tool.name}</summary><p>{tool.description??'No description was provided by the bridge.'}</p><pre>{JSON.stringify(tool.inputSchema,null,2)}</pre></details>):<p>No tool catalog is available.</p>}<Button variant="secondary" onClick={()=>void refresh()}>Refresh tools</Button></details></>,
+            assets: <>{assetNotice&&matches(assetNotice.scope)&&<p role="status">{assetNotice.text}</p>}{w.selectionUncertain&&<p role="status">Confirm the saved selection in Design → Properties before choosing another concept.</p>}<AssetsPanel rows={assetRows} onActivate={activateAsset} onSelectAlternative={onSelectAlternative} selectionBusy={Boolean(w.busy||w.actionBusy||w.selectionUncertain)}/></>,
+            exports: <ExportsPanel workspace={w} scope={scope} outputs={outputWorkspace.outputs} report={parsedReport} actions={actions}/>,
+          }}/>
+
         </section>
 
-        <Inspector {...w} planDetails={<PlanDetails {...w} />} />
 
         <Dialog open={deviceDialog} onOpenChange={setDeviceDialog}>
-          <DialogContent className="device-dialog" onCloseAutoFocus={restoreDialogFocus}>
+          <DialogContent className="device-dialog" onOpenAutoFocus={event=>{if(deviceDialogHeading.current){event.preventDefault();deviceDialogHeading.current.focus();}}} onCloseAutoFocus={restoreDialogFocus}>
             <DialogHeader>
-              <DialogTitle>Connect your workspace</DialogTitle>
+              <DialogTitle ref={deviceDialogHeading} tabIndex={-1}>Connect your workspace</DialogTitle>
               <DialogDescription>
                 Authorize your Windows connector with this account. Choose how DATUMM approves plans for your Revit
                 project.
@@ -1144,11 +1345,12 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
         </footer>
         <DesktopSettings
           open={settingsOpen}
+          sectionRequest={w.settingsTarget}
           onOpenChange={changeSettingsOpen}
           authConfigured={authConfigured}
           models={models}
           taskTitle={run?.title}
-          usageContent={run?.data.usage && run.data.usage.rootTaskId === run.id ? <ContextUsage usage={run?.data.usage}/> : undefined}
+          usageContent={run?.data.usage && run.data.usage.rootTaskId === run.id && (run.data.usage.scope === 'execution_ledger' ? run.data.usage.ownerTaskId === run.id && Boolean(run.data.usage.ledgerExecutionId) : !run.data.usage.ownerTaskId || run.data.usage.ownerTaskId === run.id) ? <ContextUsage usage={run?.data.usage}/> : undefined}
           generalContent={generalSettingsContent}
           revitContent={
             <>
@@ -1177,10 +1379,10 @@ function WorkspaceContent({w}: {w: WorkspaceState}) {
             </>
           }
         />
-        <ProjectContext open={projectContextOpen} onOpenChange={setProjectContextOpen} />
+        <ProjectContext open={projectContextOpen} onOpenChange={setProjectContextOpen} run={scopedRun} selectedTaskId={scope.taskId} project={contextProject} accountKey={scope.accountKey} onUseBrief={useProjectBriefDraft} onAmendDraft={amendBriefDraft} />
       </div>
       <Dialog open={localConnections} onOpenChange={setLocalConnections}>
-        <DialogContent>
+        <DialogContent onCloseAutoFocus={restoreDialogFocus}>
           <DialogHeader>
             <DialogTitle>Local Revit MCP</DialogTitle>
             <DialogDescription>

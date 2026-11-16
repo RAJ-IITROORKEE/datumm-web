@@ -2,15 +2,17 @@
 
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
-import { Archive, Check, CircleHelp, Ellipsis, FolderOpen, Pencil, Pin, Trash2 } from 'lucide-react';
+import { Archive, Check, CircleHelp, Pencil, Share2, Trash2 } from 'lucide-react';
+import { Ellipsis, FolderOpen, Pin } from './sidebar-icons';
 import { cn } from '@/lib/utils';
 import { hasPendingQuestion, workflowState } from '@/lib/workflow-state';
 import type { ProjectRow, Run } from './use-workspace-state';
+import styles from './sidebar.module.css';
 
 /** One minimal chat row: title only, status dots, inline rename and a row menu. */
 export function ChatRow({
   item, selected, busy, unread, dialogTrigger, onSelect, onHistory, onDelete, onProjects,
-  onRename, moveTargets, onMove,
+  onRename, moveTargets, onMove, onShare,
 }: {
   item: Run;
   selected: boolean;
@@ -26,11 +28,14 @@ export function ChatRow({
   /** Present only when hosted projects are available. */
   moveTargets?: ProjectRow[];
   onMove?: (projectId: string | null) => void;
+  onShare?: () => void;
 }) {
   const [editing, setEditing] = useState(false),
     [title, setTitle] = useState(item.title),
     input = useRef<HTMLInputElement>(null),
+    select = useRef<HTMLButtonElement>(null),
     skipRestore = useRef(false),
+    pendingShare = useRef(false),
     settled = useRef(false);
   useEffect(() => {
     if (editing) {
@@ -40,57 +45,70 @@ export function ChatRow({
     }
   }, [editing]);
   // Commit once (Enter or blur); a failed rename reopens the field with what was typed.
-  const commit = async () => {
+  const commit = async (restoreFocus = false) => {
     if (settled.current) return;
     settled.current = true;
     const next = title.trim();
     setEditing(false);
-    if (next && next !== item.title && onRename && !(await onRename(next))) {
+    try {
+      if (next && next !== item.title && onRename && !(await onRename(next))) {
+        setTitle(next);
+        setEditing(true);
+        return;
+      }
+      if (restoreFocus) select.current?.focus();
+    } catch {
       setTitle(next);
       setEditing(true);
     }
   };
   const running = ['queued', 'running'].includes(item.status) && workflowState(item).kind === 'in_progress';
   return (
-    <div className={cn('history-row', selected && 'selected')}>
+    <div className={cn(styles.row, selected && styles.selected)}>
       {editing ? (
         <input
           ref={input}
-          className="history-rename"
+          className={styles.rename}
           aria-label="Rename chat"
           value={title}
           maxLength={120}
+          disabled={busy}
           onChange={(event) => setTitle(event.target.value)}
           onBlur={() => void commit()}
           onKeyDown={(event) => {
+            if (event.nativeEvent.isComposing || event.keyCode === 229) return;
             if (event.key === 'Enter') {
               event.preventDefault();
-              void commit();
+              void commit(true);
             }
             if (event.key === 'Escape') {
               event.preventDefault();
               settled.current = true;
               setEditing(false);
+              requestAnimationFrame(() => select.current?.focus());
             }
           }}
         />
       ) : (
-        <button className="history-item" disabled={busy} onClick={onSelect}>
-          <span title={item.title}>{item.title}</span>
-          {running && <span className="chat-running" role="img" aria-label="Chat running" />}
+        <button type="button" ref={select} className={styles.chatButton} disabled={busy} onClick={onSelect}
+          aria-current={selected ? 'page' : undefined}>
+          <span title={item.title} dir="auto">{item.title}</span>
+          {running && <span className={styles.running} role="img" aria-label="Chat running" />}
           {hasPendingQuestion(item) && (
-            <CircleHelp size={12} className="chat-attention" aria-label="Chat needs your answer" />
+            <CircleHelp size={12} className={styles.attention} aria-label="Chat needs your answer" />
           )}
           {['failed', 'interrupted'].includes(item.status) && (
-            <span className="chat-error" role="img" aria-label="Chat failed" />
+            <span className={styles.failed} role="img" aria-label="Chat failed" />
           )}
-          {unread && <span className="chat-unread" role="img" aria-label="Unread result" />}
+          {unread && <span className={styles.unread} role="img" aria-label="Unread result" />}
         </button>
       )}
+      <div className={styles.chatActions}>
       <DropdownMenuPrimitive.Root>
         <DropdownMenuPrimitive.Trigger asChild>
           <button
-            className="icon-button task-menu-trigger"
+            type="button"
+            className={cn(styles.smallButton, styles.chatMenu)}
             aria-label={`Options for ${item.title}`}
             data-run-id={item.id}
             disabled={busy}
@@ -98,7 +116,7 @@ export function ChatRow({
               dialogTrigger.current = event.currentTarget;
             }}
           >
-            <Ellipsis size={16} />
+            <Ellipsis size={15} strokeWidth={1.9} />
           </button>
         </DropdownMenuPrimitive.Trigger>
         <DropdownMenuPrimitive.Portal>
@@ -107,12 +125,21 @@ export function ChatRow({
             align="start"
             sideOffset={5}
             onCloseAutoFocus={(event) => {
+              if (pendingShare.current) {
+                event.preventDefault();
+                pendingShare.current = false;
+                onShare?.();
+                return;
+              }
               if (skipRestore.current) {
                 event.preventDefault();
                 skipRestore.current = false;
               }
             }}
           >
+            {onShare && <DropdownMenuPrimitive.Item onSelect={() => { pendingShare.current = true; }}>
+              <Share2 size={14} strokeWidth={1.9} /> Share
+            </DropdownMenuPrimitive.Item>}
             {onRename && (
               <DropdownMenuPrimitive.Item
                 onSelect={() => {
@@ -121,13 +148,13 @@ export function ChatRow({
                   setEditing(true);
                 }}
               >
-                <Pencil size={14} /> Rename
+                <Pencil size={14} strokeWidth={1.9} /> Rename
               </DropdownMenuPrimitive.Item>
             )}
             {moveTargets && onMove && (
               <DropdownMenuPrimitive.Sub>
                 <DropdownMenuPrimitive.SubTrigger>
-                  <FolderOpen size={14} /> Move to project
+                  <FolderOpen size={14} strokeWidth={1.9} /> Move to project
                 </DropdownMenuPrimitive.SubTrigger>
                 <DropdownMenuPrimitive.Portal>
                   <DropdownMenuPrimitive.SubContent className="action-menu" sideOffset={4}>
@@ -149,21 +176,27 @@ export function ChatRow({
               </DropdownMenuPrimitive.Sub>
             )}
             <DropdownMenuPrimitive.Item onSelect={() => onHistory(item.pinned_at ? 'unpin' : 'pin')}>
-              <Pin size={14} /> {item.pinned_at ? 'Unpin' : 'Pin chat'}
+              <Pin size={14} strokeWidth={1.9} /> {item.pinned_at ? 'Unpin' : 'Pin chat'}
             </DropdownMenuPrimitive.Item>
             <DropdownMenuPrimitive.Item onSelect={() => onHistory(item.archived_at ? 'unarchive' : 'archive')}>
-              <Archive size={14} /> {item.archived_at ? 'Restore chat' : 'Archive'}
+              <Archive size={14} strokeWidth={1.9} /> {item.archived_at ? 'Restore chat' : 'Archive'}
             </DropdownMenuPrimitive.Item>
             <DropdownMenuPrimitive.Item onSelect={onProjects}>
-              <FolderOpen size={14} /> Projects &amp; local files
+              <FolderOpen size={14} strokeWidth={1.9} /> Projects &amp; local files
             </DropdownMenuPrimitive.Item>
             <DropdownMenuPrimitive.Separator />
             <DropdownMenuPrimitive.Item className="danger-item" onSelect={onDelete}>
-              <Trash2 size={14} /> Delete chat
+              <Trash2 size={14} strokeWidth={1.9} /> Delete chat
             </DropdownMenuPrimitive.Item>
           </DropdownMenuPrimitive.Content>
         </DropdownMenuPrimitive.Portal>
       </DropdownMenuPrimitive.Root>
+      <button type="button" className={cn(styles.smallButton, styles.chatMenu)} disabled={busy}
+        aria-label={`${item.pinned_at ? 'Unpin' : 'Pin'} ${item.title}`}
+        onClick={() => onHistory(item.pinned_at ? 'unpin' : 'pin')}>
+        <Pin size={14} strokeWidth={1.9} aria-hidden="true" />
+      </button>
+      </div>
     </div>
   );
 }

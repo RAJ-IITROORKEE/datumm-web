@@ -1,0 +1,30 @@
+.card { min-width:0; display:grid; gap:10px; margin-bottom:8px; padding:12px; border:1px solid var(--border); border-radius:12px; background:var(--card); color:var(--foreground); font-family:inherit; }
+.heading { display:flex; align-items:center; gap:8px; }
+.heading h3 { flex:1; min-width:0; margin:0; font-size:13px; font-weight:600; line-height:1.4; }
+.toggle { flex:none; padding:5px 8px; border:0; border-radius:6px; background:transparent; color:var(--foreground); font:inherit; font-size:12px; cursor:pointer; }
+.toggle:hover { background:var(--secondary); }
+.details { display:grid; gap:12px; min-width:0; }
+.details[hidden] { display:none; }
+.body { display:grid; gap:14px; max-height:min(48vh, 400px); overflow-y:auto; overscroll-behavior:contain; }
+.group { display:grid; gap:8px; min-width:0; padding:0; margin:0; border:0; }
+.group legend { padding:0; font-size:13px; line-height:1.45; font-weight:600; overflow-wrap:anywhere; }
+.optional, .reason { color:var(--muted-foreground); font-size:12px; font-weight:400; }
+.reason { margin:0; line-height:1.45; }
+.choices { display:grid; gap:6px; min-width:0; }
+.choice { display:flex; align-items:flex-start; gap:9px; min-width:0; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--background); color:var(--foreground); cursor:pointer; font-size:13px; line-height:1.45; overflow-wrap:anywhere; }
+.choice:hover { background:var(--secondary); }
+.choice:has(input:checked) { background:var(--secondary); border-color:var(--trace-accent); }
+.choice input { flex:none; margin:3px 0 0; accent-color:var(--trace-accent); }
+.choice span { min-width:0; }
+.choice small { display:block; margin-top:2px; color:var(--muted-foreground); }
+.choice .recommended { display:inline; margin-left:6px; }
+.custom { display:grid; gap:5px; color:var(--muted-foreground); font-size:12px; }
+.custom input,.custom textarea { box-sizing:border-box; width:100%; min-width:0; padding:8px; border:1px solid var(--border); border-radius:8px; background:var(--background); color:var(--foreground); font:inherit; resize:vertical; }
+.card :is(input,textarea,button,h3):focus-visible { outline:2px solid var(--trace-accent); outline-offset:2px; }
+.footer { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; }
+.footer small { color:var(--muted-foreground); font-size:12px; line-height:1.4; }
+.error { margin:0; color:var(--destructive); font-size:12px; }
+@media (max-width:390px) { .card { padding:12px; } .footer button { width:100%; } }
+@media (max-width:560px) { .choice { min-height:44px; align-items:center; } .toggle { min-width:44px; min-height:44px; } .custom input,.custom textarea { font-size:16px; } }
+@media (max-width:899px), (max-height:800px) { .body { max-height:min(32dvh, 280px); } }
+@media (max-width:899px), (pointer:coarse) { .footer button { min-height:44px; } }

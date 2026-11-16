@@ -3,5 +3,5 @@ export type ProcessRow = { key: string; name: string; status: ProcessStatus; tea
 export function processStatus(value: string): ProcessStatus;
 export function settledStatus(status: ProcessStatus, active: boolean, waiting: boolean): ProcessStatus;
 export function aggregateStatus(statuses: ProcessStatus[]): ProcessStatus;
-export function processRows(events: { index: number; eventId?: string; stage: string; detail: string; callId?: string; toolCallId?: string }[], active: boolean, waiting: boolean): ProcessRow[];
+export function processRows(events: { index: number; eventId?: string; stage: string; detail: string; callId?: string; toolCallId?: string; taskId?: string; turnId?: string; executionId?: string; sessionId?: string }[], active: boolean, waiting: boolean): ProcessRow[];
 export function activityStateLabel(status: string | undefined, active: boolean, waiting: boolean): string;

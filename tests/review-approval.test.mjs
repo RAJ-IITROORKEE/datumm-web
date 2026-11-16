@@ -51,7 +51,40 @@ test('refresh and scoped-access navigation do not approve, and rejected approval
 test('plan acceptance is separate from native preparation and stale or pending drawings cannot prepare',async()=>{
   const h=harness('plan-review-card.tsx','PlanReviewCard'),calls=[];let finish;
   const props={alternatives:2,planVersion:2,planId:'plan-a',fingerprint:'fingerprint-a',accepted:false,mode:'plan',busy:false,drawingLoading:false,drawingCurrent:true,buildReady:false,showPlacement:false,onRequestChanges(){},onDetails(){},onAccept:()=>{calls.push('accept');return new Promise(resolve=>{finish=resolve;});},onSwitchToBuild:async()=>{calls.push('mode');},onPrepare:async()=>{calls.push('prepare');},onPlacement(){}};
-  const accept=button(h.render(props),'Accept this plan');accept.props.onClick();accept.props.onClick();assert.deepEqual(calls,['accept']);finish();await settle();
+  const initial=h.render(props), identity=initial.find(el=>el.type==='details');
+  assert.ok(identity);assert.notEqual(identity.props.open,true);
+  assert.match(words(elements(identity)),/Technical plan identity/);assert.match(words(elements(identity)),/plan-a/);assert.match(words(elements(identity)),/fingerprint-a/);
+  assert.match(words(initial),/Review required.*v2/);assert.match(words(initial),/Does not change Revit/);
+  const accept=button(h.render(props),'Accept plan');accept.props.onClick();accept.props.onClick();assert.deepEqual(calls,['accept']);finish();await settle();
   for(const changes of [{drawingCurrent:false},{drawingLoading:true},{drawingError:'Unavailable'},{busy:true}]){const unavailable={...props,accepted:true,mode:'build',buildReady:true,...changes};const prepare=button(h.render(unavailable),'Prepare accepted plan');assert.equal(prepare.props.disabled,true);prepare.props.onClick();await settle();}
   assert.deepEqual(calls,['accept']);
+});
+
+
+test('licensed ChangeSummary counts supplied operations in first-kind order without implying approval or execution',()=>{
+ const vendor={};
+ const compile=path=>ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText;
+ runInNewContext(compile('../src/components/vendor/affectui/change-summary-clean.tsx'),{exports:vendor,require(name){if(name==='react/jsx-runtime')return jsx;throw Error(name);}});
+ const adapter={};runInNewContext(compile('../src/components/review/change-summary.tsx'),{exports:adapter,require(name){if(name==='react/jsx-runtime')return jsx;if(name==='../vendor/affectui/change-summary-clean')return vendor;if(name.endsWith('.module.css'))return {default:{}};if(name==='lucide-react')return {Trash2:()=>null};throw Error(name);}});
+ const operations=[{key:'a',kind:'wall'},{key:'b',kind:'unrecognized_kind'},{key:'c',kind:'wall'},{key:'d',kind:'delete'}];
+ const tree=adapter.OperationChangeSummary({operations,title:'Changes awaiting approval'}),mount=elements(tree).find(row=>row.type===vendor.ChangeSummary);
+ assert.equal(mount.props.title,'Changes awaiting approval');
+ assert.deepEqual(Array.from(mount.props.changes,row=>[row.label,row.change,row.tone]),[['Walls','2','neutral'],['unrecognized kind','1','neutral'],['Deletions','1','neutral']]);
+ assert.ok(mount.props.changes.every(row=>!Object.hasOwn(row,'direction')));assert.equal(mount.props.period,undefined);
+ assert.match(words(elements(tree)),/4.*operations.*supplied change set/);
+ const rendered=elements(vendor.ChangeSummary(mount.props));assert.equal(rendered.filter(row=>row.type==='dd').length,3);
+ const zero=adapter.OperationChangeSummary({operations:[]});assert.match(words(elements(zero)),/0.*operations.*No operations were supplied/);
+ assert.doesNotMatch(words(elements(tree)),/applied|verified|improvement|%/i);
+});
+
+test('brief revision is a separate guarded draft entry and uncertain selection cannot approve',async()=>{
+ const h=harness('plan-review-card.tsx','PlanReviewCard'),calls=[];
+ const props={alternatives:3,planTitle:'Concept 2 · Version 1',accepted:false,mode:'plan',busy:false,drawingLoading:false,drawingCurrent:true,buildReady:false,showPlacement:false,onRequestChanges:()=>calls.push('draft'),onDetails(){},onAccept:async()=>calls.push('accept'),onSwitchToBuild:async()=>calls.push('build'),onPrepare:async()=>calls.push('prepare'),onPlacement(){}};
+ let tree=h.render(props);assert.match(words(tree),/Concept 2 · Version 1/);
+ button(tree,'Revise brief').props.onClick();assert.deepEqual(calls,['draft']);
+ for(const changes of [{busy:true},{revisionBlockedReason:'Answer the pending question first.'}]){
+  tree=h.render({...props,...changes});const revise=button(tree,'Revise brief');assert.equal(revise.props.disabled,true);revise.props.onClick();
+ }
+ tree=h.render({...props,selectionUncertain:true});const accept=button(tree,'Accept plan');assert.equal(accept.props.disabled,true);await accept.props.onClick();
+ assert.deepEqual(calls,['draft']);
 });

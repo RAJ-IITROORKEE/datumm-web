@@ -2,6 +2,7 @@ export type ReportCell = string | number | null;
 export type ReportTable = { columns: { key: string; label: string }[]; rows: Record<string, ReportCell>[] };
 export type ReviewReport = {
   schemaVersion: 1;
+  savedRevision?: { revisionId: string; reportId: string; revisionNumber: number | null; createdAt: string; contentHash: string; sourcePlan: {planId: string; version: number; fingerprint: string; title?: string | null} | null };
   runId: string;
   documentId: string | null;
   modelRevision: number | null;

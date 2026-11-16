@@ -1,0 +1,30 @@
+.root{margin-block:16px;min-width:0;color:var(--foreground);font-size:13px;line-height:1.55}
+.notice{margin:0 0 12px;color:var(--muted-foreground);font-size:12px}
+.stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;min-width:0}
+.text{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.scroll{max-width:100%;overflow:auto;border-radius:4px}
+.scroll:focus-visible,.details summary:focus-visible{outline:2px solid var(--ui-as-focus);outline-offset:3px}
+.table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;text-align:left}
+.table caption{text-align:left;color:var(--foreground);font-weight:500;padding-bottom:10px}
+.table th{font-weight:500;color:var(--muted-foreground)}
+.table th,.table td{padding:8px 12px 8px 0;border-bottom:1px solid var(--separator);vertical-align:top;overflow-wrap:anywhere;min-width:90px}
+.figure{margin:0;min-width:0;overflow-wrap:anywhere}
+.figure figcaption{font-weight:500;margin-bottom:12px}
+.figure figcaption span{color:var(--muted-foreground);font-weight:400}
+.bars{margin:0;display:flex;flex-direction:column;gap:10px;font-variant-numeric:tabular-nums}
+.bars>div{display:grid;grid-template-columns:minmax(64px,1fr) minmax(100px,2fr);gap:12px}
+.bars dt{overflow-wrap:anywhere}
+.bars dd{margin:0;display:flex;align-items:center;gap:10px}
+.track{height:6px;background:var(--hover);flex:1;min-width:0;border-radius:2px;overflow:hidden}
+.track>span{display:block;height:100%;background:var(--accent);border-radius:2px}
+.nodes,.edges{padding:0;margin:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px}
+.nodes>li{border:1px solid var(--border);border-radius:6px;padding:6px 10px;overflow-wrap:anywhere;max-width:100%}
+.edges{margin-top:12px;flex-direction:column;gap:6px;color:var(--muted-foreground)}
+.edges li{display:flex;gap:8px;align-items:center;overflow-wrap:anywhere}
+.edges li span{min-width:0}
+.edges svg{flex:none}
+.details{border-top:1px solid var(--separator);padding-top:10px}
+.details summary{cursor:pointer;min-height:32px;overflow-wrap:anywhere}
+.details[open]>.stack{margin-top:10px}
+@media(max-width:640px){.grid{grid-template-columns:minmax(0,1fr)}.details summary{min-height:44px;display:list-item;padding-block:10px}.bars>div{grid-template-columns:minmax(60px,1fr) minmax(100px,2fr)}}

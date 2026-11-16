@@ -11,16 +11,17 @@ test('plan steps map progress to done and pending',()=>{
  assert.deepEqual(todoSummary(items),{done:1,total:3,allDone:false,current:undefined});
 });
 
-test('an active turn marks the first unfinished step as running',()=>{
+test('an active task does not invent which pending plan step is running',()=>{
  const items=deriveTodos({plan,active:true});
- assert.deepEqual(items.map(i=>i.status),['done','running','pending']);
- assert.equal(todoSummary(items).current.title,'Draft plan');
+ assert.deepEqual(items.map(i=>i.status),['done','pending','pending']);
+ assert.equal(todoSummary(items).current,undefined);
 });
 
 test('falls back to native todos and reports all done',()=>{
  const items=deriveTodos({todos:[{content:'One',status:'completed'},{content:'Two',status:'completed'}]});
  assert.equal(todoSummary(items).allDone,true);
- assert.deepEqual(deriveTodos({todos:[{content:'X',status:'in_progress'}]}).map(i=>i.status),['running']);
+ assert.deepEqual(deriveTodos({todos:[{content:'X',status:'in_progress'}],active:true}).map(i=>i.status),['running']);
+ assert.deepEqual(deriveTodos({todos:[{content:'X',status:'in_progress'}]}).map(i=>i.status),['unconfirmed']);
 });
 
 test('no plan and no todos yields nothing',()=>{
@@ -28,9 +29,21 @@ test('no plan and no todos yields nothing',()=>{
  assert.equal(todoSummary([]).allDone,false);
 });
 
-test('Ask turns without a plan use stage spans as the checklist',()=>{
+test('stage spans remain process evidence and never become invented checklist completion',()=>{
  const spans=[{id:'1',title:'Read',done:true},{id:'5',title:'Answer',done:false}];
- assert.deepEqual(deriveTodos({spans,active:true}).map(i=>i.status),['done','running']);
- assert.deepEqual(deriveTodos({spans,active:false}).map(i=>i.status),['done','done']);
+ assert.deepEqual(deriveTodos({spans,active:true}),[]);
+ assert.deepEqual(deriveTodos({spans,active:false}),[]);
  assert.equal(deriveTodos({plan,spans}).length,3);
 });
+
+test('recorded failure, stopped and unknown states cannot become success or running',()=>{
+ const todos=['failed','cancelled','new_server_status','pending'].map((status,index)=>({content:String(index),status}));
+ assert.deepEqual(deriveTodos({todos,active:true}).map(item=>item.status),['failed','stopped','unknown','pending']);
+});
+
+test('settled recorded pending steps remain unconfirmed, and partial and failed stay distinct',()=>{
+ const fixture=JSON.parse(readFileSync(new URL('./fixtures/revision-flow-v4-progress-usage.json',import.meta.url),'utf8'));
+ assert.deepEqual(deriveTodos({plan:fixture.data.agent_task_plan,settled:true}).map(i=>i.status),['done','unconfirmed','unconfirmed']);
+ assert.deepEqual(deriveTodos({todos:[{content:'Partial',status:'partial'},{content:'Failed',status:'failed'},{content:'Unknown',status:'future'}],settled:true}).map(i=>i.status),['partial','failed','unknown']);
+});
+import {readFileSync} from 'node:fs';

@@ -1,0 +1,13 @@
+.plan { min-width: 0; margin: 10px 0 14px; color: var(--text); font-size: 13px; line-height: 20px; }
+.heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; color: var(--ink); font-weight: 500; }
+.heading small, .state { color: var(--text); font-size: 12px; font-weight: 400; }
+.list { display: grid; gap: 5px; padding: 0; margin: 0; list-style: none; }
+.list li { display: flex; align-items: baseline; min-width: 0; gap: 8px; }
+.list li > svg { flex: none; align-self: flex-start; margin-top: 3px; }
+.list li > span { min-width: 0; overflow-wrap: anywhere; }
+.list li[data-status='done'] > svg { color: var(--aui-success); }
+.list li[data-status='running'] { color: var(--ink); }
+.list li[data-status='failed'], .list li[data-status='failed'] .state { color: var(--aui-danger); }
+.state { margin-left: auto; flex: none; }
+.note { margin: 0 0 8px; color: var(--text); font-size: 12px; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .list li { flex-wrap: wrap; } .state { margin-left: 22px; } }

@@ -5,6 +5,7 @@ import {runInNewContext} from 'node:vm';
 import * as React from 'react';
 import * as jsxRuntime from 'react/jsx-runtime';
 import ts from 'typescript';
+import * as geometry from '../src/lib/plan-geometry.mjs';
 
 const compile=path=>ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText;
 const code=compile('../src/components/design-review.tsx');
@@ -21,7 +22,7 @@ function harness(input={}) {
  const slots=[];let cursor=0;
  const hooks={...React,useEffect(){},useRef(initial){const i=cursor++;return slots[i]??={current:initial};},useState(initial){const i=cursor++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return [slots[i],next=>{slots[i]=typeof next==='function'?next(slots[i]):next;}];}};
  const exports={};
- runInNewContext(code,{exports,Date,require(name){if(name==='react')return hooks;if(name==='react/jsx-runtime')return jsxRuntime;if(name==='@/lib/workflow-state')return workflow;if(name.endsWith('.module.css'))return {default:new Proxy({},{get:(_,key)=>key})};return new Proxy({},{get:(_,key)=>Object.assign(()=>null,{displayName:key})});}});
+ runInNewContext(code,{exports,Date,require(name){if(name==='react')return hooks;if(name==='react/jsx-runtime')return jsxRuntime;if(name==='@/lib/workflow-state')return workflow;if(name==='@/lib/plan-geometry.mjs')return geometry;if(name.endsWith('.module.css'))return {default:new Proxy({},{get:(_,key)=>key})};return new Proxy({},{get:(_,key)=>Object.assign(()=>null,{displayName:key})});}});
  let props={taskId:'task-1',value,pending:false,sessions:[{id:'session-1',name:'Revit'}],mode:'build',model:'actual-model',onBuild:async()=>{},onAction:async()=>{},onReview:async()=>{},...input};
  return {render(next={}){props={...props,...next};cursor=0;return exports.DesignReview(props);}};
 }
@@ -131,4 +132,27 @@ test('layout acceptance keeps its exact source confirmation payload and never ca
  const accepted=h.render({value:{...value,selected:candidate.fingerprint}});
  assert.equal(button(accepted,'Accepted design').props.disabled,true);
  assert.equal(find(accepted,e=>e.props['aria-label']==='Accepted design placement').props.tabIndex,-1);
+});
+
+
+test('saved vector disclosure distinguishes the known renderer from an unspecified area basis',()=>{
+ const known={...candidate,svg:'<svg data-renderer="dimensioned-v1"><text>17.3 m²</text></svg>'};
+ const tree=harness({value:{...value,candidates:[known]}}).render();
+ assert.match(text(tree),/Saved vector room areas include a wall allowance/);
+ assert.match(text(tree),/estimated clear dimensions/);
+ assert.match(text(tree),/Non-rectangular rooms are not estimated/);
+ const download=find(tree,e=>e.type==='a'&&e.props.download);
+ assert.equal(decodeURIComponent(download.props.href.split(',')[1]),known.svg);
+ const unknown=harness().render();
+ assert.match(text(unknown),/Saved vector room area basis is not specified/);
+ assert.doesNotMatch(text(unknown),/include a wall allowance/);
+});
+
+
+test('non-rectangular room schedule withholds the bounding rectangle estimate',()=>{
+ const polygon={...candidate.graph.rooms[0],boundary:[[0,0],[6000,0],[6000,3000],[3000,3000],[3000,6000],[0,6000]]};
+ const revised={...candidate,graph:{...candidate.graph,rooms:[polygon]}};
+ const tree=harness({value:{...value,candidates:[revised]}}).render();
+ assert.match(text(tree),/Studio · Clear area and dimensions unavailable/);
+ assert.doesNotMatch(text(tree),/34\.22 m²/);
 });

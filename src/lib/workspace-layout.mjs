@@ -15,20 +15,61 @@ export const isRenderablePlan = (activeDrawing, previewSvg) =>
 export function reviewFocus(selector, {
   setStudioView,
   setWorkspacePane,
-  setRight,
+  closeProperties,
   reviewScroll,
   requestFrame = requestAnimationFrame,
   doc = document,
 }) {
   setStudioView('workspace');
   setWorkspacePane('chat');
-  setRight(false);
+  closeProperties();
   requestFrame(() => {
     reviewScroll.current?.stopScroll();
     const target = doc.querySelector(selector) ?? doc.querySelector('.conversation');
     target?.scrollIntoView({behavior: 'smooth', block: 'start'});
     target?.focus?.({preventScroll: true});
   });
+}
+
+export const DEFAULT_WORKSPACE_LAYOUT = {version: 2, navigationWidth: 224, chatWidth: 380};
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+/** Legacy right was the chat column, never a fourth inspector column. */
+export function readWorkspaceLayout(storage) {
+  try {
+    const saved = JSON.parse(storage.getItem('datumm-workspace-layout-v2') ?? 'null');
+    if (saved?.version === 2 && Number.isFinite(saved.navigationWidth) && Number.isFinite(saved.chatWidth)) {
+      // Old records cannot distinguish a factory width from a custom choice at that same width.
+      const formerDefault = (saved.navigationDefaultRevision ?? 0) < 2 &&
+        (saved.navigationWidth === 248 || (!saved.navigationDefaultRevision && saved.navigationWidth === 272));
+      const navigationWidth = formerDefault ? DEFAULT_WORKSPACE_LAYOUT.navigationWidth : saved.navigationWidth;
+      return {version: 2, navigationWidth: clamp(navigationWidth, 180, 440), chatWidth: clamp(saved.chatWidth, 320, 620)};
+    }
+    const legacy = JSON.parse(storage.getItem('datumm-panel-widths') ?? 'null');
+    if (legacy && Number.isFinite(legacy.left) && Number.isFinite(legacy.right)) {
+      return {version: 2, navigationWidth: clamp(legacy.left === 242 ? 200 : legacy.left, 180, 440), chatWidth: clamp(legacy.right === 316 ? 380 : legacy.right, 320, 620)};
+    }
+  } catch {}
+  return {...DEFAULT_WORKSPACE_LAYOUT};
+}
+
+/** Mark new saves so deliberate widths survive subsequent default migrations. */
+export function storedWorkspaceLayout(layout) {
+  return {...layout, navigationDefaultRevision: 2};
+}
+
+/** Viewport clamping is presentation only; it never writes stored preferences. */
+export function effectiveWorkspaceLayout(layout, viewportWidth, navigationOpen = true) {
+  const navigationWidth = navigationOpen ? clamp(layout.navigationWidth, 180, 440) : 52;
+  const navigationTotalWidth = navigationWidth;
+  const remaining = viewportWidth - navigationTotalWidth - 16;
+  const split = viewportWidth >= 1180 && remaining >= 640;
+  const chatMaxWidth = split ? Math.min(620, Math.floor(remaining / 2)) : 620;
+  return {navigationWidth, navigationTotalWidth, chatWidth: clamp(layout.chatWidth, 320, chatMaxWidth), chatMaxWidth, split};
+}
+
+export function workspaceScene(taskId, snapshotId, submitting) {
+  return taskId ? snapshotId === taskId ? 'task' : 'task-loading' : submitting ? 'submitting' : 'home';
 }
 
 /** Secondary destinations are explicit navigation into the work area. */

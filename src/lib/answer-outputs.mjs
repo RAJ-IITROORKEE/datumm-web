@@ -14,6 +14,8 @@ export function splitTableRow(line) {
 
 export function answerOutputs(text, source) {
   if (!text?.trim()) return [];
+  const report = { id: `${source.key}:report`, kind: 'report', title: 'Full answer', markdown: text, complete: source.state !== 'streaming', source };
+  if (source.state === 'streaming') return [report];
   const lines = text.split(/\r?\n/), outputs = [];
   let heading = '', tableIndex = 0, diagramIndex = 0;
   for (let i = 0; i < lines.length; i++) {
@@ -42,9 +44,7 @@ export function answerOutputs(text, source) {
     outputs.push({ id: `${source.key}:table:${tableIndex++}`, kind: 'table', title: heading || `Answer table ${tableIndex}`, markdown: lines.slice(start, i).join('\n'), headers, rows, complete: source.state !== 'streaming', source });
     i--;
   }
-  if (text.length > 900 || outputs.length || /^#{1,6}\s/m.test(text)) {
-    outputs.unshift({ id: `${source.key}:report`, kind: 'report', title: text.match(/^#{1,6}\s+(.+)$/m)?.[1] || 'Answer report', markdown: text, complete: source.state !== 'streaming', source });
-  }
+  outputs.unshift(report);
   return outputs;
 }
 

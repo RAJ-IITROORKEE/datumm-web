@@ -1,10 +1,12 @@
 import { ArrowRight, Brain, Check, ChevronDown, CircleHelp, FileArchive, FileText, Search, Square, Users, Workflow, Wrench, X } from 'lucide-react';
 
 import {MessageResponse} from './ai-elements/message';
+import { ToolCallCard, type ToolCallStatus } from './vendor/affectui/tool-call-card-clean';
 import type { TaskEvent } from '@/lib/task-projection';
 import type { ContextUsageData } from './agent-memory';
 import { PublicResearchEvidence, PdfReviewEvidence, CompanionReviewEvidence } from './evidence-results';
 import { activityStateLabel } from '@/lib/process-activity.mjs';
+import { conversationTurns, turnEvents, type ConversationRecord } from '@/lib/conversation-turns.mjs';
 import styles from './agent-activity.module.css';
 
 
@@ -15,7 +17,7 @@ export type RunManifest={taskId:string;sessionId?:string;model:string;mode:strin
 
 export type ActivityTodo={content:string;status:string;priority:string};
 
-const stages:Record<string,string>={assistant_update:'Progress update',specialist_started:'Specialist started',specialist_completed:'Specialist completed',skill_loaded:'Local skill',workflow_command:'Workflow command',compaction_started:'Compressing context',compaction_completed:'Compression',model_turn:'Thought',tool_running:'Tool call',tool_completed:'Observation',tool_failed:'Tool failed',session_recovered:'Chat restored',question_pending:'Waiting for your input',question_answered:'Your input received',agent_stage_start:'Planning',agent_stage_complete:'Step complete',agent_action:'Tool call',inspection:'Inspection',validate:'Validation',preview:'Review exact changes',approved:'Approved',execute:'Applying approved changes',verify:'Verification',batch_verified:'Batch verified',failed:'Failed',cancelled:'Stopped',interrupted:'Interrupted',paused_limit:'Limit reached'};
+const stages:Record<string,string>={assistant_update:'Progress update',specialist_started:'Specialist started',specialist_complete:'Specialist completed',specialist_completed:'Specialist completed',skill_loaded:'Local skill',workflow_command:'Workflow command',compaction_started:'Compressing context',compaction_completed:'Compression',model_turn:'Thought',tool_running:'Tool call',tool_completed:'Observation',tool_failed:'Tool failed',session_recovered:'Chat restored',question_pending:'Waiting for your input',question_answered:'Your input received',agent_stage_start:'Planning',agent_stage_complete:'Step complete',agent_action:'Agent action',inspection:'Inspection',validate:'Validation',preview:'Review exact changes',approved:'Approved',execute:'Applying approved changes',verify:'Verification',batch_verified:'Batch verified',failed:'Failed',cancel_requested:'Stop requested',cancelled:'Stopped',interrupted:'Interrupted',paused_limit:'Limit reached'};
 
 export function activityBatches(events:TaskEvent[]){
  const batches:TaskEvent[][]=[];
@@ -43,11 +45,15 @@ export function stageIcon(event:TaskEvent){
  return event.stage.startsWith('tool_')?Wrench:ArrowRight;
 }
 
-export function ActivitySummary({events,eventDetail}:{events:TaskEvent[];eventDetail?:(event:TaskEvent)=>string}){
+export function ActivitySummary({events,eventDetail,compact=false}:{events:TaskEvent[];eventDetail?:(event:TaskEvent)=>string;compact?:boolean}){
  const rows=events.filter(event=>stages[event.stage]||['queued','running','answer','completed'].includes(event.stage));
- return <ol className={styles.activitySummary} aria-label="Task activity">{rows.map(event=>{
-  const Icon=stageIcon(event),label=event.stage==='completed'?'Turn settled':event.stage==='answer'?'Answer ready':event.stage==='model_turn'?'Model step':stages[event.stage]??event.stage.replaceAll('_',' '),detail=event.stage==='model_turn'?event.detail.match(/step \d+/)?.[0]??'Step number not recorded':eventDetail?eventDetail(event):event.stage==='queued'?'Task queued':event.stage==='running'?'Task started':event.stage==='answer'?'Response saved':event.stage==='completed'?'Model response finished':event.detail;
-  return <li key={event.eventId??event.index} data-stage={event.stage}><Icon size={15} aria-hidden="true"/><span><strong>{label}</strong><small>{detail}</small></span>{event.at&&Number.isFinite(Date.parse(event.at))&&<time dateTime={event.at}>{new Date(event.at).toLocaleTimeString()}</time>}</li>;
+ return <ol className={`${styles.activitySummary} ${compact ? styles.activitySummaryCompact : ''}`} aria-label="Task activity">{rows.map(event=>{
+  const structural:Record<string,string>={queued:'Task queued',running:'Task started',answer:'Response saved',completed:'Model response finished'};
+  const action:Record<string,string>={capture_intent:'Understand request',finish_answer:'Prepare answer'};
+  const compactAction:Record<string,string>={...action,create_design:'Create design',plan_task:'Record checklist',revise_task_plan:'Update checklist'};
+  const Icon=stageIcon(event),label=event.stage==='completed'?'Turn settled':event.stage==='answer'?'Answer ready':event.stage==='model_turn'?'Model step':stages[event.stage]??event.stage.replaceAll('_',' '),detail=event.stage==='model_turn'?event.detail.match(/step \d+/)?.[0]??'Step number not recorded':structural[event.stage]??(event.stage==='agent_action'&&/^[a-z][a-z0-9_]*$/.test(event.detail)?action[event.detail]??event.detail.replaceAll('_',' '):eventDetail?eventDetail(event):event.detail);
+  const compactDetail = compact && ['agent_action','agent_stage_complete'].includes(event.stage) && compactAction[event.detail] ? compactAction[event.detail] : detail;
+  return <li key={event.eventId??event.index} data-stage={event.stage}><Icon size={15} aria-hidden="true"/><span>{compact ? <><strong>{compactDetail || label}</strong>{compactDetail && compactDetail !== label && <small>{label}</small>}</> : <><strong>{label}</strong><small>{detail}</small></>}</span>{event.at&&Number.isFinite(Date.parse(event.at))&&<time dateTime={event.at}>{new Date(event.at).toLocaleTimeString()}</time>}</li>;
  })}</ol>;
 }
 export function ActivityFeed({events,active,waiting,compact=false}:{events:TaskEvent[];active:boolean;waiting:boolean;compact?:boolean}){
@@ -69,11 +75,13 @@ export function ActivityFeed({events,active,waiting,compact=false}:{events:TaskE
 
 export function activityTurns(events:TaskEvent[]):TaskEvent[][]{
 
- const turns:TaskEvent[][]=[],starts=['queued','command_accepted'];
+ const turns:TaskEvent[][]=[];
 
  for(const event of [...events].sort((a,b)=>a.index-b.index)){
 
-  if(!turns.length||starts.includes(event.stage)&&!turns.at(-1)!.every(row=>starts.includes(row.stage)))turns.push([]);
+  const conversational = event.stage === 'command_accepted' && /^Accepted (?:submit|chat followup|amend) in this task\.$/.test(event.detail);
+  const queuedBoundary = event.stage === 'queued' && !turns.at(-1)?.some(row => row.stage === 'command_accepted') && Boolean(turns.at(-1)?.some(row => row.stage !== 'queued'));
+  if(!turns.length || conversational && !turns.at(-1)!.every(row=>row.stage==='queued') || queuedBoundary)turns.push([]);
 
   turns.at(-1)!.push(event);
 
@@ -87,16 +95,17 @@ export function activityTurns(events:TaskEvent[]):TaskEvent[][]{
 
 }
 
-export function latestTaskActivity(task:{id:string;status:string;conversation?:unknown[];events:TaskEvent[];data:{usage?:ContextUsageData;run_manifest?:RunManifest;native_messages?:{id:string;text:string;finish:string|null}[];opencode_todos?:ActivityTodo[];opencode_questions?:unknown[];agent_question?:unknown;turns?:{conversationIndex:number;result?:{manifest?:RunManifest;evidence?:ToolEvidence[];todos?:ActivityTodo[]}|null}[]}},events=task.events){
- const index=Math.max(0,(task.conversation?.length??1)-1),turn=task.data.turns?.find(value=>value.conversationIndex===index),turnEvents=activityTurns(events)[index]??[],hasCurrentTurn=index===0||Boolean(turn)||turnEvents.length>0,manifest=turn?.result?.manifest??(hasCurrentTurn?task.data.run_manifest:undefined);
- return {index,events:turnEvents,active:['queued','running'].includes(task.status),waiting:Boolean(task.data.opencode_questions?.length||task.data.agent_question),nativeMessages:hasCurrentTurn?task.data.native_messages:undefined,manifest,evidence:turn?.result?.evidence??manifest?.tools??[],todos:turn?.result?.todos??(hasCurrentTurn?task.data.opencode_todos:undefined)??[],usage:task.data.usage?.rootTaskId===task.id?task.data.usage:undefined};
+export function latestTaskActivity(task:{id:string;status:string;conversation?:ConversationRecord[];events:TaskEvent[];data:{usage?:ContextUsageData;run_manifest?:RunManifest;native_messages?:{id:string;text:string;finish:string|null}[];opencode_todos?:ActivityTodo[];todosConversationIndex?:number;opencode_questions?:unknown[];agent_question?:unknown;turns?:{conversationIndex:number;result?:{manifest?:RunManifest;evidence?:ToolEvidence[];todos?:ActivityTodo[]}|null}[]}},events=task.events){
+ const records=conversationTurns(task.conversation),ordinal=Math.max(0,records.length-1),current=records[ordinal],index=current?.index??0,turn=task.data.turns?.find(value=>value.conversationIndex>=index&&value.conversationIndex<=(current?.endIndex??index)),currentEvents=records.length?turnEvents(records,activityTurns(events),ordinal):activityTurns(events)[0]??[],hasCurrentTurn=index===0||Boolean(turn)||currentEvents.length>0,manifest=turn?.result?.manifest??(hasCurrentTurn?task.data.run_manifest:undefined);
+ return {index,turnId:current?.turnId,events:currentEvents,taskEvents:events,active:['queued','running'].includes(task.status),waiting:Boolean(task.data.opencode_questions?.length||task.data.agent_question),nativeMessages:hasCurrentTurn?task.data.native_messages:undefined,manifest,evidence:turn?.result?.evidence??manifest?.tools??[],todos:turn?.result?.todos??(task.data.todosConversationIndex !== undefined && task.data.todosConversationIndex >= index && task.data.todosConversationIndex <= (current?.endIndex ?? index) ? task.data.opencode_todos : undefined)??[],usage:task.data.usage?.rootTaskId===task.id?task.data.usage:undefined};
 }
 
 
 
 const stateNames:Record<string,string>={
  completed:'Completed',complete:'Completed',done:'Completed',succeeded:'Completed',
- failed:'Failed',error:'Failed',cancelled:'Stopped',interrupted:'Interrupted',
+ failed:'Failed',error:'Failed',cancelled:'Stopped',stopped:'Stopped',interrupted:'Interrupted',
+ recorded:'Recorded activity',unconfirmed:'Outcome unconfirmed',unknown:'Unknown status',
  queued:'Queued',pending:'Pending',running:'Running',in_progress:'Running',
  waiting:'Waiting for input',waiting_for_input:'Waiting for input',needs_input:'Waiting for input',
  awaiting_approval:'Waiting for approval',blocked:'Blocked',partial:'Partially complete',
@@ -117,16 +126,31 @@ function EvidenceBlock({label,value}:{label:string;value:unknown}){
  const raw=typeof value==='string'?value:JSON.stringify(value,null,2);
  return <section className={styles.evidenceBlock}><h4>{label}</h4>{value===undefined?<p className={styles.note}>{label==='Arguments'?'Arguments were not recorded.':'No result was recorded.'}</p>:<pre tabIndex={0} aria-label={`${label} details`}>{raw}</pre>}</section>;
 }
+/** Only explicit source aliases may acquire success, failure or a live running icon. */
+function toolStatus(state:string|undefined,active:boolean):ToolCallStatus{
+ if(!active&&['running','in_progress','pending','queued'].includes(state??''))return 'unconfirmed';
+ if(['completed','complete','done','succeeded'].includes(state??''))return 'success';
+ if(['failed','error'].includes(state??''))return 'error';
+ if(['running','in_progress'].includes(state??''))return 'running';
+ if(['cancelled','stopped'].includes(state??''))return 'stopped';
+ if(['waiting','waiting_for_input','needs_input'].includes(state??''))return 'waiting';
+ const states=['recorded','pending','queued','awaiting_approval','interrupted','blocked','partial','stale','skipped','paused_limit','paused_recovery','reconciling','unconfirmed'] as const;
+ return states.find(value=>value===state)??'unknown';
+}
 function RecordedTool({call,active}:{call:ToolEvidence;active:boolean}){
- const state=recordedState(call.status,active),elapsed=duration(call.elapsedMs),Icon=state.tone==='failed'?X:state.tone==='completed'?Check:Wrench;
- return <li className={styles.tool} data-state={state.tone}><details>
-  <summary className={styles.toolSummary}><Icon size={15} aria-hidden="true"/><span className={styles.toolName}>{call.tool||'Unnamed tool'}</span><span className={styles.state}>{state.label}</span>{elapsed&&<span className={styles.metric}>{elapsed}</span>}<ChevronDown className={styles.chevron} size={14} aria-hidden="true"/></summary>
-  <div className={styles.toolBody}>
-   {state.unconfirmed&&<p className={styles.note}>Last reported {stateNames[call.status]?.toLowerCase()}. No final tool outcome was recorded.</p>}
-   <EvidenceBlock label="Arguments" value={call.arguments}/><EvidenceBlock label={state.tone==='failed'?'Error / result':'Result'} value={call.result}/>
-   <details className={styles.technical}><summary>Tool identity <ChevronDown className={styles.chevron} size={14} aria-hidden="true"/></summary><dl className={styles.facts}><div><dt>Call ID</dt><dd>{call.callId||'Not recorded'}</dd></div><div><dt>Session</dt><dd>{call.sessionId??'Not recorded'}</dd></div><div><dt>Agent role</dt><dd>{call.role??'Not recorded'}</dd></div><div><dt>Recorded status</dt><dd>{call.status||'Not recorded'}</dd></div><div><dt>Duration</dt><dd>{elapsed??'Not recorded'}</dd></div></dl></details>
-  </div>
- </details></li>;
+ const state=recordedState(call.status,active),elapsed=duration(call.elapsedMs);
+ const details=<>
+  {state.unconfirmed&&<p className={styles.note}>Last reported {stateNames[call.status]?.toLowerCase()}. No final tool outcome was recorded.</p>}
+  {call.arguments===undefined&&<EvidenceBlock label="Arguments" value={undefined}/>}
+  {call.result===undefined&&<EvidenceBlock label={state.tone==='failed'?'Error / result':'Result'} value={undefined}/>}
+  <details className={styles.technical}><summary>Tool identity <ChevronDown className={styles.chevron} size={14} aria-hidden="true"/></summary><dl className={styles.facts}><div><dt>Call ID</dt><dd>{call.callId||'Not recorded'}</dd></div><div><dt>Session</dt><dd>{call.sessionId??'Not recorded'}</dd></div><div><dt>Agent role</dt><dd>{call.role??'Not recorded'}</dd></div><div><dt>Recorded status</dt><dd>{call.status||'Not recorded'}</dd></div><div><dt>Duration</dt><dd>{elapsed??'Not recorded'}</dd></div></dl></details>
+ </>;
+ return <li className={styles.tool} data-state={state.tone}><ToolCallCard
+  name={call.tool||'Unnamed tool'} status={toolStatus(call.status,active)} statusLabel={state.label}
+  args={call.arguments} result={call.result} resultLabel={state.tone==='failed'?'Error / result':'Result'}
+  duration={typeof call.elapsedMs==='number'&&Number.isFinite(call.elapsedMs)&&call.elapsedMs>=0?call.elapsedMs:undefined}
+  timing="recorded" openOnError={false} maxCodeHeight={220} details={details}
+ /></li>;
 }
 export function OpenCodeTodos({todos}:{todos:ActivityTodo[]}){
  if(!todos.length)return null;

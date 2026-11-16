@@ -1,0 +1,129 @@
+{
+  "id": "captured-a2",
+  "title": "Concept",
+  "projectId": "project-a",
+  "status": "completed",
+  "data": {
+    "agent_interpreted_brief": {
+      "status": "fallback",
+      "dimensions": [
+        {
+          "sourceId": "original",
+          "start": 108,
+          "end": 130,
+          "sourceText": "18 m wide by 14 m deep",
+          "role": "parcel",
+          "provenance": "explicit",
+          "widthRaw": "18",
+          "depthRaw": "14",
+          "widthUnit": "m",
+          "depthUnit": "m",
+          "widthMm": "18000",
+          "depthMm": "14000"
+        },
+        {
+          "sourceId": "original",
+          "start": 152,
+          "end": 173,
+          "sourceText": "10 m wide by 8 m deep",
+          "role": "footprint",
+          "provenance": "explicit",
+          "widthRaw": "10",
+          "depthRaw": "8",
+          "widthUnit": "m",
+          "depthUnit": "m",
+          "widthMm": "10000",
+          "depthMm": "8000"
+        }
+      ],
+      "values": {
+        "bedrooms": {
+          "value": 1,
+          "provenance": "explicit",
+          "sourceId": "original"
+        },
+        "bathrooms": {
+          "value": 1,
+          "provenance": "explicit",
+          "sourceId": "original"
+        },
+        "dimensionRole": {
+          "value": "footprint",
+          "provenance": "explicit",
+          "sourceId": "original"
+        },
+        "entry": {
+          "value": "south",
+          "provenance": "explicit",
+          "sourceId": "original"
+        }
+      },
+      "unresolved": [
+        "jurisdiction",
+        "setbacks"
+      ],
+      "deferred": [
+        "jurisdiction",
+        "setbacks"
+      ],
+      "assumptions": [
+        "Provisional concept only: jurisdiction/setbacks remain unconfirmed; no compliance or Build acceptance."
+      ],
+      "program": {
+        "livingHall": null,
+        "kitchen": null,
+        "basis": "not_specified"
+      }
+    },
+    "agent_design": {
+      "brief": {
+        "site": {
+          "widthMm": 10000,
+          "depthMm": 8000,
+          "entry": "south"
+        },
+        "requirements": [
+          {
+            "key": "bedroom",
+            "kind": "bedroom",
+            "minimumAreaMm2": 12000000,
+            "minimumClearWidthMm": 3000,
+            "adjacentTo": []
+          },
+          {
+            "key": "bathroom",
+            "kind": "bathroom",
+            "minimumAreaMm2": 4000000,
+            "minimumClearWidthMm": 1800,
+            "adjacentTo": [
+              "kitchen"
+            ]
+          },
+          {
+            "key": "living_dining",
+            "kind": "living-dining",
+            "minimumAreaMm2": 24000000,
+            "minimumClearWidthMm": 4000,
+            "adjacentTo": []
+          },
+          {
+            "key": "kitchen",
+            "kind": "kitchen",
+            "minimumAreaMm2": 8000000,
+            "minimumClearWidthMm": 2400,
+            "adjacentTo": [
+              "bathroom"
+            ]
+          },
+          {
+            "key": "circulation",
+            "kind": "circulation",
+            "minimumAreaMm2": 5000000,
+            "minimumClearWidthMm": 900,
+            "adjacentTo": []
+          }
+        ]
+      }
+    }
+  }
+}

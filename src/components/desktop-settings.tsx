@@ -12,37 +12,43 @@ import styles from './desktop-settings.module.css';
 
 const sectionIcons: Record<string, LucideIcon> = { account: CircleUserRound, general: SlidersHorizontal, appearance: Palette, models: Sparkles, revit: Box, usage: BarChart3, billing: CreditCard, capabilities: Blocks };
 
-export function DesktopSettings({ open, onOpenChange, generalContent, revitContent, models = [], authConfigured = false, usageContent, taskTitle }: {
-  open: boolean; onOpenChange: (open: boolean) => void; generalContent?: ReactNode; revitContent?: ReactNode; models?: string[]; authConfigured?: boolean; usageContent?: ReactNode; taskTitle?: string;
+export function DesktopSettings({ open, onOpenChange, generalContent, revitContent, models = [], authConfigured = false, usageContent, taskTitle, sectionRequest }: {
+  open: boolean; onOpenChange: (open: boolean) => void; generalContent?: ReactNode; revitContent?: ReactNode; models?: string[]; authConfigured?: boolean; usageContent?: ReactNode; taskTitle?: string; sectionRequest?:{id:string;revision:number};
 }) {
   const [section, setSection] = useState('general');
+  const [accountVisited, setAccountVisited] = useState(false);
   const [query, setQuery] = useState('');
   const [navigationOpen, setNavigationOpen] = useState(false);
   const contentRef = useRef<HTMLElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  const selectionPending = useRef(false);
   const navigationId = useId();
+  const handledRequest = useRef<number | null>(null);
   const currentSection = settingsSections.find(item => item.id === section)!;
   const matches = filterSettingsSections(query);
+
+  useLayoutEffect(() => {
+    if (!open || !sectionRequest || handledRequest.current === sectionRequest.revision) return;
+    if (!settingsSections.some(item => item.id === sectionRequest.id)) return;
+    handledRequest.current = sectionRequest.revision;
+    setQuery('');
+    selectSection(sectionRequest.id);
+  }, [open, sectionRequest]);
 
   function focusSection() {
     if (contentRef.current) contentRef.current.scrollTop = 0;
     headingRef.current?.focus({ preventScroll: true });
-    selectionPending.current = false;
   }
 
   useLayoutEffect(() => {
-    if (selectionPending.current) focusSection();
-  }, [section]);
+    if (open) focusSection();
+  }, [open, section]);
 
   function selectSection(id: string) {
     setNavigationOpen(false);
+    if (id === 'account') setAccountVisited(true);
     if (section === id) focusSection();
-    else {
-      selectionPending.current = true;
-      setSection(id);
-    }
+    else setSection(id);
   }
 
   function clearSearch() {
@@ -50,9 +56,8 @@ export function DesktopSettings({ open, onOpenChange, generalContent, revitConte
     searchRef.current?.focus();
   }
 
-  if (!open) return null;
   return (
-    <section className={styles.embedded + ' studio-settings-embedded'} aria-label="Settings">
+    <section className={styles.embedded + ' studio-settings-embedded'} aria-label="Settings" hidden={!open} inert={!open} style={!open ? {display:'none'} : undefined}>
       <div className={styles.layout}>
         <aside className={styles.sidebar}>
           <div className={styles.sidebarActions}>
@@ -88,7 +93,7 @@ export function DesktopSettings({ open, onOpenChange, generalContent, revitConte
           <header className={styles.sectionHeading}><h1 ref={headingRef} tabIndex={-1} className={styles.pageTitle}>{currentSection.title}</h1><p>{currentSection.description}</p></header>
           {section === 'general' && <div className={styles.generalContent}>{generalContent}</div>}
           {section === 'appearance' && <ThemeSettings motionRow={null} advancedControl={null} />}
-          {section === 'account' && <section className="provider-section">{authConfigured ? <><Show when="signed-in"><div className={styles.identityRow}><UserButton showName /><span>Manage your sign-in and account security</span></div><AccountProfileEditor /></Show><Show when="signed-out"><SignInButton mode="modal"><Button>Sign in to DATUMM</Button></SignInButton></Show></> : <div className={styles.unavailableState} role="status"><h2>Sign-in unavailable</h2><p>Sign-in is not configured in this workspace.</p></div>}</section>}
+          {accountVisited && <section className="provider-section" hidden={section !== 'account'} inert={section !== 'account'} style={section !== 'account' ? {display:'none'} : undefined}>{authConfigured ? <><Show when="signed-in"><div className={styles.identityRow}><UserButton showName /><span>Manage your sign-in and account security</span></div><AccountProfileEditor /></Show><Show when="signed-out"><SignInButton mode="modal"><Button>Sign in to DATUMM</Button></SignInButton></Show></> : <div className={styles.unavailableState} role="status"><h2>Sign-in unavailable</h2><p>Sign-in is not configured in this workspace.</p></div>}</section>}
           {section === 'models' && <section className="provider-section">
             <p>Choose a model and reasoning effort in the conversation toolbar. Model access is managed by the hosted workspace.</p>
             {models.length ? <ul className={styles.modelCatalog} aria-label="Reported models">{models.map((model, index) => {

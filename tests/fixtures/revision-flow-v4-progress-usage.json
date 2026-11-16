@@ -1,0 +1,148 @@
+{
+  "source": "artifacts/ux/revision-flow-v4-run.json",
+  "status": "completed",
+  "data": {
+    "agent_task_plan": {
+      "goal": "Revise the saved web-only concept by changing only the Bedroom minimum clear area to 15 m², then generate at least two distinct from-scratch room-position alternatives. Preserve the 10,000 × 8,000 mm footprint, south entrance, existing room keys, all other minimum clear areas and widths, and Kitchen/Bathroom adjacency. Do not inspect or modify Revit or prepare a native build.",
+      "successCriteria": [
+        "Each alternative uses a 10,000 × 8,000 mm footprint with a south entrance.",
+        "Bedroom minimum clear area is 15 m² and its minimum clear width remains 3,000 mm.",
+        "Preserve bathroom 4 m²/1,800 mm, living_dining 24 m²/4,000 mm, kitchen 8 m²/2,400 mm, and circulation 5 m²/900 mm minimums.",
+        "Retain room keys bedroom, bathroom, living_dining, kitchen, and circulation; keep Kitchen and Bathroom adjacent.",
+        "Generate at least two distinct re-planned alternatives and summarize their conceptual room dimensions and limitations.",
+        "No Revit connection, inspection, modification, or native build preparation."
+      ],
+      "measurableCriteria": [],
+      "assumptions": [
+        "Use the saved concept's current room keys and constraints as the source for unchanged requirements; prior task summaries are not current design evidence.",
+        "The saved concept does not establish site conditions, code compliance, or buildability; alternatives remain web-only concepts."
+      ],
+      "revisionReason": "",
+      "steps": [
+        {
+          "key": "alternative_one",
+          "title": "Generate first re-planned concept alternative",
+          "action": "create_design",
+          "dependsOn": [],
+          "expectedResult": "A measured concept using the preserved footprint, room keys, updated bedroom area and other constraints, with room positions re-planned.",
+          "targetCategories": [],
+          "targetScopes": [],
+          "evidencePredicates": [
+            {
+              "observationKind": "design_ready",
+              "targetScopes": [],
+              "targetCategories": [],
+              "requireCompleteCoverage": false,
+              "occurrence": 1
+            }
+          ]
+        },
+        {
+          "key": "alternative_two",
+          "title": "Generate a distinct second re-planned alternative",
+          "action": "create_design",
+          "dependsOn": [],
+          "expectedResult": "A second measured concept with a materially different room arrangement and the same hard requirements.",
+          "targetCategories": [],
+          "targetScopes": [],
+          "evidencePredicates": [
+            {
+              "observationKind": "design_ready",
+              "targetScopes": [],
+              "targetCategories": [],
+              "requireCompleteCoverage": false,
+              "occurrence": 2
+            }
+          ]
+        },
+        {
+          "key": "summarize",
+          "title": "Compare alternatives and state limitations",
+          "action": "finish_answer",
+          "dependsOn": [
+            "alternative_one",
+            "alternative_two"
+          ],
+          "expectedResult": "Summarize the alternatives and clarify that neither is native-validated or a native-build authorization.",
+          "targetCategories": [],
+          "targetScopes": [],
+          "evidencePredicates": [
+            {
+              "observationKind": "response_ready",
+              "targetScopes": [],
+              "targetCategories": [],
+              "requireCompleteCoverage": false,
+              "occurrence": 1
+            }
+          ]
+        }
+      ],
+      "version": 1,
+      "documentId": null,
+      "authorization": "none",
+      "progress": [
+        {
+          "key": "alternative_one",
+          "status": "completed",
+          "evidence": [
+            {
+              "observationKind": "design_ready",
+              "evidenceCount": 1,
+              "requiredOccurrence": 1,
+              "documentId": null,
+              "revision": null
+            }
+          ]
+        },
+        {
+          "key": "alternative_two",
+          "status": "pending",
+          "evidence": []
+        },
+        {
+          "key": "summarize",
+          "status": "pending",
+          "evidence": []
+        }
+      ],
+      "evidencePolicyVersion": 2
+    },
+    "usage": {
+      "schemaVersion": 1,
+      "rootTaskId": "2cbef7fb-0b18-5b6f-8462-f8da0177fe92",
+      "updatedAt": "2026-11-13T16:10:05.115782+00:00",
+      "context": {
+        "modelId": "openai/gpt-6-luna",
+        "modelCapacityTokens": 1050000,
+        "estimatedInputTokens": 7108,
+        "reservedOutputTokens": 4096,
+        "estimatedWindowUtilization": 0.0067695238095238095,
+        "projectedWindowUtilization": 0.011645714285714285,
+        "estimateMethod": "per-call context: UTF-8 bytes plus 512 framing units; new-run cumulative reserve: 2x UTF-8 bytes/3 plus 512, with a fixed 65,536 per native PNG; estimates are not provider tokenizer output",
+        "applicationPressure": "normal",
+        "measurementState": "measured",
+        "lastProviderCallState": "completed",
+        "lastProviderInputTokens": 4990,
+        "lastProviderOutputTokens": 633,
+        "lastProviderReportedUsd": "0.00079128"
+      },
+      "cumulative": {
+        "inputTokens": 42628,
+        "outputTokens": 11571,
+        "reasoningTokens": 6999,
+        "providerReportedUsd": "0.010336",
+        "usageCoverage": "complete",
+        "providerCostCoverage": "complete",
+        "modelCalls": 12,
+        "callsWithUnknownUsage": 0
+      },
+      "compaction": {
+        "count": 2,
+        "state": "completed",
+        "lastCompletedAt": "2026-11-13T16:09:58.228644+00:00",
+        "beforeEstimatedTokens": 8780,
+        "afterEstimatedTokens": 7692
+      }
+    }
+  }
+}

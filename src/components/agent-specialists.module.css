@@ -1,0 +1,16 @@
+.reviews { min-width: 0; padding-bottom: 12px; overflow-wrap: anywhere; }
+.review { padding: 12px 0; border-top: 1px solid var(--separator, var(--line)); }
+.heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0; }
+.heading strong { color: var(--ink); font-weight: 500; }
+.heading span, .note, .source { color: var(--text); font-size: 12px; }
+.finding { margin: 8px 0 0; white-space: pre-wrap; }
+.review :is(a, button) { display: inline-block; margin-top: 8px; padding: 0; border: 0; background: transparent; color: var(--accent); font: inherit; text-align: left; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.review :is(a, button, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.source { margin-top: 8px; }
+.source summary { width: fit-content; min-height: 32px; cursor: pointer; }
+.source p { margin: 4px 0; overflow-wrap: anywhere; }
+.note { margin: 8px 0 0; }
+
+@media (pointer: coarse) {
+  .review :is(a, button), .source summary { display: inline-flex; min-height: 44px; align-items: center; padding: 8px 0; }
+}

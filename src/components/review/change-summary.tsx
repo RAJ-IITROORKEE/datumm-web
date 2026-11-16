@@ -1,4 +1,5 @@
-import {Layers3,Trash2} from 'lucide-react';
+import {Trash2} from 'lucide-react';
+import { ChangeSummary } from '../vendor/affectui/change-summary-clean';
 import styles from './review-panels.module.css';
 
 export type ReviewOperation={key:string;kind:string}&Record<string,unknown>;
@@ -9,7 +10,8 @@ const labels:Record<string,string>={wall:'Walls',floor:'Floors',door:'Doors',win
 export function OperationChangeSummary({operations,title='Proposed changes'}:{operations:ReviewOperation[];title?:string}){
   const counts=new Map<string,number>();
   for(const op of operations)counts.set(op.kind,(counts.get(op.kind)??0)+1);
-  return <section aria-label={title}><div className={styles.header}><div className={styles.heading}><h3 className={styles.title}>{title}</h3><p className={styles.description}>{operations.length} {operations.length===1?'operation':'operations'} in the supplied change set.</p></div><Layers3 size={17} aria-hidden/></div>{operations.length?<dl className={styles.facts}>{Array.from(counts,([kind,count])=><div key={kind}><dt>{labels[kind]??kind.replaceAll('_',' ')}</dt><dd>{count.toLocaleString()}</dd></div>)}</dl>:<p className={styles.note}>No operations were supplied. This summary does not establish model changes.</p>}</section>;
+  const changes=Array.from(counts,([kind,count])=>({label:labels[kind]??kind.replaceAll('_',' '),change:count.toLocaleString(),tone:'neutral' as const}));
+  return <section aria-label={`${title} context`}><ChangeSummary title={title} changes={changes}/><p className={styles.description}>{operations.length} {operations.length===1?'operation':'operations'} in the supplied change set.</p>{!operations.length&&<p className={styles.note}>No operations were supplied. This summary does not establish model changes.</p>}</section>;
 }
 
 export function DeletionClosureReview({closure}:{closure:DeletionClosure}){

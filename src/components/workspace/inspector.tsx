@@ -1,449 +1,54 @@
-import {useEffect,useRef} from 'react';
-import { cn } from '@/lib/utils';
-import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
-import {
-  Ellipsis,
-  Download,
-  Unplug,
-  PanelRightClose,
-  Expand,
-  ArrowUpRight,
-  ShieldCheck,
-  Box,
-  Layers3,
-  ChevronDown,
-  FolderOpen,
-  RotateCcw,
-} from 'lucide-react';
-import { StudioProperties } from '../studio-properties';
-import { Button } from '@/components/ui/button';
-import { ActivityPanel } from './activity-panel';
-import { BriefChips } from './brief-chips';
-import { type WorkspaceState } from './use-workspace-state';
+'use client';
 
-type InspectorProps = Pick<
-  WorkspaceState,
-  | 'right'
-  | 'setRight'
-  | 'tab'
-  | 'hasRenderablePlan'
-  | 'setTab'
-  | 'activeDrawing'
-  | 'selectedDesignElement'
-  | 'setSelectedDesignElement'
-  | 'askFromCanvas'
-  | 'focusReview'
-  | 'plannedCandidate'
-  | 'separateNativeFollowup'
-  | 'openCanvas'
-  | 'offlineFixture'
-  | 'desktopPreview'
-  | 'run'
-  | 'contextTitle'
-  | 'contextView'
-  | 'selectedDevice'
-  | 'dialogTrigger'
-  | 'setDeviceDialog'
-  | 'previewSvg'
-  | 'drawingCurrent'
-  | 'previewLabel'
-  | 'previewCounts'
-  | 'previewRooms'
-  | 'currentActivity'
-  | 'executing'
-  | 'desktopAvailable'
-  | 'runId'
-  | 'mode'
-  | 'model'
-  | 'eventDetail'
-  | 'exportItems'
-  | 'mcpToolsError'
-  | 'mcpTools'
-  | 'refresh'
-  | 'workspaceReady'
-> & { planDetails: React.ReactNode };
+import { useId, useLayoutEffect, useRef } from 'react';
+import type { InspectorProps, WorkAreaSection } from '@/lib/work-area-contract';
+import styles from './work-area.module.css';
+export type { InspectorProps } from '@/lib/work-area-contract';
 
-export function Inspector(props: InspectorProps) {
-  const {
-    right,
-    setRight,
-    tab,
-    hasRenderablePlan,
-    setTab,
-    planDetails,
-    activeDrawing,
-    selectedDesignElement,
-    setSelectedDesignElement,
-    askFromCanvas,
-    focusReview,
-    plannedCandidate,
-    separateNativeFollowup,
-    openCanvas,
-    offlineFixture,
-    desktopPreview,
-    run,
-    contextTitle,
-    contextView,
-    selectedDevice,
-    dialogTrigger,
-    setDeviceDialog,
-    previewSvg,
-    drawingCurrent,
-    previewLabel,
-    previewCounts,
-    previewRooms,
-    currentActivity,
-    executing,
-    desktopAvailable,
-    runId,
-    mode,
-    model,
-    eventDetail,
-    exportItems,
-    mcpToolsError,
-    mcpTools,
-    refresh,
-    workspaceReady,
-  } = props;
-  const panel = useRef<HTMLElement>(null);
-  const returnFocus = useRef<HTMLElement | null>(null);
-  useEffect(() => {
-    if (!right) return;
-    returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    requestAnimationFrame(() => panel.current?.querySelector<HTMLButtonElement>('.studio-inspector-close')?.focus());
-    return () => {if (returnFocus.current?.isConnected) returnFocus.current.focus();};
-  }, [right]);
-  return (
-    <>
-      {right && (
-        <button className="inspector-backdrop" aria-label="Close inspector panel" onClick={() => setRight(false)} />
-      )}
-      {right && (
-        <aside ref={panel} id="workspace-inspector" className="inspector" aria-label="Drawing details" onKeyDown={event => {if(event.key === 'Escape' && !event.defaultPrevented){event.preventDefault();setRight(false);}}}>
-          <div className="inspector-tabs">
-            {(['preview', 'activity'] as const).map((t) => (
-              <button
-                type="button"
-                key={t}
-                className={cn(tab === t && 'active')}
-                onClick={() => setTab(t)}
-              >
-                {t === 'preview' ? 'Properties' : 'Activity'}
-              </button>
-            ))}
-            <DropdownMenuPrimitive.Root>
-              <DropdownMenuPrimitive.Trigger asChild>
-                <button type="button" className="studio-panel-options" aria-label="More workspace panels">
-                  <Ellipsis size={15} />
-                </button>
-              </DropdownMenuPrimitive.Trigger>
-              <DropdownMenuPrimitive.Portal>
-                <DropdownMenuPrimitive.Content className="action-menu" side="bottom" align="end">
-                  <DropdownMenuPrimitive.Item onSelect={() => setTab('exports')}>
-                    <Download size={14} />
-                    Exports
-                  </DropdownMenuPrimitive.Item>
-                  <DropdownMenuPrimitive.Item onSelect={() => setTab('tools')}>
-                    <Unplug size={14} />
-                    MCP tools
-                  </DropdownMenuPrimitive.Item>
-                </DropdownMenuPrimitive.Content>
-              </DropdownMenuPrimitive.Portal>
-            </DropdownMenuPrimitive.Root>
-            <button
-              type="button"
-              className="studio-inspector-close"
-              aria-label="Close drawing details"
-              onClick={() => setRight(false)}
-            >
-              <PanelRightClose size={16} />
-            </button>
-          </div>
-          {tab !== 'assistant' && (
-            <>
-              {tab === 'preview' && <BriefChips run={run} />}
-              {activeDrawing && tab === 'preview' ? (
-                <StudioProperties
-                  key={activeDrawing.fingerprint + ':' + selectedDesignElement}
-                  drawing={activeDrawing}
-                  selected={selectedDesignElement}
-                  onSelect={setSelectedDesignElement}
-                  onRequest={askFromCanvas}
-                  onReview={!hasRenderablePlan || (run?.mode ?? mode) === 'ask' ? undefined : () => focusReview('[aria-label="Validated design preview"]')}
-                />
-              ) : (
-                <>
-                  {plannedCandidate && tab === 'preview' ? (
-                    <div className="inspector-body">
-                      <div className="section-caption">
-                        {separateNativeFollowup ? 'SAVED DESIGN REFERENCE' : 'SHARED DESIGN GEOMETRY'}{' '}
-                        <button
-                          className="icon-button"
-                          aria-label="Expand design preview"
-                          onClick={(event) => openCanvas(event.currentTarget)}
-                        >
-                          <Expand size={16} />
-                        </button>
-                      </div>
-                      <div className="studio-property-grid">
-                        <div>
-                          <small>Plan version</small>
-                          <strong>v{plannedCandidate.graph.version}</strong>
-                        </div>
-                        <div>
-                          <small>Footprint · mm</small>
-                          <strong>
-                            {plannedCandidate.graph.site.widthMm.toLocaleString()} ×{' '}
-                            {plannedCandidate.graph.site.depthMm.toLocaleString()}
-                          </strong>
-                        </div>
-                        <div>
-                          <small>Rooms</small>
-                          <strong>{plannedCandidate.graph.rooms.length}</strong>
-                        </div>
-                        <div>
-                          <small>Wall height · mm</small>
-                          <strong>{plannedCandidate.graph.wallHeightMm ?? 'Unavailable'}</strong>
-                        </div>
-                        <div className="studio-property-identity">
-                          <small>Design identity</small>
-                          <code>{plannedCandidate.fingerprint}</code>
-                        </div>
-                        <Button
-                          variant="secondary"
-                          onClick={() => focusReview('[aria-label="Validated design preview"]')}
-                        >
-                          Review exact design
-                          <ArrowUpRight size={14} />
-                        </Button>
-                      </div>
-                      <p>
-                        {separateNativeFollowup
-                          ? 'Saved design reference. It does not include this separate native proposal or later native room-name changes.'
-                          : 'Proposed layout · same version in 2D and 3D. Native placement and approval are separate.'}
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      {tab === 'preview' && offlineFixture && !desktopPreview ? (
-                        <div className="inspector-body">
-                          <div className="section-caption">
-                            OFFLINE BRIEF CHECK <ShieldCheck size={14} />
-                          </div>
-                          <div className="model-card">
-                            <strong>Exact fixture geometry</strong>
-                            <p>9144 × 12192 mm footprint · 8 room requirements.</p>
-                            <p>
-                              {run
-                                ? 'The source V3 brief validators completed.'
-                                : 'Run the offline check to validate the packaged local backend.'}
-                            </p>
-                            <p>No AI inference, design preview or Revit operation is available in this runtime.</p>
-                          </div>
-                        </div>
-                      ) : tab === 'preview' ? (
-                        <div className="inspector-body">
-                          <div className="section-caption">
-                            CURRENT MODEL <Box size={14} />
-                          </div>
-                          <div className="model-card">
-                            <div className="model-icon">
-                              <Layers3 size={23} />
-                            </div>
-                            <strong>{contextTitle}</strong>
-                            <p>{contextView}</p>
-                            {!selectedDevice?.online && (
-                              <button
-                                onClick={(event) => {
-                                  dialogTrigger.current = event.currentTarget;
-                                  setDeviceDialog(true);
-                                }}
-                              >
-                                Connect a device <ArrowUpRight size={13} />
-                              </button>
-                            )}
-                          </div>
-                          <div className="section-caption">
-                            DESIGN CANVAS{' '}
-                            <button
-                              className="icon-button"
-                              aria-label="Expand design preview"
-                              disabled={!previewSvg}
-                              onClick={(event) => openCanvas(event.currentTarget)}
-                            >
-                              <Expand size={16} />
-                            </button>
-                          </div>
-                          {previewSvg ? (
-                            <>
-                              {run?.data.agent_design && !drawingCurrent && (
-                                <p role="status">Older alternative preview · current drawing unavailable</p>
-                              )}
-                              <div className="plan-image">
-                                <img
-                                  alt={previewLabel}
-                                  src={'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(previewSvg ?? '')}
-                                />
-                              </div>
-                              <div className="element-counts">
-                                {Object.entries(previewCounts).map(([name, count]) => (
-                                  <div key={name}>
-                                    <strong>{count}</strong>
-                                    <span>{count === 1 ? name.replace(/s$/, '') : name}</span>
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="room-list">
-                                {previewRooms.map((room) => (
-                                  <div key={room.name}>
-                                    <span>{room.name}</span>
-                                    <span>{room.expectedAreaM2.toFixed(1)} m²</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </>
-                          ) : (
-                            <div className="empty-canvas">
-                              <div className="floor-glyph">
-                                <i />
-                                <i />
-                                <i />
-                              </div>
-                              <p>A place for your next idea</p>
-                              <small>Your proposed plan will appear here.</small>
-                            </div>
-                          )}
-                          <div className="inspector-tip">
-                            <ShieldCheck size={16} />
-                            <p>
-                              You stay in control.
-                              <br />
-                              <span>Inspect, preview, approve. Then build.</span>
-                            </p>
-                          </div>
-                        </div>
-                      ) : tab === 'activity' ? (
-                        <div className="inspector-body studio-activity-inspector">
-                          <ActivityPanel key={runId ?? run?.id ?? 'no-task'} run={run} runId={runId} currentActivity={currentActivity} executing={executing} desktopAvailable={desktopAvailable} mode={mode} model={model} eventDetail={eventDetail} />
-                        </div>
-                      ) : tab === 'exports' ? (
-                        <div className="inspector-body">
-                          {planDetails}
-                          <div className="section-caption">
-                            RUN ARTIFACTS <Download size={14} />
-                          </div>
-                          {run ? (
-                            <div className="exports">
-                              {exportItems.map((a) => (
-                                <a key={a.ext} href={`/api/service/runs/${run.id}/export/${a.ext}`} download>
-                                  <a.icon size={20} />
-                                  <span>
-                                    {a.name}
-                                    <small>{a.detail}</small>
-                                  </span>
-                                  <Download size={14} />
-                                </a>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="inspector-empty">
-                              <FolderOpen size={26} />
-                              <p>Good work deserves a record.</p>
-                              <small>Run a task to export its plan, room schedule and verification record.</small>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="inspector-body">
-                          <div className="section-caption">
-                            MCP TOOLS <Unplug size={14} />
-                            <span>{mcpToolsError ? 'Unavailable' : `${mcpTools.length} available`}</span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            aria-label="Refresh MCP tools"
-                            onClick={() => void refresh()}
-                          >
-                            <RotateCcw size={14} /> Refresh tools
-                          </Button>
-                          {mcpToolsError ? (
-                            <p className="error-banner" role="alert">
-                              Could not load MCP tools: {mcpToolsError}
-                            </p>
-                          ) : mcpTools.length ? (
-                            mcpTools.map((tool) => {
-                              const properties = Object.entries(tool.inputSchema?.properties ?? {}),
-                                required = new Set(tool.inputSchema?.required ?? []);
-                              return (
-                                <details key={tool.name} className="mcp-tool">
-                                  <summary>
-                                    <strong>{tool.name}</strong>
-                                    <ChevronDown size={14} aria-hidden="true" />
-                                  </summary>
-                                  <p>{tool.description ?? 'No description was provided by the bridge.'}</p>
-                                  {properties.length ? (
-                                    <table>
-                                      <thead>
-                                        <tr>
-                                          <th>Parameter</th>
-                                          <th>Type</th>
-                                          <th>Use</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {properties.map(([name, schema]) => (
-                                          <tr key={name}>
-                                            <td>
-                                              {name}
-                                              {required.has(name) && <small>required</small>}
-                                            </td>
-                                            <td>{schema.type ?? 'any'}</td>
-                                            <td>
-                                              {schema.description ?? '—'}
-                                              {schema.enum ? (
-                                                <small>Allowed: {schema.enum.map(String).join(', ')}</small>
-                                              ) : null}
-                                              {schema.default !== undefined ? (
-                                                <small>Default: {String(schema.default)}</small>
-                                              ) : null}
-                                            </td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  ) : (
-                                    <p>
-                                      <small>No input parameters.</small>
-                                    </p>
-                                  )}
-                                </details>
-                              );
-                            })
-                          ) : (
-                            <div className="inspector-empty">
-                              <Unplug size={26} />
-                              <p>{workspaceReady ? 'No MCP tools discovered.' : 'Loading MCP tools…'}</p>
-                              <small>
-                                Connect a model in Settings and check the installed DATUMM MCP bridge, then refresh
-                                tools.
-                              </small>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </>
-              )}
-            </>
-          )}
-          <div className="inspector-foot">
-            <span>DATUMM</span>
-            <span>DESIGN WITH INTENT</span>
-          </div>
-        </aside>
-      )}
-    </>
-  );
+const sections: {id: WorkAreaSection; label: string}[] = [
+  {id: 'design', label: 'Design'}, {id: 'activity', label: 'Activity'},
+  {id: 'assets', label: 'Assets'}, {id: 'exports', label: 'Exports'},
+];
+
+/** Controlled presentation only: the shell retains task, preview and report ownership. */
+export function Inspector({scope, section, preview, propertiesOpen, actions, slots, headerAction}: InspectorProps) {
+  const showingPreview = preview.kind !== 'drawing' && (section === 'assets' || section === 'exports');
+  const id = useId(), root = useRef<HTMLElement>(null);
+  const focusTab = (value: WorkAreaSection) => root.current?.querySelector<HTMLButtonElement>(`[data-section="${value}"]`)?.focus();
+  const select = (value: WorkAreaSection) => { focusTab(value); actions.selectSection(value); };
+  useLayoutEffect(() => {
+    const focused = document.activeElement;
+    if (focused instanceof HTMLElement && root.current?.contains(focused) && focused.closest('[hidden],[inert]')) focusTab(section);
+  }, [section, propertiesOpen, preview.kind, scope.key, scope.epoch]);
+  return <section ref={root} className={styles.host} aria-label="Work area" onKeyDown={event => {
+    if (event.key !== 'Escape' || event.defaultPrevented || event.target instanceof HTMLElement && event.target.closest('select,[role="combobox"]') || Array.from(document.querySelectorAll('[role="dialog"],[role="menu"]')).some(element => element.getClientRects().length > 0)) return;
+    if (propertiesOpen) { event.preventDefault(); actions.closeProperties(); }
+    else if (showingPreview) { event.preventDefault(); actions.closePreview(); }
+  }}>
+    <div className={styles.header}>
+    <div className={styles.tabs} role="tablist" aria-label="Work area sections">
+      {sections.map((item, index) => <button key={item.id} type="button" role="tab" id={`${id}-${item.id}-tab`} data-section={item.id}
+        aria-selected={section === item.id} aria-controls={showingPreview && section === item.id ? `${id}-asset-preview` : `${id}-${item.id}-panel`} tabIndex={section === item.id ? 0 : -1}
+        onClick={() => select(item.id)} onKeyDown={event => {
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? sections.length - 1 : event.key === 'ArrowRight' ? (index + 1) % sections.length : event.key === 'ArrowLeft' ? (index + sections.length - 1) % sections.length : -1;
+          if (next >= 0) { event.preventDefault(); select(sections[next].id); }
+        }}>{item.label}</button>)}
+    </div>
+    {headerAction}
+    </div>
+    <div className={styles.design} role="tabpanel" id={`${id}-design-panel`} aria-labelledby={`${id}-design-tab`} hidden={section !== 'design'} inert={section !== 'design'}>
+      <div className={styles.preview}>{slots.design}</div>
+      <aside className={styles.properties} aria-label="Drawing properties" hidden={!propertiesOpen} inert={!propertiesOpen}>
+        <header><h2>Properties</h2><button type="button" onClick={() => { focusTab('design'); actions.closeProperties(); }}>Close properties</button></header>
+        <div>{slots.properties}</div>
+      </aside>
+    </div>
+    <div className={styles.scroll} role="tabpanel" id={`${id}-activity-panel`} aria-labelledby={`${id}-activity-tab`} hidden={section !== 'activity'} inert={section !== 'activity'}>{slots.activity}</div>
+    <div className={styles.scroll} role="tabpanel" id={`${id}-assets-panel`} aria-labelledby={`${id}-assets-tab`} hidden={section !== 'assets' || showingPreview} inert={section !== 'assets' || showingPreview}>{slots.assets}</div>
+    <div className={styles.scroll} role="tabpanel" id={`${id}-exports-panel`} aria-labelledby={`${id}-exports-tab`} hidden={section !== 'exports' || showingPreview} inert={section !== 'exports' || showingPreview}>{slots.exports}</div>
+    <div id={`${id}-asset-preview`} className={styles.assetPreview} role="tabpanel" aria-labelledby={`${id}-${section}-tab`} hidden={!showingPreview} inert={!showingPreview}>
+      <button type="button" className={styles.back} onClick={() => actions.closePreview()}>Back to {section === 'exports' ? 'exports' : 'assets'}</button>
+      {slots.assetPreview}
+    </div>
+  </section>;
 }

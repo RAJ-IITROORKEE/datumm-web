@@ -1,6 +1,8 @@
 type Point = number[];
 type RoomShape = { rect: number[]; boundary?: Point[] };
 type WallShape = { start: Point; end: Point; curve?: { kind: string; mid?: Point } };
+export function rectangularClearDimensions(room: RoomShape, wallThicknessMm: number): {widthMm: number; depthMm: number} | null;
+export function roomAreaSchedule(compiled: {name: string; expectedAreaM2: number}[] | null | undefined, graph: {rooms: (RoomShape & {name: string})[]; wallThicknessMm: number} | null | undefined, legacy: {name: string; expectedAreaM2: number}[] | null | undefined, inventory: {name: string; areaM2: number}[] | null | undefined): {name: string; expectedAreaM2: number | null; areaBasis?: 'estimated-clear'}[];
 export function roomPoints(room: RoomShape): Point[];
 export function roomCentre(room: RoomShape): [number, number];
 export function pointInRoom(room: RoomShape, x: number, y: number): boolean;

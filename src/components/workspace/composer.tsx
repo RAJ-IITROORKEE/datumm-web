@@ -1,5 +1,5 @@
 import { workflowState } from '@/lib/workflow-state';
-import {useState} from 'react';
+import {useRef, useState} from 'react';
 import {
   ArrowUpRight,
   X,
@@ -10,16 +10,20 @@ import {
   ArrowUp,
   PencilRuler,
   Workflow,
-  Pencil,
   MessageSquare,
+  Hand,
+  Folder,
+  Plug,
 } from 'lucide-react';
 import { PromptContent, withViewportReferences, ViewportReferences, hasPromptContent } from '../prompt-content';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { needsPluginSetup } from '@/lib/plugin-setup.mjs';
 import { PluginSetupGuide } from '../plugin-setup-guide';
 import { ComposerMedia } from '../composer-media';
 import { ModelPicker } from '../model-picker';
+import { useOutputWorkspace } from './output-workspace';
 import { type WorkspaceState, api, type Run, type Mode } from './use-workspace-state';
 
 const modes = [
@@ -31,8 +35,10 @@ const modes = [
 export type ComposerProps = Pick<
   WorkspaceState,
   | 'liveRuntime'
+  | 'scene'
   | 'run'
   | 'executing'
+  | 'cancelPending'
   | 'queueData'
   | 'buildStep'
   | 'dismissedWorkflow'
@@ -111,8 +117,13 @@ export type ComposerProps = Pick<
 
 export function Composer(props: ComposerProps) {
   const [retryingConnection,setRetryingConnection]=useState(false);
+  const [starterReplacement,setStarterReplacement]=useState<{token:number;id:number;choice:'plan'|'ask';draft:string}|null>(null);
+  const [starterNotice,setStarterNotice]=useState<{scope:string;text:string}|null>(null);
+  const promptInput = useRef<HTMLTextAreaElement>(null);
+  const {scope}=useOutputWorkspace();
   const {
     liveRuntime,
+    scene,
     run,
     executing,
     queueData,
@@ -130,6 +141,7 @@ export function Composer(props: ComposerProps) {
     promptQueue,
     prompt,
     queueAction,
+    cancelPending,
     runtimeConfig,
     changeSettingsOpen,
     offlineFixture,
@@ -190,6 +202,42 @@ export function Composer(props: ComposerProps) {
     act,
     contextView,
   } = props;
+  // Invalidate callbacks on every observed change, including A → B → A.
+  const starterAvailable=Boolean(!hasContent && workspaceReady && connected && !busy && !actionBusy && !mediaBusy && !executing && !cancelPending && scene!=='task-loading' && scene!=='submitting');
+  const starterSnapshot=JSON.stringify([scope.key,scope.epoch,prompt,mode,useCurrentModel,sourceKey,sources,draftReferences,visiblePrompt?.references,selectedDevice?.id,selectedDevice?.online,revitSessions,starterAvailable]);
+  const starterLive=useRef({snapshot:starterSnapshot,token:1,locked:false,pending:0,sequence:0});
+  if(starterLive.current.snapshot!==starterSnapshot) starterLive.current={snapshot:starterSnapshot,token:starterLive.current.token+1,locked:false,pending:0,sequence:starterLive.current.sequence};
+  const starterToken=starterLive.current.token;
+  const starterText={plan:'Help me plan a web-only building concept. Ask for the building footprint dimensions, entrance direction and room requirements together. Keep parcel dimensions separate; do not inspect or change Revit.',ask:'Explain the difference between Revit levels and grids. Keep it to general software guidance.'};
+  const starterCurrent=()=>starterLive.current.token===starterToken && starterAvailable;
+  function applyStarter(choice:'plan'|'ask') {
+    if(!starterCurrent() || starterLive.current.locked)return;
+    starterLive.current.locked=true;starterLive.current.pending=0;
+    const text=[starterText[choice],...draftReferences.map(row=>'Design feedback (reference only): '+JSON.stringify(row))].join('\n\n');
+    setPrompt(withViewportReferences(text,visiblePrompt.references));setMode(choice==='plan'?'plan':'ask');
+    setUseCurrentModel(false);
+    setStarterReplacement(null);setStarterNotice({scope:JSON.stringify([scope.key,scope.epoch]),text:'Draft ready. Review it, then send.'});promptInput.current?.focus();
+  }
+  function chooseStarter(choice:'plan'|'ask') {
+    if(!starterCurrent() || starterLive.current.locked)return;
+    if(prompt.length && prompt!==starterText[choice]) {
+      const pending=++starterLive.current.sequence;starterLive.current.pending=pending;
+      setStarterReplacement({token:starterToken,id:pending,choice,draft:prompt});setStarterNotice(null);
+      // Pending changes immediately, so callbacks from a replaced confirmation cannot run.
+      return;
+    }
+    applyStarter(choice);
+  }
+  const pendingStarter=starterReplacement?.token===starterToken && starterCurrent()?starterReplacement:null;
+  const canSubmit =
+    scene !== 'task-loading' && scene !== 'submitting' &&
+    hasPromptContent(prompt) &&
+    workspaceReady &&
+    connected &&
+    !actionBusy &&
+    !mediaBusy &&
+    !cancelPending &&
+    (!executing || (liveRuntime && Boolean(run)));
   return (
     <div className="composer-area">
       <div className="composer-workflow">
@@ -244,7 +292,7 @@ export function Composer(props: ComposerProps) {
                   </span>
                   <button
                     type="button"
-                    disabled={actionBusy || Boolean(prompt.trim())}
+                    disabled={actionBusy || cancelPending || Boolean(prompt.trim())}
                     aria-label={`Edit queued prompt: ${item.prompt}`}
                     onClick={() => void queueAction('edit', item)}
                   >
@@ -252,7 +300,7 @@ export function Composer(props: ComposerProps) {
                   </button>
                   <button
                     type="button"
-                    disabled={actionBusy}
+                    disabled={actionBusy || cancelPending}
                     aria-label={`Remove queued prompt: ${item.prompt}`}
                     onClick={() => void queueAction('remove', item)}
                   >
@@ -261,7 +309,7 @@ export function Composer(props: ComposerProps) {
                 </li>
               ))}
             </ol>
-            {!executing && (
+            {!executing && !cancelPending && (
               <Button variant="secondary" disabled={actionBusy} onClick={() => void queueAction('resume')}>
                 Resume queue
               </Button>
@@ -354,54 +402,16 @@ export function Composer(props: ComposerProps) {
           </p>
         )}
       </div>
-      <div className="workspace-controls">
-        <div className="header-actions">
-          {mode !== 'build' && !offlineFixture && (
-            <button
-              type="button"
-              className={cn('context-toggle', useCurrentModel && 'active')}
-              aria-label={useCurrentModel ? 'Revit context on' : 'Revit context'}
-              aria-pressed={useCurrentModel}
-              disabled={busy}
-              onClick={() => setUseCurrentModel((value) => !value)}
-              title="Include measured Revit context in this request"
-            >
-              <Box size={13} />
-              {useCurrentModel ? 'Revit context on' : 'Revit context'}
-            </button>
-          )}
-          <button
-            className="device-status"
-            disabled={offlineFixture}
-            onClick={(event) => {
-              dialogTrigger.current = event.currentTarget;
-              setDeviceDialog(true);
-            }}
-          >
-            <span className={cn('connection-dot', selectedDevice?.online && revitSessions === 1 && 'online')} />
-            <span>
-              {offlineFixture
-                ? 'Revit unavailable'
-                : !selectedDevice?.online
-                  ? 'Connect Revit'
-                  : revitSessions === 1
-                    ? 'Revit ready'
-                    : revitSessions === 0
-                      ? 'Enable Revit bridge'
-                      : 'Checking Revit'}
-            </span>
-            <ChevronDown size={12} />
-          </button>
-        </div>
-      </div>
       {needsPluginSetup(mode, devices) && <PluginSetupGuide onCheck={refresh} onUsePlan={() => setMode('plan')} />}
       <form
         className="composer"
         onSubmit={(e) => {
           e.preventDefault();
+          if (!canSubmit) return;
           void submit(prompt, mode === 'build' && prompt.toLowerCase().includes('verified 3bhk'));
         }}
       >
+        <div className="composer-input">
         {draftReferences.length > 0 && (
           <div className="saved-source-strip" aria-label="Draft design references">
             {draftReferences.map((row, i) => (
@@ -416,7 +426,19 @@ export function Composer(props: ComposerProps) {
           </div>
         )}
         {commandsOpen && (
-          <div className="slash-commands" id="workflow-commands" role="listbox" aria-label="Workflow commands">
+          <div
+            className="slash-commands"
+            id="workflow-commands"
+            role="listbox"
+            aria-label="Workflow commands"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape' && !event.nativeEvent.isComposing) {
+                event.preventDefault();
+                setCommandsDismissed(true);
+                promptInput.current?.focus();
+              }
+            }}
+          >
             {commandMatches.map((command, index) => (
               <button
                 type="button"
@@ -443,6 +465,7 @@ export function Composer(props: ComposerProps) {
           </div>
         )}
         <textarea
+          ref={promptInput}
           aria-label="Message DATUMM"
           value={visiblePrompt.references.length ? visiblePrompt.text : prompt}
           onChange={(e) => {
@@ -457,7 +480,7 @@ export function Composer(props: ComposerProps) {
           aria-controls={commandsOpen ? 'workflow-commands' : undefined}
           aria-activedescendant={commandsOpen ? `workflow-${commandIndex}` : undefined}
           placeholder={
-            hasContent ? 'Ask about this plan, or describe a change…' : 'Describe your project, or ask anything…'
+            hasContent ? drawingCurrent ? 'Ask about this plan or describe a change…' : 'Ask a follow-up or describe your task…' : 'Describe your project or ask anything…'
           }
           rows={2}
           onKeyDown={(e) => {
@@ -515,7 +538,7 @@ export function Composer(props: ComposerProps) {
               onTools={() => {
                 changeSettingsOpen(true);
               }}
-              onSettings={() => changeSettingsOpen(true)}
+              onSettings={() => changeSettingsOpen(true, 'capabilities')}
               onSkill={(id) => setPrompt((previous) => previous + '\nUse the reviewed native skill ' + id + '.')}
               onCommand={(command) => {
                 if (command === 'plan') setMode('plan');
@@ -524,31 +547,32 @@ export function Composer(props: ComposerProps) {
               }}
             />
           </div>
-          <div className="studio-mode-segments" role="group" aria-label="Task mode">
-                {modes.map((item) => (
-                  <button
-                    type="button"
-                    key={item.id}
-                    aria-pressed={item.id === mode}
-                    title={item.id === 'ask' ? 'Ask questions about your project' : item.id === 'plan' ? 'Explore and review a design' : 'Prepare changes for explicit Revit approval'}
-                    disabled={busy || mediaBusy || !workspaceReady || (buildUnavailable && item.id === 'build')}
-                    onClick={() => {
-                      if (
-                        item.id === 'build' &&
-                        run?.data.agent_design &&
-                        drawingCurrent &&
-                        !run.data.compiled &&
-                        !run.data.operation_id
-                      )
-                        void switchDrawingToBuild();
-                      else setMode(item.id);
-                    }}
-                  >
-                    <item.icon size={14} />
-                    {item.label}
-                  </button>
-                ))}
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="studio-mode-trigger" aria-label={`Task mode: ${modes.find(item => item.id === mode)?.label ?? mode}`}
+                disabled={busy || mediaBusy || !workspaceReady}>
+                <Hand size={16} strokeWidth={1.9} aria-hidden="true"/>
+                <span>{modes.find(item => item.id === mode)?.label ?? mode}</span>
+                <ChevronDown size={16} strokeWidth={1.9} aria-hidden="true"/>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" aria-label="Task mode" className="composer-mode-menu">
+              <DropdownMenuLabel>Task mode</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={mode} onValueChange={value => {
+                const item = modes.find(option => option.id === value);
+                if (!item || busy || mediaBusy || !workspaceReady || (buildUnavailable && item.id === 'build')) return;
+                if (item.id === 'build' && run?.data.agent_design && drawingCurrent && !run.data.compiled && !run.data.operation_id)
+                  void switchDrawingToBuild();
+                else setMode(item.id);
+              }}>
+                {modes.map(item => <DropdownMenuRadioItem key={item.id} value={item.id}
+                  title={item.id === 'ask' ? 'Ask questions about your project' : item.id === 'plan' ? 'Explore and review a design' : 'Prepare changes for explicit Revit approval'}
+                  disabled={busy || mediaBusy || !workspaceReady || (buildUnavailable && item.id === 'build')}>
+                  <item.icon size={16} strokeWidth={1.9} aria-hidden="true"/>{item.label}
+                </DropdownMenuRadioItem>)}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <div className="composer-right">
             <div className="studio-model-control">
@@ -573,9 +597,6 @@ export function Composer(props: ComposerProps) {
                 />
               )}
             </div>
-            {desktopAvailable && chatModels.length > 0 && !chatModels.includes(model) && (
-              <small role="status">Selected model unavailable · choose a model</small>
-            )}
             <div className="studio-voice-control">
               {' '}
               <ComposerMedia
@@ -593,7 +614,7 @@ export function Composer(props: ComposerProps) {
                 onTools={() => {
                   changeSettingsOpen(true);
                 }}
-                onSettings={() => changeSettingsOpen(true)}
+                onSettings={() => changeSettingsOpen(true, 'capabilities')}
                 onSkill={(id) => setPrompt((previous) => previous + '\nUse the reviewed native skill ' + id + '.')}
                 onCommand={(command) => {
                   if (command === 'plan') setMode('plan');
@@ -602,8 +623,8 @@ export function Composer(props: ComposerProps) {
                 }}
               />
             </div>
-            {executing && <span className="activity-shimmer composer-working" role="status">Working…</span>}
-            {executing && (
+            {executing && !cancelPending && <span className="sr-only" role="status">Working…</span>}
+            {executing && !cancelPending && (
               <button
                 type="button"
                 className="send-button"
@@ -618,74 +639,75 @@ export function Composer(props: ComposerProps) {
               <button
                 className="send-button"
                 type="submit"
-                disabled={
-                  !hasPromptContent(prompt) ||
-                  !workspaceReady ||
-                  !connected ||
-                  actionBusy ||
-                  mediaBusy ||
-                  (executing && !run)
-                }
+                disabled={!canSubmit}
                 aria-label={queueMessage ? 'Queue message' : 'Send message'}
                 title={queueMessage ? 'Save this prompt to run after the current turn' : 'Send message'}
               >
-                <ArrowUp size={18} />
+                <ArrowUp size={16} strokeWidth={1.9} aria-hidden="true"/>
               </button>
             )}
           </div>
         </div>
-      </form>
-      {!hasContent && (
-        <div className="studio-new-chat-context">
-          <span>Hosted workspace</span>
-          <span>{selectedDevice?.online && revitSessions === 1 ? contextView : 'Revit not connected'}</span>
         </div>
-      )}
-      <div className="studio-composer-meta">
-        <span title={model}>
-          {model.split('/').at(-1)} · {reasoningEffort} · next message
-        </span>
-        <span>Hosted conversation context</span>
-      </div>
+        <div className="composer-tray">
+          <button type="button" className="composer-tray-link" onClick={() => setProjectContextOpen(true)} title="Open project context">
+            <Folder size={16} strokeWidth={1.9} aria-hidden="true"/><span>Project context</span>
+          </button>
+          <div className="composer-context-actions">
+            {mode !== 'build' && !offlineFixture && <button type="button"
+              className={cn('composer-tray-link context-toggle', useCurrentModel && 'active')}
+              aria-label={useCurrentModel ? 'Revit context on' : 'Revit context'} aria-pressed={useCurrentModel}
+              disabled={busy} onClick={() => setUseCurrentModel(value => !value)}
+              title="Include measured Revit context in this request">
+              <Box size={16} strokeWidth={1.9} aria-hidden="true"/><span className="composer-context-label">{useCurrentModel ? 'Revit context on' : 'Revit context'}</span>
+            </button>}
+            <button type="button" className="composer-tray-link device-status" disabled={offlineFixture}
+              title={selectedDevice?.online && revitSessions === 1 ? contextView : 'Connect DATUMM to the intended Revit document'}
+              onClick={event => { dialogTrigger.current = event.currentTarget; setDeviceDialog(true); }}>
+              <Plug size={16} strokeWidth={1.9} aria-hidden="true"/>
+              {!offlineFixture && !liveRuntime && selectedDevice?.online && revitSessions === 1 && <span className="composer-ready-dot" aria-hidden="true"/>}
+              <span>{offlineFixture ? 'Revit unavailable' : !selectedDevice?.online ? 'Connect Revit' : revitSessions === 1 ? 'Revit ready' : revitSessions === 0 ? 'Enable Revit bridge' : 'Checking Revit'}</span>
+              <ChevronDown size={16} strokeWidth={1.9} aria-hidden="true"/>
+            </button>
+          </div>
+        </div>
+      </form>
+      {desktopAvailable && chatModels.length > 0 && !chatModels.includes(model) && <small className="composer-model-notice" role="status">Selected model unavailable · choose a model</small>}
       {!hasContent && (
         <>
           <div className="studio-new-chat-suggestions">
             <button
               type="button"
-              disabled={!workspaceReady}
-              onClick={() => {
-                setMode('plan');
-                setPrompt('Help me design a floor plan. Ask for the site dimensions and room requirements first.');
-              }}
+              disabled={!starterAvailable}
+              onClick={() => chooseStarter('plan')}
             >
-              <PencilRuler size={14} />
-              Generate a plan
+              <PencilRuler size={14} strokeWidth={1.9} aria-hidden="true" />
+              Plan a concept
             </button>
             <button
               type="button"
-              disabled={!workspaceReady}
-              onClick={() => {
-                setMode('ask');
-                setUseCurrentModel(true);
-                setPrompt('Inspect the active Revit model and summarize the measured evidence.');
-              }}
+              disabled={!starterAvailable}
+              onClick={event => {if(!starterCurrent()||starterLive.current.locked)return;starterLive.current.pending=0;setStarterReplacement(null);dialogTrigger.current=event.currentTarget;setDeviceDialog(true);}}
             >
-              <Workflow size={14} />
-              Review my model
+              <Plug size={14} strokeWidth={1.9} aria-hidden="true" />
+              Revit connections
             </button>
             <button
               type="button"
-              disabled={!workspaceReady}
-              onClick={() => {
-                setMode('ask');
-                setPrompt('Help me annotate a drawing. Ask which drawing and annotations I need.');
-              }}
+              disabled={!starterAvailable}
+              onClick={() => chooseStarter('ask')}
             >
-              <Pencil size={14} />
-              Annotate a drawing
+              <MessageSquare size={14} strokeWidth={1.9} aria-hidden="true" />
+              Ask a Revit question
             </button>
           </div>
-          <p className="studio-new-chat-assurance">Think, plan, review. You approve changes before they reach Revit.</p>
+          {pendingStarter&&<div className="studio-starter-replace" role="group" aria-label="Replace current draft">
+            <span>Replace your current draft?</span>
+            <button type="button" onClick={()=>{if(!starterCurrent()||starterLive.current.locked||starterLive.current.pending!==pendingStarter.id||prompt!==pendingStarter.draft)return;applyStarter(pendingStarter.choice);}}>Replace draft</button>
+            <button type="button" onClick={()=>{if(!starterCurrent()||starterLive.current.locked||starterLive.current.pending!==pendingStarter.id)return;starterLive.current.pending=0;setStarterReplacement(null);promptInput.current?.focus();}}>Keep draft</button>
+          </div>}
+          <p className="studio-starter-notice" role="status">{starterNotice?.scope===JSON.stringify([scope.key,scope.epoch])?starterNotice.text:''}</p>
+          <p className="studio-new-chat-assurance">Ask and plan on the web. Connect Revit for model context. You approve Revit changes.</p>
         </>
       )}
     </div>

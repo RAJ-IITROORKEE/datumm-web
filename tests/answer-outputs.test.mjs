@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { Streamdown as RealStreamdown, defaultRehypePlugins } from 'streamdown';
+import { accessibleTables } from '../src/lib/accessible-tables.mjs';
 import { jsx, jsxs } from 'react/jsx-runtime';
 import ts from 'typescript';
 import { answerOutputs, answerTableCsv } from '../src/lib/answer-outputs.mjs';
@@ -22,13 +25,14 @@ test('answer extraction keeps tables and diagrams bound to their actual answer, 
   assert.equal(outputs[1].rows[0][1], '23');
 });
 
-test('an incomplete diagram remains readable and streaming answer tables cannot export', () => {
-  const output = answerOutputs('```mermaid\nflowchart LR\n A -->', { ...source, state: 'streaming' })[1];
+test('streaming answers expose the complete source without publishing incomplete blocks', () => {
+  const output = answerOutputs('```mermaid\nflowchart LR\n A -->', { ...source, state: 'streaming' })[0];
   assert.equal(output.complete, false);
   assert.match(output.markdown, /A -->/);
-  const table = answerOutputs('| A | B |\n|---|---|\n| 1 | 2 |', { ...source, state: 'streaming' })[1];
-  assert.throws(() => answerTableCsv(table), /finish/);
-  assert.deepEqual(answerOutputs('Brief answer.', source), []);
+  const streaming = answerOutputs('| A | B |\n|---|---|\n| 1 | 2 |', { ...source, state: 'streaming' });
+  assert.deepEqual(streaming.map(item => item.kind), ['report']);
+  assert.throws(() => answerTableCsv(streaming[0]), /finish/);
+  assert.equal(answerOutputs('Brief answer.', source)[0].markdown, 'Brief answer.');
 });
 
 function parseCsv(csv) {
@@ -58,11 +62,13 @@ test('CSV exports every answer-table row with UTF-8, quotes, multiline text and 
 
 test('same-name concurrent tools close by real call identity; legacy ambiguity does not fabricate completion', () => {
   const events = [
-    { index: 0, eventId: 'a', stage: 'tool_running', detail: 'Reading rooms', callId: 'call-a' },
-    { index: 1, eventId: 'b', stage: 'tool_running', detail: 'Reading rooms', callId: 'call-b' },
-    { index: 2, eventId: 'c', stage: 'tool_completed', detail: 'rooms', callId: 'call-b' },
+    { index: 0, eventId: 'a', stage: 'tool_running', detail: 'Reading rooms', callId: 'call-a', turnId: 'turn-a', executionId: 'execution-a' },
+    { index: 1, eventId: 'b', stage: 'tool_running', detail: 'Reading rooms', callId: 'call-b', turnId: 'turn-a', executionId: 'execution-a' },
+    { index: 2, eventId: 'c', stage: 'tool_completed', detail: 'rooms', callId: 'call-b', turnId: 'turn-a', executionId: 'execution-a' },
   ];
   assert.deepEqual(processRows([...events, events[2]], true, false).map(row => row.status), ['running', 'done']);
+  const unbound = events.map(({ turnId, executionId, ...event }) => event);
+  assert.deepEqual(processRows(unbound, false, false).map(row => row.status), ['unconfirmed', 'unconfirmed', 'done']);
   const legacy = events.map(({ callId, ...event }) => event);
   assert.deepEqual(processRows(legacy, false, false).map(row => row.status), ['unconfirmed', 'unconfirmed', 'done']);
   assert.equal(processStatus('blocked'), 'blocked');
@@ -76,9 +82,10 @@ test('unchanged answer text settles renderer controls and preserves caller image
   const code = readFileSync(new URL('../src/components/ai-elements/message.tsx', import.meta.url), 'utf8');
   const exports = {}, Streamdown = () => null;
   const context = { exports, require(name) {
-    if (name === 'react') return React;
-    if (name === 'react/jsx-runtime') return { jsx, jsxs };
-    if (name === 'streamdown') return { Streamdown };
+    if (name === 'react') return { ...React, useMemo: fn => fn(), useState: value => [value, () => {}], useRef: value => ({current:value}), useLayoutEffect: fn => fn() };
+    if (name === 'react/jsx-runtime') return { jsx, jsxs, Fragment: React.Fragment };
+    if (name === 'streamdown') return { Streamdown, defaultRehypePlugins, defaultTranslations:{viewFullscreen:'View fullscreen'} };
+    if (name === '@/lib/accessible-tables.mjs') return { accessibleTables };
     if (name === '@streamdown/mermaid') return { createMermaidPlugin: options => options };
     if (name === '@/lib/utils') return { cn: (...values) => values.filter(Boolean).join(' ') };
     return {};
@@ -86,8 +93,8 @@ test('unchanged answer text settles renderer controls and preserves caller image
   runInNewContext(ts.transpileModule(code, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText, context);
   const Response = exports.MessageResponse;
   assert.equal(Response.compare, null, 'React default shallow comparison must observe isAnimating and policy props');
-  const pending = Response.type({ children: '| A | B |', isAnimating: true, disallowedElements: ['img'] });
-  const complete = Response.type({ children: '| A | B |', isAnimating: false, disallowedElements: ['img'] });
+  const pending = Response.type({ children: '| A | B |', isAnimating: true, disallowedElements: ['img'] }).props.children[0].props.children;
+  const complete = Response.type({ children: '| A | B |', isAnimating: false, disallowedElements: ['img'] }).props.children[0].props.children;
   assert.equal(pending.props.controls, false);
   assert.equal(complete.props.isAnimating, false);
   assert.equal(complete.props.controls.table.fullscreen, true);
@@ -95,6 +102,68 @@ test('unchanged answer text settles renderer controls and preserves caller image
   assert.equal(complete.props.disallowedElements[0], 'img');
   assert.equal(complete.props.mermaid.config.securityLevel, 'strict');
   assert.equal(complete.props.skipHtml, true);
+  const callerPlugin = () => {};
+  const custom = Response.type({ children: 'hello', rehypePlugins: [callerPlugin] }).props.children[0].props.children;
+  assert.equal(custom.props.rehypePlugins[0], callerPlugin);
+  assert.equal(custom.props.rehypePlugins.at(-1), accessibleTables);
+  assert.equal(complete.props.rehypePlugins.length, Object.keys(defaultRehypePlugins).length + 1);
+});
+
+test('actual Streamdown table is focusable with fullscreen retained and unsafe table exports disabled', () => {
+  const html = renderToStaticMarkup(React.createElement(RealStreamdown, {
+    mode: 'static', skipHtml: true,
+    rehypePlugins: [...Object.values(defaultRehypePlugins), accessibleTables],
+    controls: { table: { copy: false, download: false, fullscreen: true } },
+  }, '| Room | Area |\n| --- | --- |\n| Long label | 23 |'));
+  assert.match(html, /data-streamdown="table-wrapper"/);
+  assert.match(html, /<table[^>]*tabindex="0"[^>]*aria-label="Table, scroll horizontally with arrow keys"/);
+  assert.match(html, /title="View fullscreen"/);
+  assert.doesNotMatch(html, /title="(?:Copy|Download) table/);
+  assert.match(html, /Long label/);
+});
+
+test('table fullscreen retains its source and closes on an identical-text scope change', () => {
+  const code = readFileSync(new URL('../src/components/ai-elements/message.tsx', import.meta.url), 'utf8');
+  let expanded = null; const refs = []; let refIndex = 0, focused = 0;
+  class Element { closest() { return null; } }
+  class HTMLButtonElement extends Element {
+    title = 'View fullscreen'; isConnected = true;
+    closest(selector) { return selector === 'button' ? this : { querySelector: () => ({}) }; }
+    focus() { focused++; }
+  }
+  const hooks = {...React, useMemo: fn => fn(), useState: () => [expanded, value => { expanded = value; }], useLayoutEffect: fn => fn(),
+    useRef: value => refs[refIndex++] ?? (refs[refIndex - 1] = {current:value})};
+  const exports = {}, context = {exports, Element, HTMLButtonElement, require(name) {
+    if (name === 'react') return hooks;
+    if (name === 'react/jsx-runtime') return {jsx,jsxs,Fragment:React.Fragment};
+    if (name === 'streamdown') return {Streamdown:'streamdown',defaultRehypePlugins,defaultTranslations:{viewFullscreen:'View fullscreen'},extractTableDataFromElement:()=>({headers:['Room'],rows:[['Hall']]})};
+    if (name === '@streamdown/mermaid') return {createMermaidPlugin: x => x};
+    if (name === '@/lib/accessible-tables.mjs') return {accessibleTables};
+    if (name === '@/lib/utils') return {cn:(...x)=>x.filter(Boolean).join(' ')};
+    return {};
+  }};
+  runInNewContext(ts.transpileModule(code,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText,context);
+  const render = scope => { refIndex=0; return exports.MessageResponse.type({children:'same table',tableScopeKey:scope}); };
+  const opener = new HTMLButtonElement();
+  const initial = render('A');
+  initial.props.children[0].props.onClickCapture({target:opener,preventDefault(){},stopPropagation(){}});
+  const open = render('A');
+  assert.equal(open.props.children[1].props.open,true);
+  const content = open.props.children[1].props.children;
+  assert.equal(content.props.children[1].props.children.props.children[1].props.children[0].props.children[0].props.children,'Hall');
+  open.props.children[1].props.onOpenChange(false);
+  const closed = render('A');
+  assert.equal(closed.props.children[1].props.open,false);
+  closed.props.children[1].props.children.props.onCloseAutoFocus({preventDefault(){}});
+  assert.equal(focused,1);
+  focused=0;
+  render('A').props.children[0].props.onClickCapture({target:opener,preventDefault(){},stopPropagation(){}});
+  const reopened = render('A');
+  const replacement = render('B');
+  assert.equal(replacement.props.children[1].props.open,false);
+  reopened.props.children[1].props.children.props.onCloseAutoFocus({preventDefault(){}});
+  assert.equal(focused,0);
+  assert.equal(render('A').props.children[1].props.open,false);
 });
 
 test('recorded AgentActivity returns its expandable content in both compact and expanded modes', () => {
@@ -113,7 +182,7 @@ test('recorded AgentActivity returns its expandable content in both compact and 
 test('replacing an output with another work surface does not schedule return focus', () => {
   const code = readFileSync(new URL('../src/components/workspace/output-workspace.tsx', import.meta.url), 'utf8');
   let focusFrames = 0, closed = 0;
-  const hooks = { ...React, useState: value => [value, () => {}], useRef: value => ({ current: value }),
+  const hooks = { ...React, useState: value => [typeof value === 'function' ? value() : value, () => {}], useRef: value => ({ current: value }),
     useCallback: callback => callback, useMemo: callback => callback() };
   const exports = {}, context = { exports, requestAnimationFrame: () => { focusFrames++; }, require(name) {
     if (name === 'react') return hooks;
@@ -121,8 +190,8 @@ test('replacing an output with another work surface does not schedule return foc
     return {};
   } };
   runInNewContext(ts.transpileModule(code, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText, context);
-  const state = exports.OutputWorkspaceProvider({ children: null, onClose: () => { closed++; } });
-  const provider = state.type(state.props);
+  const scopeInput={key:'fixture-scope',accountKey:'fixture-account',taskId:'fixture-task',sourceKey:'fixture-source'};
+  const provider = exports.OutputWorkspaceProvider({ scopeKey:scopeInput.key,scopeInput,children: null, onClose: () => { closed++; } });
   provider.props.value.dismissOutput();
   assert.equal(closed, 1);
   assert.equal(focusFrames, 0, 'A replacement surface owns its own focus');

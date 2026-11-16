@@ -1,17 +1,18 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { Card as AffectCard, CardStyles } from "@/components/vendor/affectui/card-clean"
 
-function Card({ className, ...props }: React.ComponentProps<"div">) {
-  return <div data-slot="card" className={cn("flex flex-col gap-4 rounded-xl border bg-card p-5 text-card-foreground", className)} {...props} />
+function Card(props: React.ComponentProps<"div">) {
+  return <AffectCard as="div" data-slot="card" {...props} />
 }
 function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
-  return <div data-slot="card-header" className={cn("flex flex-col gap-1", className)} {...props} />
+  return <><CardStyles /><div data-slot="card-header" className={cn("ui-crdc__head", className)} {...props} /></>
 }
 function CardTitle({ className, ...props }: React.ComponentProps<"h2">) {
-  return <h2 data-slot="card-title" className={cn("text-sm leading-none font-semibold", className)} {...props} />
+  return <><CardStyles /><h2 data-slot="card-title" className={cn("ui-crdc__title", className)} {...props} /></>
 }
 function CardDescription({ className, ...props }: React.ComponentProps<"p">) {
-  return <p data-slot="card-description" className={cn("text-xs text-muted-foreground", className)} {...props} />
+  return <><CardStyles /><p data-slot="card-description" className={cn("ui-crdc__desc", className)} {...props} /></>
 }
 
 export { Card, CardHeader, CardTitle, CardDescription }

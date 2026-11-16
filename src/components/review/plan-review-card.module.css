@@ -1,0 +1,17 @@
+.review { margin: 12px 0; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 8px; color: var(--text); font-size: 13px; line-height: 20px; }
+.heading { display: flex; align-items: flex-start; gap: 8px; color: var(--ink); }
+.heading > svg { flex: none; margin-top: 2px; }
+.heading strong { font-weight: 500; }
+.identity { display: block; color: var(--text); overflow-wrap: anywhere; }
+.note, .error { margin: 2px 0 0; color: var(--text); overflow-wrap: anywhere; }
+.note, .error { margin-top: 8px; }
+.error { color: var(--aui-danger); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; }
+.more[open] { flex-basis: 100%; }
+.more summary { width: fit-content; cursor: pointer; color: var(--text); }
+.more summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.moreContent { flex-basis: 100%; padding-top: 4px; }
+.moreContent > button { margin-top: 8px; }
+.more dl { margin: 8px 0 0; }
+.more dl div { display: flex; flex-wrap: wrap; gap: 4px 8px; }
+.more dd { margin: 0; overflow-wrap: anywhere; }

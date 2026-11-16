@@ -1,50 +1,50 @@
-.admin-root { position: fixed; inset: 0; overflow: hidden; background: var(--background); color: var(--foreground); --accent: var(--secondary); font-family: var(--font-sans); }
+.admin-root { position: fixed; inset: 0; overflow: hidden; background: var(--page); color: var(--ink); font:400 13px/20px var(--font-sans); }
 .admin-root :focus-visible { outline: 2px solid var(--trace-accent); outline-offset: 2px; }
 .admin-root ::selection { background: var(--secondary); color: var(--foreground); }
 .admin-root .admin-shell { --admin-sidebar: 0px; --admin-content-bottom: 40px; display: flex; height: 100%; min-width: 0; overflow: hidden; }
-.admin-root .admin-sidebar { display: none; width: var(--admin-sidebar); min-height: 0; flex: none; flex-direction: column; background: var(--card); border-right: 1px solid var(--border); }
-.admin-root .admin-brand { display: flex; align-items: center; gap: 10px; height: 83px; padding: 0 20px; flex: none; }
+.admin-root .admin-sidebar { display: none; width: var(--admin-sidebar); min-height: 0; flex: none; flex-direction: column; background: var(--page); border-right: 1px solid var(--border); }
+.admin-root .admin-brand { display: flex; align-items: center; gap: 10px; height: 64px; padding: 0 20px; flex: none; }
 .admin-root .admin-brand-mark { display: block; width: 27px; height: 27px; flex: none; object-fit: contain; }
 .admin-root .admin-brand-copy strong { display: block; font-size: 13px; font-weight: 600; letter-spacing: .25px; line-height: 1.5; }
-.admin-root .admin-brand-copy span { display: block; margin-top: 1px; color: var(--muted-foreground); font-size: 11px; line-height: 1.5; }
+.admin-root .admin-brand-copy span { display: block; margin-top: 1px; color: var(--text); font-size: 11px; line-height: 1.5; }
 .admin-root .admin-nav { min-height: 0; flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 4px 12px 20px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 .admin-root .admin-nav-group + .admin-nav-group { margin-top: 24px; }
-.admin-root .admin-nav-label { margin: 0 8px 8px; color: var(--muted-foreground); font-size: 11px; line-height: 1.5; font-weight: 500; }
+.admin-root .admin-nav-label { margin: 0 8px 8px; color: var(--text); font-size: 11px; line-height: 1.5; font-weight: 500; }
 .admin-root .admin-nav-list { display: grid; gap: 3px; padding: 0; margin: 0; list-style: none; }
-.admin-root .admin-nav-link { display: flex; align-items: center; min-height: 35px; gap: 10px; padding: 7px 9px; border-radius: 6px; color: var(--muted-foreground); font-size: 12px; line-height: 1.5; text-decoration: none; }
+.admin-root .admin-nav-link { display: flex; align-items: center; min-height: 30px; gap: 8px; padding: 5px 8px; border-radius: 8px; color: var(--text); font-size: 13px; line-height: 20px; text-decoration: none; }
 .admin-root .admin-nav-link > svg { width: 15px; height: 15px; flex: none; stroke-width: 1.7; }
 .admin-root .admin-nav-link:hover { color: var(--foreground); background: var(--secondary); }
-.admin-root .admin-nav-link[aria-current=page] { color: var(--foreground); background: var(--secondary); font-weight: 500; }
+.admin-root .admin-nav-link[aria-current=page] { color: var(--foreground); background: var(--select); font-weight: 500; }
 .admin-root .admin-sidebar-footer { flex: none; border-top: 1px solid var(--border); margin: 0 12px; padding: 10px 0 14px; }
 .admin-root .admin-identity { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 6px 8px 0; min-width: 0; }
-.admin-root .admin-identity-icon { display: grid; place-items: center; width: 28px; height: 28px; flex: none; border-radius: 8px; background: var(--secondary); color: var(--muted-foreground); }
+.admin-root .admin-identity-icon { display: grid; place-items: center; width: 28px; height: 28px; flex: none; border-radius: 8px; background: var(--secondary); color: var(--text); }
 .admin-root .admin-identity-icon svg { width: 15px; height: 15px; }
 .admin-root .admin-identity-copy { min-width: 0; }
 .admin-root .admin-identity-copy span { display: block; font-size: 11px; line-height: 1.5; }
-.admin-root .admin-identity-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted-foreground); font-size: 10px; line-height: 1.7; }
+.admin-root .admin-identity-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-size: 10px; line-height: 1.7; }
 .admin-root .admin-workspace { display: flex; flex: 1; flex-direction: column; min-width: 0; }
-.admin-root .admin-topbar { display: flex; align-items: center; height: 58px; gap: 12px; flex: none; border-bottom: 1px solid var(--border); padding: 0 20px; }
-.admin-root .admin-shell-button { width: 32px; height: 32px; min-width: 32px; padding: 0; flex: none; color: var(--muted-foreground); border-radius: 6px; }
+.admin-root .admin-topbar { display: flex; align-items: center; height: 48px; gap: 12px; flex: none; border-bottom: 1px solid var(--border); padding: 0 20px; }
+.admin-root .admin-shell-button { width: 32px; height: 32px; min-width: 32px; padding: 0; flex: none; color: var(--text); border-radius: 6px; }
 .admin-root .admin-shell-button:hover { color: var(--foreground); background: var(--secondary); }
 .admin-root .admin-shell-button svg { width: 16px; height: 16px; }
 .admin-root .admin-desktop-toggle { display: none; }
 .admin-root .admin-breadcrumb { min-width: 0; }
 .admin-root .admin-breadcrumb ol { display: flex; align-items: center; gap: 10px; padding: 0; margin: 0; list-style: none; font-size: 12px; }
-.admin-root .admin-breadcrumb a { color: var(--muted-foreground); text-decoration: none; }
+.admin-root .admin-breadcrumb a { color: var(--text); text-decoration: none; }
 .admin-root .admin-breadcrumb a:hover, .admin-root .admin-breadcrumb a[aria-current=page] { color: var(--foreground); }
-.admin-root .admin-breadcrumb svg { display: block; width: 12px; height: 12px; color: var(--muted-foreground); }
+.admin-root .admin-breadcrumb svg { display: block; width: 12px; height: 12px; color: var(--text); }
 .admin-root .admin-current-section { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .admin-root .admin-main { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--border) transparent; padding: 30px 24px var(--admin-content-bottom); }
 .admin-root .admin-main:focus { outline-offset: -3px; }
-.admin-root .admin-content { width: 100%; max-width: 960px; min-width: 0; margin: 0 auto; }
+.admin-root .admin-content { width: 100%; max-width: 696px; min-width: 0; margin: 0 auto; }
 .admin-root .admin-skip-link { position: absolute; left: 12px; top: 8px; z-index: 60; transform: translateY(-160%); padding: 9px 12px; background: var(--foreground); color: var(--background); border-radius: 6px; font-size: 12px; }
 .admin-root .admin-skip-link:focus { transform: translateY(0); }
-.admin-root.admin-navigation-drawer { right: auto; width: 280px; max-width: 85vw; background: var(--card); box-shadow: none; }
+.admin-root.admin-navigation-drawer { right: auto; width: 280px; max-width: 85vw; background: var(--page); box-shadow: none; }
 .admin-root .admin-drawer-heading { display: flex; align-items: center; justify-content: space-between; padding-right: 12px; }
 .admin-root.admin-navigation-drawer .admin-nav-link { min-height: 40px; }
 .admin-root.admin-navigation-drawer .admin-shell-button { width: 40px; height: 40px; }
 @media (min-width: 768px) {
-  .admin-root .admin-shell { --admin-sidebar: 232px; --admin-content-bottom: 56px; }
+  .admin-root .admin-shell { --admin-sidebar: 272px; --admin-content-bottom: 56px; }
   .admin-root .admin-shell-collapsed { --admin-sidebar: 64px; }
   .admin-root .admin-sidebar { display: flex; }
   .admin-root .admin-desktop-toggle { display: inline-flex; }
@@ -64,4 +64,19 @@
 }
 @media (pointer: coarse) {
   .admin-root .admin-nav-link, .admin-root .admin-shell-button { min-height: 44px; }
+}
+
+/* Inset work panel follows the same shell surface as personal settings. */
+.admin-root .admin-workspace {margin:8px 8px 8px 0;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden}
+.admin-root .admin-nav-link:hover {background:var(--hover)}
+.admin-root .admin-nav-link[aria-current=page] {background:var(--select)}
+.admin-root .admin-brand-copy strong {font-weight:500}
+@media(max-width:767px) {.admin-root .admin-workspace {margin-left:8px}}
+@media (max-width: 700px) {
+  .admin-root button:not([role=switch]),
+  .admin-root input:not([type=checkbox]):not([type=radio]),
+  .admin-root select,
+  .admin-root .admin-nav-link { min-height: 44px; }
+  .admin-root button:not([role=switch]), .admin-root .admin-shell-button { min-width: 44px; }
+  .admin-leave-dialog button { min-height: 44px; min-width: 44px; }
 }

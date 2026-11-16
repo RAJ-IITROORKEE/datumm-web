@@ -1,9 +1,9 @@
 .process {
   min-width: 0;
   margin: 5px 0 9px;
-  color: var(--muted-foreground);
-  font-size: 12px;
-  line-height: 1.5;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
 }
 
 .trigger,
@@ -13,10 +13,10 @@
   gap: 8px;
   width: 100%;
   min-width: 0;
-  min-height: 32px;
+  min-height: 28px;
   padding: 4px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 6px;
   background: transparent;
   color: inherit;
   font: inherit;
@@ -24,15 +24,17 @@
   cursor: pointer;
 }
 
+.trigger { padding: 6px 8px; }
+
 .trigger:hover,
 .nodeTrigger:hover {
-  background: var(--secondary);
-  color: var(--foreground);
+  background: var(--hover);
+  color: var(--ink);
 }
 
 .trigger:focus-visible,
 .nodeTrigger:focus-visible {
-  outline: 2px solid var(--trace-accent);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -48,15 +50,18 @@
   overflow-wrap: anywhere;
 }
 
+.summary { display: grid; gap: 1px; }
+.detail { color: var(--text); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
+
 .lifecycle {
-  color: var(--foreground);
+  color: var(--ink);
   font-weight: 500;
 }
 
 .metadata,
 .rowState {
-  color: var(--muted-foreground);
-  font-size: 11px;
+  color: var(--text);
+  font-size: 12px;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
 }
@@ -65,12 +70,12 @@
 .process[data-status='failed'] > .trigger,
 .node[data-status='failed'] > .nodeTrigger,
 .leaf[data-status='failed'],
-.rows li[data-status='failed'] { color: var(--trace-error); }
+.rows li[data-status='failed'] { color: var(--aui-danger); }
 
 .chevron { transition: transform 160ms ease-out; }
 .trigger[data-state='open'] > .chevron,
 .nodeTrigger[data-state='open'] > .chevron { transform: rotate(180deg); }
-.content { padding: 3px 0 2px 22px; }
+.content { padding: 4px 0 2px 18px; border-left: 1px solid var(--line); margin-left: 14px; }
 
 .tree {
   display: grid;
@@ -81,7 +86,7 @@
 .nodeContent {
   margin: 2px 0 6px 10px;
   padding-left: 12px;
-  border-left: 1px solid var(--separator, var(--border));
+  border-left: 1px solid var(--separator, var(--line));
 }
 
 .rows {
@@ -116,10 +121,10 @@
 .footnote {
   margin: 4px 4px 8px;
   overflow-wrap: anywhere;
-  color: var(--muted-foreground);
+  color: var(--text);
 }
 
-.footnote { margin-top: 10px; font-size: 11px; }
+.footnote { margin-top: 10px; font-size: 12px; }
 .spinner { animation: turn 1s linear infinite; }
 
 .srOnly {
@@ -144,3 +149,8 @@
   .trigger,
   .nodeTrigger { min-height: 44px; }
 }
+
+:global([data-motion=reduce]) .spinner { animation: none; }
+:global([data-motion=reduce]) .chevron { transition: none; }
+.trigger { align-items: flex-start; }
+.trigger > svg { margin-top: 3px; }

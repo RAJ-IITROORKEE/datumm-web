@@ -13,7 +13,9 @@ export function nestProcess(events) {
   const steps = [];
   const rest = [];
   for (const event of [...events].sort((a, b) => a.index - b.index)) {
-    if (!event.parentStepId) { rest.push(event); continue; }
+    // Actions and their completions share activityId even when only the action has
+    // a parent step. Keep them together in the flat phase stream.
+    if (!event.parentStepId || ['agent_stage_start', 'agent_action', 'agent_stage_complete'].includes(event.stage)) { rest.push(event); continue; }
     let step = steps.find((row) => row.id === event.parentStepId);
     if (!step) steps.push((step = { id: event.parentStepId, agents: [] }));
     const id = event.agent?.id ?? 'lead';
@@ -36,7 +38,7 @@ const clip = (text, max = 80) => {
  * `agent_stage_start` ... `agent_stage_complete` span is one step with its action /
  * research / evidence-lookup events as child rows. Title: the first `note` inside the
  * span (80 chars), else the start event's detail. `summary`: the span's last note when
- * it differs from the first. A span with no complete event is still running.
+ * it differs from the first. Completion requires a unique action and explicit success outcome.
  * @template {{ index: number; stage: string; detail?: string; note?: string; at?: string; agent?: { name?: string } }} E
  * @param {E[]} events
  * @returns {{ id: string; title: string; summary: string; done: boolean; children: E[] }[]}
@@ -55,10 +57,16 @@ export function stageSpans(events) {
     if (event.stage === 'agent_stage_start') {
       close();
       notes = [];
-      open = { id: String(event.index), title: clip(event.detail) || `Step ${spans.length + 1}`, summary: '', done: false, children: [] };
+      open = { id: String(event.index), title: clip(event.detail) || `Step ${spans.length + 1}`, summary: '', done: false, outcome: undefined, children: [] };
       spans.push(open);
     } else if (event.stage === 'agent_stage_complete') {
-      if (open) open.done = true;
+      const sameActivity = row => Boolean(event.activityId && event.executionId && event.turnId) && row.activityId === event.activityId && row.executionId === event.executionId && row.turnId === event.turnId && row.taskId === event.taskId;
+      const actions = events.filter(row => row.stage === 'agent_action' && sameActivity(row));
+      const completions = events.filter(row => row.stage === 'agent_stage_complete' && sameActivity(row));
+      if (open && actions.length === 1 && completions.length === 1 && open.children.includes(actions[0])) {
+        open.outcome = typeof event.controlOutcome === 'string' ? event.controlOutcome : undefined;
+        open.done = ['success','completed'].includes(open.outcome);
+      }
       close();
     } else if (open) {
       if (clip(event.note)) notes.push(event.note);

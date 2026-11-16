@@ -18,7 +18,7 @@ export function AgentSection() {
       {({ draft, update, errors, effective }) => (
         <>
           <SettingsGroup title="Models" description={`Models users may pick. Empty uses the server default list (${effectiveText(effective.models) || 'unknown'}).`}>
-            <ChipList label="Allowed models" values={draft.models} onChange={models => update({ models })} max={20} placeholder="provider/model-name" error={errors.models || Object.entries(errors).find(([key]) => key.startsWith('models.'))?.[1]}/>
+            <ChipList draftKey="models" label="Allowed models" values={draft.models} onChange={models => update({ models })} max={20} placeholder="provider/model-name" error={errors.models || Object.entries(errors).find(([key]) => key.startsWith('models.'))?.[1]}/>
               <Field layout="row" label="Default model" error={errors.defaultModel} hint={`Effective: ${effectiveText(effective.defaultModel)}`}>
                 {p => <Select {...p} value={draft.defaultModel} onChange={e => update({ defaultModel: e.target.value })}><option value="">Server default</option>{draft.models.map(m => <option key={m}>{m}</option>)}</Select>}
               </Field>
@@ -58,7 +58,7 @@ export function WebSearchSection() {
               <div><label htmlFor="ws-enabled">Web search enabled</label><p>Turn off to stop all web lookups.</p></div>
               <Switch id="ws-enabled" checked={ws.enabled} onCheckedChange={enabled => set({ enabled })} />
             </div>
-            <ChipList label="Preferred domains" values={ws.includeDomains} onChange={includeDomains => set({ includeDomains })} max={30} normalize={normalizeDomain} placeholder="example.org" error={errors['webSearch.includeDomains']} hint="Results are limited to these domains. Empty allows any." />
+            <ChipList draftKey="domains" label="Preferred domains" values={ws.includeDomains} onChange={includeDomains => set({ includeDomains })} max={30} normalize={normalizeDomain} placeholder="example.org" error={errors['webSearch.includeDomains']} hint="Results are limited to these domains. Empty allows any." />
             <Field layout="row" label="Max results" error={errors['webSearch.maxResults']} hint="1 to 10 per search.">
               {p => <Input {...p} type="number" inputMode="numeric" min={1} max={10} step={1} value={ws.maxResults} onChange={e => set({ maxResults: num(e.target.value) })} />}
             </Field>
@@ -139,7 +139,7 @@ export function McpSection() {
                     <Field label="Name" error={e('name')}>{p => <Input {...p} value={s.name} maxLength={120} onChange={ev => patch(i, { name: ev.target.value })} />}</Field>
                   </div>
                   <Field label="URL" error={e('url')} hint="Must start with https://">{p => <Input {...p} type="url" value={s.url} maxLength={300} onChange={ev => patch(i, { url: ev.target.value })} />}</Field>
-                  <ChipList label="Tool allow-list" values={s.toolAllowlist} onChange={toolAllowlist => patch(i, { toolAllowlist })} max={50} placeholder="tool_name" error={e('toolAllowlist')} hint="Empty means no tools are allowed yet." />
+                  <ChipList draftKey={`mcp:${i}`} label="Tool allow-list" values={s.toolAllowlist} onChange={toolAllowlist => patch(i, { toolAllowlist })} max={50} placeholder="tool_name" error={e('toolAllowlist')} hint="Empty means no tools are allowed yet." />
                   <div className={styles.toggleRow}><div><label htmlFor={`mcp-${i}-on`}>Enabled in configuration</label><p>Records a preference; tools remain unavailable to the agent.</p></div><Switch id={`mcp-${i}-on`} checked={s.enabled} onCheckedChange={enabled => patch(i, { enabled })} /></div>
                 </ItemCard>
               );

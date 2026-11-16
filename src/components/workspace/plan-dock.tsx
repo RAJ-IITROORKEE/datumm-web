@@ -1,34 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Check, ChevronDown, Circle, Loader2, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Check, CircleDashed, CircleHelp, X } from 'lucide-react';
 import { todoSummary, type TodoItem } from '@/lib/agent-todos.mjs';
+import styles from './plan-dock.module.css';
 
-/** Pinned checklist above the composer: the agent's steps, never tool output. */
-export function PlanDock({ items }: { items: TodoItem[] }) {
-  const { done, total, allDone, current } = todoSummary(items);
-  const [open, setOpen] = useState(!allDone);
-  useEffect(() => setOpen(!allDone), [allDone]);
+/** Contextual recorded checklist beside its answer; never inferred from tool activity. */
+export function PlanDock({ items, title = 'Plan', note }: { items: TodoItem[]; title?: string; note?: string }) {
+  const { done, total } = todoSummary(items);
   if (!total) return null;
   return (
-    <section className="plan-dock" aria-label="Agent plan">
-      <button type="button" className="plan-dock-header" aria-expanded={open} aria-controls="plan-dock-list" onClick={() => setOpen((value) => !value)}>
-        <strong>Plan · {done} of {total}</strong>
-        {!open && current && <span>{current.title}</span>}
-        <ChevronDown size={14} className={cn('plan-dock-chevron', open && 'open')} aria-hidden="true" />
-      </button>
-      {open && (
-        <ol id="plan-dock-list">
+    <section className={styles.plan} aria-label={title}>
+      <div className={styles.heading}><span>{title}</span><small>{done} of {total}</small></div>
+      {note && <p className={styles.note}>{note}</p>}
+        <ol className={styles.list}>
           {items.map((item) => (
             <li key={item.id} data-status={item.status}>
-              {item.status === 'done' ? <Check size={14} aria-hidden="true" /> : item.status === 'running' ? <Loader2 size={14} className="spin" aria-hidden="true" /> : item.status === 'failed' ? <X size={14} aria-hidden="true" /> : <Circle size={14} aria-hidden="true" />}
+              {item.status === 'done' ? <Check size={14} aria-hidden="true" /> : item.status === 'failed' ? <X size={14} aria-hidden="true" /> : ['unconfirmed', 'unknown'].includes(item.status) ? <CircleHelp size={14} aria-hidden="true" /> : <CircleDashed size={14} aria-hidden="true" />}
               <span>{item.title}</span>
-              <span className="sr-only">{item.status}</span>
+              <small className={['unconfirmed', 'failed', 'stopped', 'partial', 'unknown'].includes(item.status) ? styles.state : 'sr-only'}>{item.status === 'unconfirmed' ? 'Outcome unconfirmed' : item.status === 'done' ? 'Completed' : item.status === 'partial' ? 'Partially complete' : item.status}</small>
             </li>
           ))}
         </ol>
-      )}
     </section>
   );
 }

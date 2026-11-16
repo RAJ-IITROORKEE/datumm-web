@@ -4,6 +4,7 @@ import * as React from "react"
 import { Check } from "lucide-react"
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
 import { cn } from "@/lib/utils"
+import { DropdownMenuStyles, dropdownMenuClasses } from "@/components/vendor/affectui/dropdown-menu-clean"
 
 function DropdownMenu(props: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
   return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />
@@ -16,17 +17,22 @@ function DropdownMenuTrigger(props: React.ComponentProps<typeof DropdownMenuPrim
 function DropdownMenuContent({
   className,
   sideOffset = 6,
+  forceMount,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
   return (
-    <DropdownMenuPrimitive.Portal>
+    <>
+      <DropdownMenuStyles />
+    <DropdownMenuPrimitive.Portal forceMount={forceMount}>
       <DropdownMenuPrimitive.Content
+        forceMount={forceMount}
         data-slot="dropdown-menu-content"
         sideOffset={sideOffset}
-        className={cn("dropdown-menu-content", className)}
+        className={cn(dropdownMenuClasses.content, className)}
         {...props}
       />
     </DropdownMenuPrimitive.Portal>
+    </>
   )
 }
 
@@ -37,7 +43,7 @@ function DropdownMenuLabel({
   return (
     <DropdownMenuPrimitive.Label
       data-slot="dropdown-menu-label"
-      className={cn("dropdown-menu-label", className)}
+      className={cn(dropdownMenuClasses.label, className)}
       {...props}
     />
   )
@@ -50,7 +56,7 @@ function DropdownMenuSeparator({
   return (
     <DropdownMenuPrimitive.Separator
       data-slot="dropdown-menu-separator"
-      className={cn("dropdown-menu-separator", className)}
+      className={cn(dropdownMenuClasses.separator, className)}
       {...props}
     />
   )
@@ -68,10 +74,10 @@ function DropdownMenuRadioItem({
   return (
     <DropdownMenuPrimitive.RadioItem
       data-slot="dropdown-menu-radio-item"
-      className={cn("dropdown-menu-radio-item", className)}
+      className={cn(dropdownMenuClasses.item, className)}
       {...props}
     >
-      <span className="dropdown-menu-radio-indicator" aria-hidden="true">
+      <span className={dropdownMenuClasses.indicator} aria-hidden="true">
         <DropdownMenuPrimitive.ItemIndicator>
           <Check size={14} />
         </DropdownMenuPrimitive.ItemIndicator>

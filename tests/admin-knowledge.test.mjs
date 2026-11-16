@@ -10,6 +10,11 @@ import {CORPORA} from '../src/lib/admin-config.mjs';
 // Exercise actual mutation handlers with a controlled service response.
 function harness(client, data=[]) {
   const slots=[];let cursor=0,reads=0;
+  const shared={knowledge:{url:'',title:'',corpus:'other'},knowledgePending:false,knowledgeUnknown:false,knowledgeResult:null,knowledgeNotice:'',
+    setKnowledge(value){shared.knowledge=value;},allowKnowledgeRetry(){shared.knowledgeUnknown=false;},
+    async submitKnowledge(){if(shared.knowledgePending||shared.knowledgeUnknown)return false;shared.knowledgePending=true;const form=shared.knowledge;
+      const result=await client('admin/knowledge/sources',{method:'POST',body:{url:form.url.trim(),corpus:form.corpus,...(form.title.trim()&&{title:form.title.trim()})}});
+      shared.knowledgePending=false;if(result.ok){shared.knowledge={url:'',title:'',corpus:form.corpus};return true;}shared.knowledgeResult=result;if(result.reason==='error')shared.knowledgeUnknown=true;return false;}};
   const hooks={...React,useState(initial){const i=cursor++;if(!(i in slots))slots[i]=initial;return [slots[i],next=>{slots[i]=typeof next==='function'?next(slots[i]):next;}];},useRef(initial){const i=cursor++;return slots[i]??={current:initial};}};
   const exports={};
   function Field({label,children}){return jsx.jsx('div',{children:children({'aria-label':label})});}
@@ -18,7 +23,7 @@ function harness(client, data=[]) {
   runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText,{exports,require(name){
     if(name==='react')return hooks;
     if(name==='react/jsx-runtime')return jsx;
-    if(name==='./form')return {Field,PageHeader:()=>null};
+    if(name==='./form')return {Field,PageHeader:()=>null,useSharedAdminConfig:()=>shared};
     if(name==='./use-admin')return {useAdminClient:()=>client,useAdminResource:()=>({data,result:{ok:true,data},load:async()=>{reads++;}}),ResultState};
     if(name==='@/lib/admin-config.mjs')return {CORPORA};
     if(name==='@/components/ui/button')return {Button:'button'};
@@ -49,12 +54,16 @@ test('knowledge admission prevents duplicate mutations and preserves failed sour
   assert.equal(control(h,'Source URL').props.value,'https://example.invalid/review');
   assert.equal(control(h,'Title (optional)').props.value,'設計 · Zoë');
   assert.equal(h.reads,0);
+  await submit(h);assert.equal(writes.length,1,'Unknown outcome cannot be retried without explicit review');
+  h.render().find(el=>el.type==='button'&&el.props.children==='Refresh sources').props.onClick();
+  assert.equal(h.reads,1,'The user can refresh the source list before allowing a retry');
+  h.render().find(el=>el.type==='button'&&el.props.children==='I checked; allow retry').props.onClick();
   const retry=submit(h);
   assert.equal(writes.length,2);
   assert.equal(writes[1].method,'POST');
   assert.equal(writes[1].body.title,'設計 · Zoë');
   finish({ok:true,data:null});await retry;
-  assert.equal(h.reads,1);
+  assert.equal(h.reads,2);
   assert.equal(control(h,'Source URL').props.value,'');
   assert.equal(control(h,'Title (optional)').props.value,'');
 });

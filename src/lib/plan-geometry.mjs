@@ -7,6 +7,33 @@ export function roomPoints(room) {
   return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
 }
 
+/** Clear estimates are only supported for a verified axis-aligned rectangle. */
+export function rectangularClearDimensions(room, wallThicknessMm) {
+  const rect = room.rect;
+  if (!Array.isArray(rect) || rect.length !== 4 || !rect.every(Number.isFinite) || rect[2] <= rect[0] || rect[3] <= rect[1] || !Number.isFinite(wallThicknessMm) || wallThicknessMm < 0) return null;
+  if (room.boundary != null) {
+    if (!Array.isArray(room.boundary)) return null;
+    const points = room.boundary.slice();
+    if (points.length === 5 && points[0]?.[0] === points[4]?.[0] && points[0]?.[1] === points[4]?.[1]) points.pop();
+    if (points.length !== 4 || points.some(p => !Array.isArray(p) || p.length !== 2 || !p.every(Number.isFinite))) return null;
+    const corners = new Set(points.map(([x, y]) => `${x},${y}`));
+    if (corners.size !== 4 || ![[rect[0],rect[1]],[rect[2],rect[1]],[rect[2],rect[3]],[rect[0],rect[3]]].every(([x,y]) => corners.has(`${x},${y}`))) return null;
+    if (points.some((p, i) => { const q = points[(i + 1) % 4]; return (p[0] === q[0]) === (p[1] === q[1]); })) return null;
+  }
+  return {widthMm: Math.max(0, rect[2] - rect[0] - wallThicknessMm), depthMm: Math.max(0, rect[3] - rect[1] - wallThicknessMm)};
+}
+
+/** Preserve schedule precedence and mark only values calculated from the selected graph. */
+export function roomAreaSchedule(compiled, graph, legacy, inventory) {
+  if (compiled != null) return compiled.map(({name, expectedAreaM2}) => ({name, expectedAreaM2}));
+  if (graph != null) return graph.rooms.map(room => {
+    const size = rectangularClearDimensions(room, graph.wallThicknessMm);
+    return {name: room.name, expectedAreaM2: size ? size.widthMm * size.depthMm / 1_000_000 : null, areaBasis: 'estimated-clear'};
+  });
+  if (legacy != null) return legacy.map(({name, expectedAreaM2}) => ({name, expectedAreaM2}));
+  return (inventory ?? []).map(({name, areaM2}) => ({name, expectedAreaM2: areaM2}));
+}
+
 const box = (room) => {
   const points = roomPoints(room), xs = points.map((p) => p[0]), ys = points.map((p) => p[1]);
   return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];

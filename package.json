@@ -3,7 +3,7 @@
   "version": "0.5.0-alpha.1",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 3001",
     "build": "next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit",
@@ -11,6 +11,7 @@
     "check:runtime": "node tests/runtime-smoke.mjs"
   },
   "dependencies": {
+    "@ag-ui/core": "1.0.4",
     "@ai-sdk/react": "4.0.117",
     "@clerk/nextjs": "7.9.7",
     "@fontsource-variable/inter": "5.2.8",
@@ -28,7 +29,8 @@
     "streamdown": "2.6.0",
     "tailwind-merge": "3.7.0",
     "three": "0.186.1",
-    "use-stick-to-bottom": "1.1.6"
+    "use-stick-to-bottom": "1.1.6",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",

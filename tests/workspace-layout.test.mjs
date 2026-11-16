@@ -16,18 +16,18 @@ test('an empty plan is not renderable: no rooms and a blank svg',()=>{
 
 test('review always exposes the stable chat without moving it into the drawing pane',()=>{
  const seen={};
- reviewFocus('[aria-label="Validated design preview"]',{setStudioView:value=>seen.view=value,setWorkspacePane:value=>seen.pane=value,setRight:value=>seen.right=value,
+ reviewFocus('[aria-label="Validated design preview"]',{setStudioView:value=>seen.view=value,setWorkspacePane:value=>seen.pane=value,closeProperties:()=>seen.properties=false,
   requestFrame:callback=>callback(),reviewScroll:{current:{stopScroll:()=>seen.stopped=true}},doc:{querySelector:selector=>({scrollIntoView:()=>seen.selector=selector})}});
  assert.equal(seen.view,'workspace');
  assert.equal(seen.pane,'chat');
- assert.equal(seen.right,false);
+ assert.equal(seen.properties,false);
  assert.equal(seen.stopped,true);
  assert.equal(seen.selector,'[aria-label="Validated design preview"]');
 });
 
 test('review falls back to the conversation when the exact card is unavailable',()=>{
  let scrolled=false;
- reviewFocus('.missing-card',{setStudioView:()=>{},setWorkspacePane:()=>{},setRight:()=>{},requestFrame:callback=>callback(),reviewScroll:{current:null},
+ reviewFocus('.missing-card',{setStudioView:()=>{},setWorkspacePane:()=>{},closeProperties:()=>{},requestFrame:callback=>callback(),reviewScroll:{current:null},
   doc:{querySelector:selector=>selector==='.conversation'?{scrollIntoView:()=>scrolled=true}:null}});
  assert.equal(scrolled,true);
 });

@@ -2,6 +2,8 @@
 
 import { useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import styles from './sidebar.module.css';
 
 /** Hosted "New project": a "+" that opens a full-width name field below the label (Enter creates at once and reopens with the text if that fails, Escape cancels). */
 export function ProjectCreate({
@@ -13,6 +15,8 @@ export function ProjectCreate({
 }) {
   const [open, setOpen] = useState(false),
     [title, setTitle] = useState(''),
+    [pending, setPending] = useState(false),
+    trigger = useRef<HTMLButtonElement>(null),
     busy = useRef(false);
   const close = () => {
     setOpen(false);
@@ -22,6 +26,7 @@ export function ProjectCreate({
     const name = title.trim();
     if (!name || busy.current) return;
     busy.current = true;
+    setPending(true);
     close();
     void onCreate(name)
       .then((ok) => {
@@ -30,36 +35,43 @@ export function ProjectCreate({
           setOpen(true);
         }
       })
+      .catch(() => { setTitle(name); setOpen(true); })
       .finally(() => {
         busy.current = false;
+        setPending(false);
       });
   };
   if (!open)
     return (
       <button
-        className="icon-button"
+        type="button"
+        ref={trigger}
+        className={styles.smallButton}
         aria-label="New project"
         title="New project"
-        disabled={disabled}
+        disabled={disabled || pending}
         onClick={() => setOpen(true)}
       >
-        <Plus size={15} />
+        <Plus size={15} strokeWidth={1.9} />
       </button>
     );
   return (
     <input
       autoFocus
-      className="history-rename project-new"
+      className={cn(styles.rename, styles.newProject)}
       aria-label="New project name"
       placeholder="Project name"
       maxLength={120}
+      disabled={disabled || pending}
       value={title}
       onChange={(event) => setTitle(event.target.value)}
       onBlur={close}
       onKeyDown={(event) => {
+        if (event.nativeEvent.isComposing || event.keyCode === 229) return;
         if (event.key === 'Escape') {
           event.preventDefault();
           close();
+          requestAnimationFrame(() => trigger.current?.focus());
         }
         if (event.key === 'Enter') {
           event.preventDefault();

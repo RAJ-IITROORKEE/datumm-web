@@ -1,7 +1,7 @@
 "use client"
 
 import { useId } from "react"
-import { Brain, ChevronDown, ChevronRight, RotateCcw } from "lucide-react"
+import { ChevronDown, ChevronRight, RotateCcw } from "lucide-react"
 import { Popover as PopoverPrimitive } from "radix-ui"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,6 +12,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { PopoverStyles, popoverClasses } from "./vendor/affectui/popover-clean"
 import styles from "./composer-controls.module.css"
 
 export type ReasoningEffort = "low" | "medium" | "high"
@@ -59,6 +60,7 @@ export function ModelPicker({
 
   return (
     <PopoverPrimitive.Root>
+      <PopoverStyles />
       <PopoverPrimitive.Trigger asChild>
         <Button
           type="button"
@@ -69,15 +71,14 @@ export function ModelPicker({
           aria-controls={contentId}
           disabled={disabled}
         >
-          <Brain className={styles.pickerIcon} size={15} aria-hidden="true" />
-          <span>{selectedEffort.title}</span>
-          <ChevronDown className={styles.pickerChevron} size={13} aria-hidden="true" />
+          <span className={styles.pickerModelName}>{modelName(model)}</span>
+          <ChevronDown className={styles.pickerChevron} size={16} strokeWidth={1.9} aria-hidden="true" />
         </Button>
       </PopoverPrimitive.Trigger>
       <PopoverPrimitive.Portal>
         <PopoverPrimitive.Content
           id={contentId}
-          className={styles.pickerPopover}
+          className={`${popoverClasses.content} ${styles.pickerPopover}`}
           align="end"
           side="top"
           sideOffset={10}

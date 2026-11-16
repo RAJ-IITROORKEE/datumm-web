@@ -1,14 +1,18 @@
+import type { WorkAreaActions } from '@/lib/work-area-contract';
+import { useRef } from 'react';
 import { DesignReview, type DesignRecord } from '../design-review';
 import { NativeBuildReview } from '../native-build-review';
 import { cn } from '@/lib/utils';
 import { Conversation, ConversationContent, ConversationScrollButton } from '@/components/ai-elements/conversation';
 import { Message, MessageContent } from '@/components/ai-elements/message';
-import { AnswerContent } from './output-workspace';
+import { ConversationAnswer } from './conversation-answer';
 import { PromptContent } from '../prompt-content';
 import { TurnProcess, turnProcessVisible } from './turn-process';
 import { PlanDock } from './plan-dock';
-import { deriveTodos } from '@/lib/agent-todos.mjs';
-import { stageSpans } from '@/lib/turn-nesting.mjs';
+import { deriveTodos, todoSummary } from '@/lib/agent-todos.mjs';
+import { conversationResult, failedTurnRecovery } from '@/lib/conversation-result.mjs';
+import { drawingTitle } from '@/lib/drawing-presentation.mjs';
+import { conversationTurns, turnEvents, historicalOutcome, rejectedHistoricalStatus, processTurnStatus, answerHasCompletionProof, answerCompletionCandidate, legacyAnswerOutputState } from '@/lib/conversation-turns.mjs';
 import { SavedTurnResult } from '../saved-turn-result';
 import { PlanningGoalPanel } from '../planning-goal';
 import { OpenCodeQuestions } from '../opencode-questions';
@@ -69,11 +73,10 @@ export type ConversationPanelProps = Pick<
   | 'desktopAvailable'
   | 'actionBusy'
   | 'executing'
+  | 'cancelPending'
   | 'setDesignHighlights'
   | 'selectedDesignElement'
   | 'setInspectedDesignFingerprint'
-  | 'setRight'
-  | 'setTab'
   | 'model'
   | 'askFromCanvas'
   | 'setActionBusy'
@@ -85,8 +88,14 @@ export type ConversationPanelProps = Pick<
   | 'devices'
   | 'setMode'
   | 'focusReview'
+  | 'preparePlanRevision'
+  | 'planRevisionBlockedReason'
+  | 'selectionUncertain'
   | 'nativeAction'
   | 'hasContent'
+  | 'runId'
+  | 'workspaceScopeInput'
+  | 'scene'
   | 'reviewScroll'
   | 'messages'
   | 'traceTurns'
@@ -122,13 +131,13 @@ export type ConversationPanelProps = Pick<
   | 'openCanvas'
   | 'selectedDevice'
   | 'buildLegacy'
-  | 'reviewAlternative'
   | 'drawingLoading'
   | 'drawingError'
   | 'drawingMissing'
   | 'setDrawingRetry'
   | 'designVersion'
   | 'drawingCurrent'
+  | 'hasRenderablePlan'
   | 'compareVersion'
   | 'canvasInputEnabled'
   | 'persistentProperties'
@@ -153,6 +162,7 @@ export type ConversationPanelProps = Pick<
   | 'previewSvg'
   | 'previewRooms'
   | 'batchInProgress'
+  | 'batchProgressCount'
   | 'partialGoal'
   | 'verifiedBatchCount'
   | 'verifiedCount'
@@ -209,9 +219,10 @@ export type ConversationPanelProps = Pick<
   | 'queueMessage'
   | 'providerStatus'
   | 'contextView'
->;
+> & {workAreaActions: WorkAreaActions};
 
 export function ConversationPanel(props: ConversationPanelProps) {
+  const {workAreaActions, runId, scene} = props;
   const {
     liveRuntime,
     desktopPreview,
@@ -226,8 +237,6 @@ export function ConversationPanel(props: ConversationPanelProps) {
     setDesignHighlights,
     selectedDesignElement,
     setInspectedDesignFingerprint,
-    setRight,
-    setTab,
     model,
     askFromCanvas,
     setActionBusy,
@@ -245,6 +254,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
     messages,
     traceTurns,
     nativeQuestions,
+    cancelPending,
     savedTurns,
     nativeTodos,
     designTurn,
@@ -274,7 +284,6 @@ export function ConversationPanel(props: ConversationPanelProps) {
     openCanvas,
     selectedDevice,
     buildLegacy,
-    reviewAlternative,
     drawingLoading,
     drawingError,
     drawingMissing,
@@ -305,6 +314,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
     previewSvg,
     previewRooms,
     batchInProgress,
+    batchProgressCount,
     partialGoal,
     verifiedBatchCount,
     verifiedCount,
@@ -345,8 +355,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
       selectedElement={selectedDesignElement}
       onInspect={(fingerprint) => {
         setInspectedDesignFingerprint(fingerprint);
-        setRight(true);
-        setTab('preview');
+        workAreaActions.openProperties();
       }}
       model={model}
       onAsk={(text) => askFromCanvas(text)}
@@ -385,6 +394,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
       onBuild={continueDesignBuild}
       sessions={devices.filter((d) => d.online).map((d) => ({ id: d.id, name: d.name ?? d.id }))}
       onAction={async (action, design) => {
+        if (cancelPending) throw Error('Stop requested. Wait for the task status before continuing.');
         if (action === 'design_build') setMode('build');
         setActionBusy(true);
         try {
@@ -420,7 +430,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
   const nativeReview = liveRuntime && queueData?.native_build && (
     <NativeBuildReview
       value={queueData.native_build}
-      pending={actionBusy || executing}
+      pending={actionBusy || executing || cancelPending}
       nativeAvailable={desktopAvailable}
       onRefresh={async () => {
         if (!run || !window.desktop) throw Error('Open DATUMM Desktop to refresh the exact proposal.');
@@ -494,28 +504,32 @@ export function ConversationPanel(props: ConversationPanelProps) {
       onAction={nativeAction}
     />
   );
-  const todoItems = deriveTodos({ plan: run?.data.agent_task_plan, todos: nativeTodos, active: executing, spans: stageSpans(traceTurns.at(-1) ?? []) });
+  const todoItems = deriveTodos({ plan: run?.data.agent_task_plan, active: executing, settled: Boolean(run && ['completed','failed','cancelled','interrupted','partial','stale'].includes(run.status)) });
+  const currentResult = conversationResult({mode:run?.mode,status:run?.status,hasConcept:Boolean(props.hasRenderablePlan),loading:props.drawingLoading});
   const d = run?.data;
+  const displayedTurns = conversationTurns(run?.conversation?.length ? run.conversation : [{ prompt: run?.title, answer: run?.data.answer }]);
+  const inlineFailure = failedTurnRecovery({status: run?.status, answer: displayedTurns.at(-1)?.answer, current: Boolean(run && (run.conversation?.length || messages.length === 0)) && !executing && !cancelPending && run?.id === runId && props.workspaceScopeInput?.taskId === run?.id, recoveryAction: run?.data.failure?.recoveryAction, hasConcept: props.hasRenderablePlan});
+  const recoveryIdentity = JSON.stringify([props.workspaceScopeInput?.key, runId, run?.id, displayedTurns.at(-1)?.index, displayedTurns.at(-1)?.turnId, run?.status]);
+  const liveRecoveryIdentity = useRef(recoveryIdentity); liveRecoveryIdentity.current = recoveryIdentity;
   const hasArtifacts = Boolean(d && (d.agent_design || d.plan || d.agent_draft || d.concept || d.agent_result?.operationId || queueData?.native_build));
   return (
     <main className="main-panel">
       <div className={cn('main-content', hasContent && 'with-messages')}>
-        {!hasContent ? (
+        {!hasContent && (
           <div className="welcome studio-welcome">
-            <div className="studio-welcome-brand">
-              <img src="/datumm-mark.png" alt="" />
-              <span>Your architectural workspace</span>
-            </div>
             <h1>What are we designing today?</h1>
-            <p>Start with an idea, a drawing, or a question about your model.</p>
+            <p>Describe a building idea or ask a Revit question to get started.</p>
           </div>
-        ) : (
-          <Conversation className="conversation" contextRef={reviewScroll}>
+        )}
+          <Conversation className="conversation" contextRef={reviewScroll} hidden={!hasContent} inert={!hasContent}>
             <ConversationContent className="conversation-inner">
               {run &&
                 (run.conversation?.length || messages.length === 0) &&
-                (run.conversation?.length ? run.conversation : [{ prompt: run.title, answer: run.data.answer }]).map(
-                  (turn, index) => (
+                displayedTurns.map(
+                  (turn, ordinal) => {
+                    const index = turn.index;
+                    const includesIndex = (value: number) => value >= index && value <= turn.endIndex;
+                    return (
                     <div key={`${run.id}:${index}`} className="conversation-turn" data-conversation-index={index}>
                       {turn.prompt && (
                         <Message from="user">
@@ -525,28 +539,53 @@ export function ConversationPanel(props: ConversationPanelProps) {
                         </Message>
                       )}
                       {(() => {
-                        const last = index === (run.conversation?.length ?? 1) - 1;
-                        const saved = savedTurns.find((row) => row.conversationIndex === index);
+                        const last = ordinal === displayedTurns.length - 1;
+                        const saved = savedTurns.find((row) => includesIndex(row.conversationIndex));
+                        const savedTodos = saved?.result?.todos;
+                        const events = turnEvents(displayedTurns, traceTurns, ordinal);
+                        const currentOwned = ordinal === 0 || Boolean(saved) || events.length > 0;
+                        const nativeTodoIndex = (run.data as typeof run.data & {todosConversationIndex?:number}).todosConversationIndex;
+                        const currentNativeTodos = last && nativeTodoIndex !== undefined && includesIndex(nativeTodoIndex) ? nativeTodos : [];
+                        const useRunPlan = last && !savedTodos?.length && Boolean(run.data.agent_task_plan?.steps.length) && (!run.data.agent_task_plan?.turnId || run.data.agent_task_plan.turnId === turn.turnId);
+                        const todos = useRunPlan ? deriveTodos({plan:run.data.agent_task_plan, active:executing, settled:['completed','failed','cancelled','interrupted','partial','stale'].includes(run.status)}) : savedTodos !== undefined ? deriveTodos({todos: savedTodos, active: executing && last}) : last ? deriveTodos({todos:currentNativeTodos, active:executing}) : [];
+                        const planBound = Boolean(useRunPlan && run.data.agent_task_plan?.turnId && run.data.agent_task_plan.turnId === turn.turnId);
+                        const unboundPlan = useRunPlan ? !planBound : savedTodos === undefined && displayedTurns.length > 1;
+                        const outcome = historicalOutcome(turn, displayedTurns, run.id, events, saved?.error);
+                        const recordedStatus = processTurnStatus({turn,turns:displayedTurns,taskId:run.id,events,last,taskStatus:run.status});
+                        const historicalStatus = saved?.error ? 'failed' : outcome === 'rejected' ? rejectedHistoricalStatus(turn, displayedTurns, run.id, events) : outcome ?? recordedStatus;
+                        const legacyRecordedStatus = events.findLast(event => ['completed', 'failed', 'cancelled', 'interrupted', 'needs_input', 'paused_limit', 'paused_recovery', 'partial', 'stale', 'blocked'].includes(event.stage))?.stage;
+                        const legacyHistoricalStatus = saved?.error ? 'failed' : outcome === 'rejected' ? rejectedHistoricalStatus(turn, displayedTurns, run.id, events) : outcome ?? legacyRecordedStatus ?? 'unknown';
+                        const answerComplete = !saved?.error && outcome === null && turn.completion === undefined && answerHasCompletionProof({turn,turns:displayedTurns,taskId:run.id,events}) && !(executing && last);
+                        const completion = !(executing && last) && !saved?.error && outcome === null && answerCompletionCandidate({turn,turns:displayedTurns,taskId:run.id,events}) ? turn.completion : undefined;
+                        const answerOutputState = legacyAnswerOutputState({last,executing,taskStatus:run.status,historicalStatus:legacyHistoricalStatus});
                         const process = {
-                          nativeMessages: executing && last ? run.data.native_messages : turn.nativeMessages,
-                          events: traceTurns[index] ?? [],
+                          nativeMessages: executing && last && currentOwned ? run.data.native_messages : turn.nativeMessages,
+                          events,
                           active: executing && last,
                           waiting: last && (nativeQuestions.length > 0 || (run.status === 'needs_input' && Boolean(run.data.agent_question))),
-                          status: last ? run.status : 'completed',
-                          manifest: saved?.result?.manifest ?? (last ? run.data.run_manifest : undefined),
-                          evidence: saved?.result?.evidence ?? (last ? run.data.run_manifest?.tools : []),
-                          scheduler: last ? run.data.agent_scheduler : undefined,
+                          status: last ? cancelPending ? 'cancel_requested' : recordedStatus : historicalStatus,
+                          manifest: saved?.result?.manifest ?? (last && currentOwned ? run.data.run_manifest : undefined),
+                          evidence: saved?.result?.evidence ?? (last && currentOwned ? run.data.run_manifest?.tools : []),
+                          scheduler: last && turn.turnId && (run.data.agent_scheduler as (typeof run.data.agent_scheduler & {turnId?:string}))?.turnId === turn.turnId ? run.data.agent_scheduler : undefined,
                           specialists: last ? run.data.agent_specialists : undefined,
-                          stepTitles: Object.fromEntries((run.data.agent_task_plan?.steps ?? []).map((row) => [row.key, row.title])),
+                          stepTitles: last && (!run.data.agent_task_plan?.turnId || run.data.agent_task_plan.turnId === turn.turnId) ? Object.fromEntries((run.data.agent_task_plan?.steps ?? []).map((row) => [row.key, row.title])) : {},
                         };
-                        if (!turn.answer && !turnProcessVisible(process)) return null;
+                        // An unbound historical answer does not establish a process status.
+                        const emptyHistoricalProcess = !last && process.status === 'unknown' &&
+                          !(process.nativeMessages?.length) && !process.events.length &&
+                          !saved?.result && !process.manifest && !process.evidence?.length && !process.scheduler && !process.specialists?.length;
+                        const hideProcess = emptyHistoricalProcess && !todos.length;
+                        const recovery = last ? inlineFailure : null;
+                        if (!recovery && ((hideProcess && !turn.answer?.trim()) || (!turn.answer && !todos.length && !turnProcessVisible(process)))) return null;
                         return (
                           <Message from="assistant">
                             <div className="assistant-label">
                               <Mark /> DATUMM
                             </div>
-                            <TurnProcess
+                            {!hideProcess && <TurnProcess
                               {...process}
+                              settledLabel={last ? currentResult?.label : undefined}
+                              publicSummary={todos.length ? `${unboundPlan ? 'Run checklist · turn not recorded' : 'Checklist'} · ${todoSummary(todos).done} of ${todoSummary(todos).total}` : undefined}
                               evidenceExtra={
                                 last && run.data.agent_coverage ? (
                                   <EvidenceResults
@@ -556,29 +595,38 @@ export function ConversationPanel(props: ConversationPanelProps) {
                                   />
                                 ) : undefined
                               }
-                            />
+                            >
+                              {todos.length > 0 && <PlanDock items={todos} title={unboundPlan ? 'Run plan · turn not recorded' : last ? 'Plan' : 'Previous plan'} />}
+                            </TurnProcess>}
+                            {last && currentResult?.note && <p className="conversation-outcome" role="status">{currentResult.note}</p>}
+                            {recovery && <div className="conversation-outcome" role="status">
+                              <p>{recovery.message}</p>
+                              <div className="plan-actions">
+                                <Button variant="secondary" onClick={() => { if (liveRecoveryIdentity.current === recoveryIdentity) workAreaActions.selectSection('activity'); }}>View Activity</Button>
+                                {recovery.hasConcept && <Button variant="secondary" onClick={() => { if (liveRecoveryIdentity.current === recoveryIdentity) workAreaActions.openDrawing(); }}>View saved concept</Button>}
+                              </div>
+                            </div>}
                             {turn.answer && (
                               <MessageContent>
-                                <AnswerContent text={turn.answer} source={{ key: `${run.id}:answer:${index}`, taskId: run.id, conversationIndex: index, state: executing && last ? 'streaming' : !last || run.status === 'completed' ? 'saved' : 'partial' }} />
+                                <ConversationAnswer text={turn.answer} turnId={turn.turnId} presentation={turn.presentation} completed={answerComplete} completion={completion} source={{ key: `${run.id}:answer:${turn.answerIndex ?? index}`, taskId: run.id, conversationIndex: turn.answerIndex ?? index, answerNumber: ordinal + 1, state: answerOutputState }} />
                               </MessageContent>
                             )}
                           </Message>
                         );
                       })()}
-                      {index === designTurn && designReview}
-                      {index === nativeTurn && nativeReview}
-                      {index < (run.conversation?.length ?? 1) - 1 && index !== designTurn && (
+                      {includesIndex(designTurn) && designReview}
+                      {includesIndex(nativeTurn) && nativeReview}
+                      {ordinal < displayedTurns.length - 1 && !includesIndex(designTurn) && (
                         <SavedTurnResult
-                          turn={savedTurns.find((saved) => saved.conversationIndex === index)}
+                          turn={savedTurns.find((saved) => includesIndex(saved.conversationIndex))}
                           taskId={run.id}
                           onArtifacts={() => {
-                            setRight(true);
-                            setTab('exports');
+                            workAreaActions.selectSection('exports');
                           }}
                         />
                       )}
                     </div>
-                  ),
+                  );},
                 )}
               {(run?.conversation?.length ? [] : messages)
                 .filter(
@@ -593,6 +641,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                         <Mark /> DATUMM
                       </div>
                     )}
+                    {message.role === 'assistant' && !executing && message.id === messages.findLast(row => row.role === 'assistant')?.id && todoItems.length > 0 && <PlanDock items={todoItems} title={traceTurns.length > 1 ? 'Run plan · turn not recorded' : 'Plan'} />}
                     <MessageContent>
                       {message.parts
                         .filter((p) => p.type === 'text')
@@ -600,7 +649,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                           message.role === 'user' ? (
                             <PromptContent key={i} text={part.text} />
                           ) : (
-                            <AnswerContent key={i} text={message.id === messages.at(-1)?.id && responseSummary ? responseSummary : part.text} source={{ key: `message:${message.id}:${i}`, taskId: run?.id, conversationIndex: messages.filter(row => row.role === 'assistant').findIndex(row => row.id === message.id), state: busy && message.id === messages.at(-1)?.id ? 'streaming' : run && run.status !== 'completed' ? 'partial' : 'saved' }} />
+                            <ConversationAnswer key={i} text={part.text} source={{ key: `message:${message.id}:${i}`, taskId: runId || undefined, conversationIndex: messages.filter(row => row.role === 'assistant').findIndex(row => row.id === message.id), state: busy && message.id === messages.at(-1)?.id ? 'streaming' : run?.status === 'completed' ? 'saved' : 'partial' }} />
                           ),
                         )}
                     </MessageContent>
@@ -622,7 +671,8 @@ export function ConversationPanel(props: ConversationPanelProps) {
                       <Mark /> DATUMM
                     </div>
                     <MessageContent>
-                      <AnswerContent text={responseSummary ?? run.data.answer} source={{ key: `${run.id}:answer:0`, taskId: run.id, conversationIndex: 0, state: run.status === 'completed' ? 'saved' : 'partial' }} />
+                      {todoItems.length > 0 && <PlanDock items={todoItems} title={traceTurns.length > 1 ? 'Run plan · turn not recorded' : 'Plan'} />}
+                      <ConversationAnswer text={run.data.answer} completed={run.status === 'completed'} source={{ key: `${run.id}:answer:0`, taskId: run.id, conversationIndex: 0, state: run.status === 'completed' ? 'saved' : 'partial' }} />
                     </MessageContent>
                   </Message>
                 )}
@@ -639,7 +689,9 @@ export function ConversationPanel(props: ConversationPanelProps) {
                     active
                     waiting={nativeQuestions.length > 0}
                     status={run?.status}
-                  />
+                  >
+                    {todoItems.length > 0 && <PlanDock items={todoItems} title={traceTurns.length > 1 ? 'Run plan · turn not recorded' : 'Plan'} />}
+                  </TurnProcess>
                 </Message>
               )}
               {(liveRuntime || desktopPreview) && run && (run.data.planning_goal || planningGoalOpen) && (
@@ -664,23 +716,6 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   }}
                 />
               )}
-              {nativeQuestions.map((question) => (
-                <OpenCodeQuestions
-                  key={question.id}
-                  question={question}
-                  onAnswer={async (answers, annotationIntent) => {
-                    const task = run!.id,
-                      epoch = recoveryEpoch.current;
-                    await api(`tasks/${task}/questions/answer`, 'POST', {
-                      questionId: question.id,
-                      answers,
-                      ...(annotationIntent ? { annotationIntent } : {}),
-                    });
-                    const current = await api<Run>(`tasks/${task}`);
-                    if (epoch === recoveryEpoch.current) setRun(current);
-                  }}
-                />
-              ))}
               {liveRuntime && queueData?.failure && (
                 <section className="error-card" role="alert">
                   <strong>{queueData.failure.code === 'CANCELLED' ? 'Stopped' : 'Turn interrupted'}</strong>
@@ -768,7 +803,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                 <ProposalApprovalPanel
                   key={[run.id,run.data.proposal?.proposalId,run.data.proposal?.approvalHash,run.data.proposal?.revision].join(':')}
                   proposal={run.data.proposal}
-                  pending={actionBusy}
+                  pending={actionBusy || cancelPending}
                   expired={proposalExpired}
                   projectName={run.data.context?.title}
                   annotationView={run.data.annotation_view_review?.name}
@@ -962,6 +997,9 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   key={[run.id,run.currentPlanRef?.planId,run.currentPlanRef?.version,run.currentPlanRef?.fingerprint].join(':')}
                   alternatives={run.data.agent_design.candidates.length}
                   planVersion={run.currentPlanRef?.version??designVersion?.version??run.data.agent_design.candidates[0]?.version}
+                  planTitle={drawingTitle(run.currentPlanRef??designVersion,run.data.agent_design.candidates)}
+                  revisionBlockedReason={props.planRevisionBlockedReason}
+                  selectionUncertain={props.selectionUncertain}
                   planId={run.currentPlanRef?.planId??designVersion?.planId}
                   fingerprint={run.currentPlanRef?.fingerprint??designVersion?.fingerprint}
                   accepted={planAccepted}
@@ -972,8 +1010,8 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   drawingCurrent={drawingCurrent}
                   buildReady={Boolean(buildStep==='prepare'&&!busy&&selectedDevice?.online&&revitSessions===1&&!drawingError&&placementTask===run.id&&confirmedPlacement)}
                   showPlacement={Boolean(planAccepted&&run.mode==='build'&&!run.data.compiled)}
-                  onRequestChanges={()=>document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message DATUMM"]')?.focus()}
-                  onDetails={()=>{setRight(true);setTab('exports');}}
+                  onRequestChanges={()=>{if(props.preparePlanRevision())workAreaActions.focusReview('textarea[aria-label="Message DATUMM"]');}}
+                  onDetails={()=>{workAreaActions.openProperties();}}
                   onAccept={acceptDrawing}
                   onSwitchToBuild={switchDrawingToBuild}
                   onPrepare={()=>buildVariable()}
@@ -981,31 +1019,40 @@ export function ConversationPanel(props: ConversationPanelProps) {
                 />
               )}
 
-              {run?.data.agent_design && selectedDevice?.online && (
+              {run && selectedDevice && (selectedDevice.agentControl ||
+                (run.data.agent_design && selectedDevice.online && run.mode === 'build' && mode === 'build')) && (
                 <div className="agent-evidence-card">
-                  <div className="section-caption">FULL ACCESS FOR THIS CONCEPT</div>
-                  <p>
-                    Optional: allow one automatic exact-proposal approval for the selected version in this Revit
-                    project. The grant expires in 30 minutes, is capped at 120 elements, and can be revoked here. DATUMM
-                    will still dry-run and verify the build.
-                  </p>
-                  {selectedDevice.agentControl?.binding.briefId === run.data.agent_design.briefId ? (
-                    <div className="plan-actions">
-                      <span role="status">
-                        Scoped access enabled · {selectedDevice.agentControl.remaining} build remaining
-                      </span>
+                  <h3>Concept access</h3>
+                  {selectedDevice.agentControl ? (
+                    <>
+                      <p role="status">
+                        {run.data.agent_design?.briefId && selectedDevice.agentControl.binding?.briefId
+                          ? selectedDevice.agentControl.binding.briefId === run.data.agent_design.briefId
+                            ? 'Scoped access is enabled for this concept.'
+                            : 'Scoped access is enabled for a different concept.'
+                          : 'Scoped access is enabled; its concept could not be identified.'}
+                        {typeof selectedDevice.agentControl.remaining === 'number' &&
+                          ` ${selectedDevice.agentControl.remaining} build remaining.`}
+                      </p>
                       <Button variant="secondary" disabled={actionBusy} onClick={() => void revokeVariableGrant()}>
                         Revoke access
                       </Button>
-                    </div>
+                    </>
                   ) : (
-                    <Button
-                      variant="secondary"
-                      disabled={busy || revitSessions !== 1}
-                      onClick={() => void grantVariable()}
-                    >
-                      Enable for selected concept
-                    </Button>
+                    <>
+                      <p>
+                        Optional: allow one automatic exact-proposal approval for the selected version in this Revit
+                        project. The grant expires in 30 minutes, is capped at 120 elements, and can be revoked here. DATUMM
+                        will still dry-run and verify the build.
+                      </p>
+                      <Button
+                        variant="secondary"
+                        disabled={busy || revitSessions !== 1}
+                        onClick={() => void grantVariable()}
+                      >
+                        Enable for selected concept
+                      </Button>
+                    </>
                   )}
                 </div>
               )}
@@ -1109,11 +1156,12 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   </button>
                   <details className="plan-schedule">
                     <summary>Room areas · {previewRooms.length} spaces</summary>
+                    <p>{previewRooms.some(r=>r.areaBasis==='estimated-clear') ? 'Estimated clear areas use room rectangles and wall thickness; non-rectangular rooms are unavailable.' : 'Area basis is not provided for this schedule; check the original source.'}</p>
                     <div className="room-list">
                       {previewRooms.map((r) => (
                         <div key={r.name}>
                           <span>{r.name}</span>
-                          <span>{r.expectedAreaM2.toFixed(1)} m²</span>
+                          <span>{r.expectedAreaM2 == null ? 'Unavailable' : `${r.expectedAreaM2.toFixed(1)} m²`}</span>
                         </div>
                       ))}
                     </div>
@@ -1130,7 +1178,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
               {batchInProgress && (
                 <div className="agent-evidence-card" role="status">
                   <div className="section-caption">BUILD IN PROGRESS</div>
-                  <strong>{run?.data.agent_result?.batchHistory?.length ?? 1} verified native batch</strong>
+                  <strong>{batchProgressCount} verified native {batchProgressCount === 1 ? 'batch' : 'batches'}</strong>
                   <p>
                     The next step uses a fresh Revit read and a new exact proposal. Earlier approval cannot authorize
                     another batch.
@@ -1160,8 +1208,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                     {verifiedBreakdown && <small>{verifiedBreakdown}</small>}
                     <button
                       onClick={() => {
-                        setRight(true);
-                        setTab('exports');
+                        workAreaActions.selectSection('exports');
                       }}
                     >
                       View exports <ArrowUpRight size={13} />
@@ -1225,8 +1272,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                       onClick={(event) => {
                         if (previewSvg) openCanvas(event.currentTarget);
                         else {
-                          setRight(true);
-                          setTab('preview');
+                          workAreaActions.openProperties();
                         }
                       }}
                     >
@@ -1246,7 +1292,8 @@ export function ConversationPanel(props: ConversationPanelProps) {
                 </div>
               )}
 
-              {run?.status === 'paused_limit' && (
+              {cancelPending && <div className="saved-plan-card" role="status"><strong>Stop requested</strong><p>Waiting for the task to report its final status. Any in-flight Revit operation still needs reconciliation.</p></div>}
+              {run?.status === 'paused_limit' && !cancelPending && (
                 <AgentLimit
                   runId={run.id}
                   canContinue={Boolean(run.data.agent_limit?.continuationAvailable)}
@@ -1265,7 +1312,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   onRecover={() => void act('recover')}
                 />
               )}
-              {run?.status === 'paused_recovery' && (
+              {run?.status === 'paused_recovery' && !cancelPending && (
                 <div className="saved-plan-card" role="status">
                   <div className="section-caption">TASK PAUSED</div>
                   <strong>Your progress is saved</strong>
@@ -1331,6 +1378,8 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   </div>
                 )}
               {run?.data.error &&
+                !inlineFailure &&
+                (run.data.failure?.recoveryAction !== 'review_progress' || (run.id === runId && props.workspaceScopeInput?.taskId === run.id)) &&
                 !queueData?.failure &&
                 run.status !== 'reconciling' &&
                 run.data.error !== 'APPROVAL_REQUIRED' && (
@@ -1338,7 +1387,9 @@ export function ConversationPanel(props: ConversationPanelProps) {
                     className={cn('error-card', outcome?.verified && 'historical-card')}
                     role={outcome?.verified ? 'note' : 'alert'}
                   >
-                    {run.data.failure?.code === 'annotation_view_inactive'
+                    {run.status === 'failed' && run.data.failure?.recoveryAction === 'review_progress'
+                      ? 'The task stopped unexpectedly. Review its last saved step before retrying.'
+                      : run.data.failure?.code === 'annotation_view_inactive'
                       ? 'Open ' +
                         (run.data.annotation_view_review?.name ?? 'the reviewed annotation view') +
                         ' in Revit, then refresh annotations. The verified base will not be rebuilt.'
@@ -1420,8 +1471,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   type="button"
                   className="artifacts-link"
                   onClick={() => {
-                    setRight(true);
-                    setTab('exports');
+                    workAreaActions.selectSection('exports');
                   }}
                 >
                   View saved artifacts <ArrowUpRight size={13} />
@@ -1430,9 +1480,29 @@ export function ConversationPanel(props: ConversationPanelProps) {
             </ConversationContent>
             <ConversationScrollButton aria-label="Jump to latest message" />
           </Conversation>
-        )}
+        {scene === 'task-loading' && <p className="studio-task-loading" role="status">Loading your saved task...</p>}
+        {scene === 'submitting' && <p className="studio-admission-status" role="status">Starting your task...</p>}
 
-        {((run?.status === 'needs_input' && run.data.agent_question) || todoItems.length > 0) && (
+        {!cancelPending && nativeQuestions.length > 0 && <div className="composer-dock">
+              {nativeQuestions.map((question) => (
+                <OpenCodeQuestions
+                  key={JSON.stringify([props.workspaceScopeInput?.key ?? run?.id,question.id])}
+                  question={question}
+                  onAnswer={async (answers, annotationIntent) => {
+                    const task = run!.id,
+                      epoch = recoveryEpoch.current;
+                    await api(`tasks/${task}/questions/answer`, 'POST', {
+                      questionId: question.id,
+                      answers,
+                      ...(annotationIntent ? { annotationIntent } : {}),
+                    });
+                    const current = await api<Run>(`tasks/${task}`);
+                    if (epoch === recoveryEpoch.current) setRun(current);
+                  }}
+                />
+              ))}
+        </div>}
+        {!cancelPending && run?.status === 'needs_input' && run.data.agent_question && (
           <div className="composer-dock">
             {run?.status === 'needs_input' && run.data.agent_question && (
               <AgentQuestions
@@ -1442,7 +1512,6 @@ export function ConversationPanel(props: ConversationPanelProps) {
                 onReply={replyToQuestion}
               />
             )}
-            {todoItems.length > 0 && <PlanDock key={run?.id} items={todoItems} />}
           </div>
         )}
         <Composer {...props} />

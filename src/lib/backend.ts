@@ -1,7 +1,8 @@
 import { auth } from '@clerk/nextjs/server';
+import {getWebConfiguration} from '@/lib/web-configuration';
 
 export async function backend(path:string,init:RequestInit={}) {
-  if(!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)return Response.json({detail:'Account sign-in is not configured.'},{status:503});
+  if(!getWebConfiguration().account.configured)return Response.json({detail:'Account sign-in is not configured.'},{status:503});
   const token=await (await auth()).getToken();
   if(!token)return Response.json({detail:'Sign in to connect your workspace.'},{status:401});
   const base=new URL(process.env.ORCHESTRATOR_URL??'');

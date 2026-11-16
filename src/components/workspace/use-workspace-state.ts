@@ -1,25 +1,29 @@
-import {isRenderablePlan,reviewFocus,openWorkspaceView} from '@/lib/workspace-layout.mjs';
+import {nativeBatchProgress} from '@/lib/conversation-result.mjs';
+import {roomAreaSchedule} from '@/lib/plan-geometry.mjs';
+import {isRenderablePlan,reviewFocus,openWorkspaceView,readWorkspaceLayout,effectiveWorkspaceLayout,workspaceScene,DEFAULT_WORKSPACE_LAYOUT,storedWorkspaceLayout} from '@/lib/workspace-layout.mjs';
+import type { AlternativeSelection, WorkAreaSection, WorkScope } from '@/lib/work-area-contract';
 import {useState, useRef, useEffect, useCallback, useMemo, type SetStateAction} from 'react';
 import {createPromptDraftStore, type PromptDraftStore, type PromptDraftStatus} from '@/lib/prompt-drafts.mjs';
+import {readSelectionMarker,claimSelectionMarker,releaseSelectionMarker} from '@/lib/selection-uncertainty.mjs';
 import {type AuthStatus, type ProviderStatus} from '@/lib/desktop-contract';
 import {accountAdmissionState} from '../account-admission';
 import {type ReasoningEffort} from '../model-picker';
-import {workflowState} from '@/lib/workflow-state';
+import {hasPendingQuestion,workflowState} from '@/lib/workflow-state';
 import {type DesignPlacementDraft, type DesignRecord, candidateDrawing} from '../design-review';
 import {emptyProjection, reduceProjection, type TaskEvent} from '@/lib/task-projection';
 import {type OpenCodeQuestion} from '../opencode-questions';
 import {activityTurns, latestTaskActivity, type RunManifest} from '../agent-activity';
 import {type SavedTurn} from '../saved-turn-result';
 import {type ComposerSource} from '../composer-media';
-import {applyAppearance, parseAppearance, defaultAppearance} from '@/lib/appearance';
+import {applyAppearance, readAppearance} from '@/lib/appearance';
 import {replaceTerminalCommand} from '@/lib/task-command';
-import {settingsSidebarTransition} from '@/lib/settings-navigation.mjs';
-import {savedTaskConnectionNotice, chatStartFailure} from '@/lib/chat-start';
+import {savedTaskConnectionNotice, chatStartFailure, admissionMessage, serviceErrorMessage} from '@/lib/chat-start';
 import {planBuildStep} from '@/lib/plan-build-flow';
 import {FileJson, LayoutTemplate, FileSpreadsheet, Download} from 'lucide-react';
-import {DefaultChatTransport} from 'ai';
+import {AguiChatTransport} from '@/lib/agui-chat-transport';
 import {useChat} from '@ai-sdk/react';
 import {settledPoll,openChatPollMs,listPollMs} from '@/lib/settled-poll.mjs';
+import {stopRequested} from '@/lib/stop-requested.mjs';
 import {advanceSeen,isUnread} from '@/lib/chat-seen.mjs';
 import {type ReplyPayload, type AgentQuestion} from '../agent-questions';
 import {hasPromptContent, splitViewportPrompt, appendViewportPrompt} from '../prompt-content';
@@ -61,7 +65,7 @@ export type ConceptImage={model:string;provenance:string;planBinding?:PlanBindin
 
 export type InterpretedBrief={status:string;dimensions:{sourceText:string;role:string;widthMm:string|null;depthMm:string|null}[];values:Record<string,{value:string|number;provenance:string}>;unresolved:string[];assumptions:string[];program:{livingHall:boolean|null;kitchen:boolean|null};policy:{modelId:string;selection:string}|null};
 
-export type Run={projectId?:string;acceptance?:{plan:{planId:string;version:number;fingerprint:string};acceptedAssumptions:string[]}|null;id:string;taskVersion?:number;eventCursor?:number;executionId?:string;currentPlanRef?:{schemaVersion:2;source:'variable'|'legacy_plan'|'legacy_draft';briefId:string;planId:string;version:number;fingerprint:string}|null;conversation?:{prompt?:string;answer?:string;attachmentIds?:string[];nativeMessages?:{id:string;text:string;finish:string|null}[]}[];title:string;mode:Mode;model:string;reasoningEffort?:ReasoningEffort;status:string;modelOutcome?:{state:'no_write'|'pending'|'unknown'|'committed_unverified'|'committed_verified'|'rolled_back'|'failed';verified:boolean;present:number|null;missing:number|null;warnings:number|null;deleted?:number|null;verifiedBatches?:number;expectedBatches?:number;completedBuild?:boolean};device_id:string;pinned_at?:string;archived_at?:string;events:RunEvent[];data:{native_messages?:{id:string;text:string;finish:string|null}[];planning_goal?:PlanningGoal;designConversationIndex?:number;nativeBuildConversationIndex?:number;organized_done?:boolean;run_manifest?:RunManifest;project_context_shared?:boolean;agent_coverage?:ModelCoverage;agent_advice?:AdviceFinding[];agent_research?:RegulationResearch[];build_comparison?:BuildComparison;build_feedback?:BuildFeedback[];build_revision_count?:number;m09_revision?:{goalVersion:number};build_comparison_error?:string;annotation_view_review?:{viewId:string;name:string;reason:string};native_batches?:{verified:boolean;compiled:{counts:Record<string,number>};receipt:{state:string;elementIds:string[]}}[];build_type_review?:{requiredSizes:Record<string,unknown>[];loadedChoices:Record<string,unknown>[];resolution:string;revision:number};agent_scheduler?:SchedulerView|null;agent_specialists?:SpecialistResult[];agent_interpreted_brief?:InterpretedBrief;usage?:ContextUsageData;model_context_requirement?:'none'|'read'|'write';failure?:{schemaVersion:1;code:string;recoveryAction:string};agent_memory?:TaskMemory;agent_context?:ContextMetrics;agent_limit?:{reason:string;continuationAvailable:boolean};agent_quantity_pages?:{documentId:string;revision:number;scope:string;categories:string[];coverage:string;groups:unknown[]}[];agent_native_image?:{documentId:string;revision:number;viewName:string;width:number;height:number;provenance:string};agent_element_pages?:{scope:{categories:string[]};coverage:{status:string;returnedCount:number;totalCount:number};aggregates:{inspectedStraightWallProjectedLengthM:number};limitations:string[]}[];task_access?:{revoked:boolean;remaining:number;expiresAt:string};agent_execution?:boolean;agent_draft?:DraftTask;draft_task?:DraftTask;agent_question?:AgentQuestion;agent_reply_receipt?:{questionId:string;version:number};agent_task_plan?:{version:number;goal:string;successCriteria:string[];steps:{key:string;title:string;action:string;expectedResult:string;targetCategories?:string[]}[];progress:{key:string;status:string}[]};variable_selection?:{version:number};operation_id?:string;recovery?:{data?:{state?:string;sameDocument?:boolean;elements?:{missing?:boolean}[]|null}};concept?:ConceptImage;concept_error?:string;plan?:{version:number;fingerprint:string;brief:{bedrooms:number;bathrooms:number;entrance:string;site_width_mm:number;site_depth_mm:number;wall_height_mm:number}};agent_design?:{briefId:string;brief:{site:{widthMm:number;depthMm:number;entry:string};requirements:{key:string;kind:string}[]};candidates:{planId:string;version:number;fingerprint:string;score:number}[];assumptions:string[];diagnostics:string[];previewSvg:string;previewRooms:{name:string;expectedAreaM2:number}[];conceptImage?:ConceptImage};agent_inspection?:{documentId:string;revision:number;counts:Record<string,number>;rooms:{name:string;areaM2:number}[];coverage:{category:string;status:string;returnedCount:number;totalCount:number|null}[];limitations:string[]};agent_postbuild_inventory?:{documentId:string;revision:number;counts:Record<string,number>};agent_result?:{status:string;answer?:string;question?:string;goal?:string;documentId?:string;operationId?:string;verification?:string;criteria?:string[];assessment?:DraftAssessment;batchHistory?:NativeBatch[];changes?:Record<string,number>};selected_plan?:{version:number};snapshot?:{svg:string;revision:number;provenance:string};inventory?:{counts:Record<string,number>;rooms:{name:string;areaM2:number}[]};answer?:string;error?:string;context?:{title:string;activeViewName:string;documentId:string};compiled?:{svg?:string;changes?:{levelId:string;units:string;coordinateFrame:string;operations:({key:string;kind:string}&Record<string,unknown>)[]};counts:Record<string,number>;areas:{name:string;expectedAreaM2:number}[]};proposal?:{proposalId:string;expiresAt:string;documentId:string;approvalHash:string;revision:number;deletions?:{key:string;targetId:string;elements:{id:string;kind:string;name:string}[]}[]};receipt?:{state:string};verification?:{receipt?:{elementIds?:string[];warnings?:string[]};elements?:unknown[]}}};
+export type Run={projectId?:string;acceptance?:{plan:{planId:string;version:number;fingerprint:string};acceptedAssumptions:string[]}|null;id:string;taskVersion?:number;eventCursor?:number;executionId?:string;currentPlanRef?:{schemaVersion:2;source:'variable'|'legacy_plan'|'legacy_draft';briefId:string;planId:string;version:number;fingerprint:string}|null;conversation?:{prompt?:string;answer?:string;turnId?:string;presentation?:unknown;completion?:unknown;recordedOutcome?:{schemaVersion:1;taskId:string;turnId:string;executionId:string;status:'needs_connection'};attachmentIds?:string[];nativeMessages?:{id:string;text:string;finish:string|null}[]}[];title:string;mode:Mode;model:string;reasoningEffort?:ReasoningEffort;status:string;modelOutcome?:{state:'no_write'|'pending'|'unknown'|'committed_unverified'|'committed_verified'|'rolled_back'|'failed';verified:boolean;present:number|null;missing:number|null;warnings:number|null;deleted?:number|null;verifiedBatches?:number;expectedBatches?:number;completedBuild?:boolean};device_id:string;pinned_at?:string;archived_at?:string;events:RunEvent[];data:{native_messages?:{id:string;text:string;finish:string|null}[];planning_goal?:PlanningGoal;designConversationIndex?:number;nativeBuildConversationIndex?:number;organized_done?:boolean;run_manifest?:RunManifest;project_context_shared?:boolean;agent_coverage?:ModelCoverage;agent_advice?:AdviceFinding[];agent_research?:RegulationResearch[];build_comparison?:BuildComparison;build_feedback?:BuildFeedback[];build_revision_count?:number;m09_revision?:{goalVersion:number};build_comparison_error?:string;annotation_view_review?:{viewId:string;name:string;reason:string};native_batches?:{verified:boolean;compiled:{counts:Record<string,number>};receipt:{state:string;elementIds:string[]}}[];build_type_review?:{requiredSizes:Record<string,unknown>[];loadedChoices:Record<string,unknown>[];resolution:string;revision:number};agent_scheduler?:SchedulerView|null;agent_specialists?:SpecialistResult[];agent_interpreted_brief?:InterpretedBrief;usage?:ContextUsageData;model_context_requirement?:'none'|'read'|'write';failure?:{schemaVersion:1;code:string;recoveryAction:string};agent_memory?:TaskMemory;agent_context?:ContextMetrics;agent_limit?:{reason:string;continuationAvailable:boolean};agent_quantity_pages?:{documentId:string;revision:number;scope:string;categories:string[];coverage:string;groups:unknown[]}[];agent_native_image?:{documentId:string;revision:number;viewName:string;width:number;height:number;provenance:string};agent_element_pages?:{scope:{categories:string[]};coverage:{status:string;returnedCount:number;totalCount:number};aggregates:{inspectedStraightWallProjectedLengthM:number};limitations:string[]}[];task_access?:{revoked:boolean;remaining:number;expiresAt:string};agent_execution?:boolean;agent_draft?:DraftTask;draft_task?:DraftTask;agent_question?:AgentQuestion;agent_reply_receipt?:{questionId:string;version:number};agent_task_plan?:{turnId?:string;version:number;goal:string;successCriteria:string[];steps:{key:string;title:string;action:string;expectedResult:string;targetCategories?:string[]}[];progress:{key:string;status:string}[]};variable_selection?:{version:number};operation_id?:string;recovery?:{data?:{state?:string;sameDocument?:boolean;elements?:{missing?:boolean}[]|null}};concept?:ConceptImage;concept_error?:string;plan?:{version:number;fingerprint:string;brief:{bedrooms:number;bathrooms:number;entrance:string;site_width_mm:number;site_depth_mm:number;wall_height_mm:number}};agent_design?:{briefId:string;brief:{site:{widthMm:number;depthMm:number;entry:string};requirements:{key:string;kind:string}[]};candidates:{planId:string;version:number;fingerprint:string;score:number}[];assumptions:string[];diagnostics:string[];previewSvg:string;previewRooms:{name:string;expectedAreaM2:number}[];conceptImage?:ConceptImage};agent_inspection?:{documentId:string;revision:number;counts:Record<string,number>;rooms:{name:string;areaM2:number}[];coverage:{category:string;status:string;returnedCount:number;totalCount:number|null}[];limitations:string[]};agent_postbuild_inventory?:{documentId:string;revision:number;counts:Record<string,number>};agent_result?:{status:string;answer?:string;question?:string;goal?:string;documentId?:string;operationId?:string;verification?:string;criteria?:string[];assessment?:DraftAssessment;batchHistory?:NativeBatch[];changes?:Record<string,number>};selected_plan?:{version:number};snapshot?:{svg:string;revision:number;provenance:string};inventory?:{counts:Record<string,number>;rooms:{name:string;areaM2:number}[]};answer?:string;error?:string;context?:{title:string;activeViewName:string;documentId:string};compiled?:{svg?:string;changes?:{levelId:string;units:string;coordinateFrame:string;operations:({key:string;kind:string}&Record<string,unknown>)[]};counts:Record<string,number>;areas:{name:string;expectedAreaM2:number}[]};proposal?:{proposalId:string;expiresAt:string;documentId:string;approvalHash:string;revision:number;deletions?:{key:string;targetId:string;elements:{id:string;kind:string;name:string}[]}[]};receipt?:{state:string};verification?:{receipt?:{elementIds?:string[];warnings?:string[]};elements?:unknown[]}}};
 
 export function taskStepCompleted(run:Run,step:NonNullable<Run['data']['agent_task_plan']>['steps'][number]):boolean{
  return run.data.agent_task_plan?.progress.some(row=>row.key===step.key&&row.status==='completed')??false;
@@ -81,11 +85,11 @@ export async function api<T>(path:string,method='GET',body?:unknown):Promise<T>{
  const response=await fetch('/api/service/'+path,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
 
  const raw=await response.text();let data:unknown;
- try{data=JSON.parse(raw);}catch{data={detail:raw.slice(0,240)||'The request could not be completed.'};}
+ try{data=JSON.parse(raw);}catch{data={detail:raw};}
  if(!response.ok){
-  const detail=data&&typeof data==='object'&&'detail' in data?data.detail:null;
-   const failure=new Error(typeof detail==='string'?detail:detail&&typeof detail==='object'&&'message' in detail&&typeof detail.message==='string'?detail.message:detail&&typeof detail==='object'&&'error' in detail&&typeof detail.error==='string'?detail.error:'The request could not be completed.');
-  Object.assign(failure,{status:response.status,path});throw failure;
+  const detail=data&&typeof data==='object'&&'detail' in data?data.detail:data;
+   const failure=new Error(serviceErrorMessage(typeof detail==='string'?detail:detail&&typeof detail==='object'&&'message' in detail&&typeof detail.message==='string'?detail.message:detail&&typeof detail==='object'&&'error' in detail&&typeof detail.error==='string'?detail.error:'',response.status,response.headers.get('content-type')??''));
+  Object.assign(failure,{status:response.status,path,serviceCode:detail&&typeof detail==='object'&&'code' in detail?detail.code:undefined});throw failure;
  }
  return data as T;
 
@@ -94,6 +98,7 @@ export async function api<T>(path:string,method='GET',body?:unknown):Promise<T>{
 export function useWorkspaceState({authConfigured,accountKey,desktopPreview=false}:{authConfigured:boolean;accountKey?:string;desktopPreview?:boolean}){
 
  const [desktopAvailable,setDesktopAvailable]=useState(false),[settingsOpen,setSettingsOpen]=useState(false);
+ const [settingsTarget,setSettingsTarget]=useState<{id:string;revision:number}|undefined>(undefined);
  const [accountStatus,setAccountStatus]=useState<AuthStatus>(),[accountStatusError,setAccountStatusError]=useState(''),[accountActionError,setAccountActionError]=useState(''),[accountBusy,setAccountBusy]=useState(false),[accountWorkspaceSubject,setAccountWorkspaceSubject]=useState<string>();
  const accountEpoch=useRef(0);
  const [sendShortcut,setSendShortcut]=useState('enter'),[canvasInputEnabled,setCanvasInputEnabled]=useState(false),[persistentProperties,setPersistentProperties]=useState(false);
@@ -146,7 +151,7 @@ export function useWorkspaceState({authConfigured,accountKey,desktopPreview=fals
   const offlineFixture=runtimeConfig?.runtime==='offline-fixture';
   const liveRuntime=runtimeConfig?.runtime==='opencode';
   const buildUnavailable=desktopPreview||offlineFixture||runtimeConfig?.nativeAvailable===false;
-  const [revitSessions,setRevitSessions]=useState<number|null>(null);
+  const [sessionObservation,setSessionObservation]=useState<{generation:number;count:number|null}|null>(null);
   const [nativeContext,setNativeContext]=useState<{sessionId:string;observedAt:string;context:Record<string,unknown>}|null>(null),[nativeContextError,setNativeContextError]=useState('');
 
  const [runs,setRuns]=useState<Run[]>([]),[runId,setRunId]=useState('');
@@ -164,10 +169,15 @@ export function useWorkspaceState({authConfigured,accountKey,desktopPreview=fals
  useEffect(()=>{const update=()=>setNotifications(false);update();window.addEventListener('datumm-notifications-changed',update);return()=>window.removeEventListener('datumm-notifications-changed',update);},[]);
  useEffect(()=>{if(!window.desktop)return;for(const item of runs){const state=workflowState(item),old=notificationStates.current.get(item.id);notificationStates.current.set(item.id,state.kind+state.label);if(notifications&&old&&old!==state.kind+state.label&&state.kind!=='in_progress')void window.desktop.notifyTask({taskId:item.id,key:state.kind+':'+state.label+':'+(item.data.run_manifest?.sessionId??'saved'),title:state.label}).catch(()=>{});}},[runs,notifications]);
 
+ const workspaceAccountKey=accountKey??(desktopAvailable?admittedSubject??'desktop-unadmitted':desktopPreview?'development-preview':'development-unconfigured');
  const [planningGoalOpen,setPlanningGoalOpen]=useState(false);
+ const reviewEpoch=useRef(0);
  const placementDrafts=useRef(new Map<string,DesignPlacementDraft>());
- const [projection,setProjection]=useState(()=>emptyProjection<Run>());
-  const run=projection.snapshot,events=projection.events;
+ const [projectionRecord,setProjectionRecord]=useState(()=>({accountKey:workspaceAccountKey,value:emptyProjection<Run>()}));
+ const projection=projectionRecord.value;
+ const setProjection=(value:SetStateAction<typeof projection>)=>setProjectionRecord(previous=>({accountKey:workspaceAccountKey,value:typeof value==='function'?value(previous.accountKey===workspaceAccountKey?previous.value:emptyProjection<Run>()):value}));
+ const run=projectionRecord.accountKey===workspaceAccountKey&&projection.snapshot?.id===runId?projection.snapshot:null;
+ const events=run?projection.events:[];
    const nativeQuestions=(run?.data as {opencode_questions?:OpenCodeQuestion[]}|undefined)?.opencode_questions??[];
    const nativeTodos=(run?.data as {opencode_todos?:{content:string;status:string;priority:string}[]}|undefined)?.opencode_todos??[];
    const traceTurns=useMemo(()=>activityTurns(events),[events]);
@@ -186,13 +196,26 @@ export function useWorkspaceState({authConfigured,accountKey,desktopPreview=fals
  const [connectionNotice,setConnectionNotice]=useState('');
  const [sourceDrafts,setSourceDrafts]=useState<Record<string,ComposerSource[]>>({}),[mediaBusy,setMediaBusy]=useState(false);
  const sourceKey=runId||(newProject?'new:'+newProject:'new'),sources=sourceDrafts[sourceKey]??[];
- const [savedSources,setSavedSources]=useState<ComposerSource[]>([]),[selectedSourceId,setSelectedSourceId]=useState('');
+ const workspaceScopeInput:Omit<WorkScope,'epoch'>={key:JSON.stringify([workspaceAccountKey,runId?'task':'draft',runId||sourceKey]),accountKey:workspaceAccountKey,taskId:runId||null,sourceKey};
+ const workspaceGuard=useRef({key:workspaceScopeInput.key,generation:1});
+ if(workspaceGuard.current.key!==workspaceScopeInput.key){workspaceGuard.current={key:workspaceScopeInput.key,generation:workspaceGuard.current.generation+1};reviewEpoch.current++;}
+ const scopeCurrent=(token:{key:string;generation:number})=>workspaceGuard.current.key===token.key&&workspaceGuard.current.generation===token.generation;
+ const [savedSourceRecord,setSavedSourceRecord]=useState<{key:string;generation:number;value:ComposerSource[]}>({key:'',generation:0,value:[]});
+ const savedSources=scopeCurrent(savedSourceRecord)?savedSourceRecord.value:[];
+ const setSavedSources=(value:ComposerSource[],token=workspaceGuard.current)=>{if(scopeCurrent(token))setSavedSourceRecord({...token,value});};
+ const [selectedSourceId,setSelectedSourceId]=useState('');
  const selectedSource=savedSources.find(row=>row.id===selectedSourceId)??savedSources.find(row=>row.image);
  const sourceIds=Array.from(new Set(run?.conversation?.flatMap(turn=>turn.attachmentIds??[])??[])).join(',');
- useEffect(()=>{let live=true;setSavedSources([]);setSelectedSourceId('');if(window.desktop&&sourceIds)void Promise.all(sourceIds.split(',').map(id=>window.desktop!.previewAttachment(id))).then(values=>{if(live)setSavedSources(values.map(value=>({...value.attachment,image:value.image})));}).catch(()=>{if(live)setConnectionNotice('Some saved source previews are unavailable; task results remain saved.');});return()=>{live=false;};},[sourceIds,runId]);
+ useEffect(()=>{
+  let live=true;const token={...workspaceGuard.current},requestedIds=sourceIds;setSavedSources([],token);setSelectedSourceId('');
+  if(window.desktop&&requestedIds)void Promise.all(requestedIds.split(',').map(id=>window.desktop!.previewAttachment(id))).then(values=>{
+   if(live&&scopeCurrent(token)&&requestedIds===sourceIds)setSavedSources(values.map(value=>({...value.attachment,image:value.image})),token);
+  }).catch(()=>{if(live&&scopeCurrent(token))setConnectionNotice('Some saved source previews are unavailable; task results remain saved.');});
+  return()=>{live=false;};
+ },[sourceIds,workspaceScopeInput.key]);
  const setSources=(value:ComposerSource[])=>setSourceDrafts(previous=>({...previous,[sourceKey]:value}));
- useEffect(()=>{const update=()=>{try{applyAppearance(parseAppearance(JSON.parse(localStorage.getItem('datumm-appearance')??JSON.stringify(defaultAppearance))));}catch{applyAppearance(defaultAppearance);}};update();const system=matchMedia('(prefers-color-scheme: dark)');system.addEventListener('change',update);return()=>system.removeEventListener('change',update);},[]);
- useEffect(()=>{for(const name of ['contrast','motion','density','scale']){const value=localStorage.getItem('datumm-'+name);if(value)document.documentElement.dataset[name]=value;}},[]);
+ useEffect(()=>{const update=()=>applyAppearance(readAppearance());update();const system=matchMedia('(prefers-color-scheme: dark)');system.addEventListener('change',update);return()=>system.removeEventListener('change',update);},[]);
+ useEffect(()=>{try{for(const name of ['contrast','motion','density','scale']){const value=localStorage.getItem('datumm-'+name);if(value)document.documentElement.dataset[name]=value;}}catch{}},[]);
   const submissionKey=useRef<{signature:string;key:string;body?:Record<string,unknown>}|null>(null);
   const queueRetry=useRef<{signature:string;id:string}|null>(null);
  const commandRetry=useRef(new Map<string,{schemaVersion:2;idempotencyKey:string;expectedTaskVersion:number;expectedPlanVersion:number;command:Record<string,unknown>}>());
@@ -203,12 +226,19 @@ export function useWorkspaceState({authConfigured,accountKey,desktopPreview=fals
  };
  const taskCommand=async(command:Record<string,unknown>)=>{
   if(!run)throw new Error('Open the saved task first.');
-   const epoch=recoveryEpoch.current;
+  if(!scopeCurrent(actionScope))throw new Error('Task view changed. Review the current task again.');
+  if((['accept_plan','prepare_build','approve_exact_proposal'].includes(String(command.type))||(command.type==='change_mode'&&command.mode==='build'))&&selectionBlocked())throw new Error('Check the saved selection before approval or Build.');
+  if(cancelPendingRef.current)throw new Error('Stop requested. Wait for the task status before issuing another command.');
+   const epoch=recoveryEpoch.current,scope={...workspaceGuard.current};
+   const current=()=>epoch===recoveryEpoch.current&&scopeCurrent(scope)&&currentRun.current?.id===run.id;
+   if(!current())throw new Error('Task view changed. The original draft is preserved.');
   const signature=JSON.stringify({taskId:run.id,command});
    let request=commandRetry.current.get(signature);
    if(!request){
-    if(command.type==='change_mode'){
-     const saved=await api<Run>(`tasks/${run.id}`);if(epoch!==recoveryEpoch.current)throw new Error('Task view changed. The original draft is preserved.');setRun(saved);
+    if(['change_mode','pause','cancel','continue'].includes(String(command.type))){
+     const saved=await api<Run>(`tasks/${run.id}`);if(!current()||saved.id!==run.id)throw new Error('Task view changed. The original draft is preserved.');
+     if((saved.taskVersion??0)<(currentRun.current?.taskVersion??0)||(saved.eventCursor??0)<(currentRun.current?.eventCursor??0))throw new Error('The saved task changed while it was being checked. Retry with the latest task.');
+     setRun(saved);
      commandExpected.current={taskId:saved.id,taskVersion:saved.taskVersion??0,planVersion:saved.currentPlanRef?.version??0};
     }
     const expected=expectedVersion();
@@ -220,40 +250,72 @@ export function useWorkspaceState({authConfigured,accountKey,desktopPreview=fals
   catch(e){
    const status=(e as Error&{status?:number}).status;
    if(status&&status<500){
-    commandRetry.current.delete(signature);
+    if(commandRetry.current.get(signature)===request)commandRetry.current.delete(signature);
     try{
-      const saved=await api<Run>('tasks/'+run.id);if(epoch!==recoveryEpoch.current)throw e;setRun(saved);
+      const saved=await api<Run>('tasks/'+run.id);if(!current()||saved.id!==run.id)throw e;setRun(saved);
      commandExpected.current={taskId:saved.id,taskVersion:saved.taskVersion??0,planVersion:saved.currentPlanRef?.version??0};
     }catch{}
    }
+   if(e instanceof Error)e.message=admissionMessage(e.message,(e as Error&{serviceCode?:unknown}).serviceCode);
    throw e;
   }
-  if(replaceTerminalCommand(command.type,result.state))commandRetry.current.delete(signature);
-  if(result.state!=='applied')throw new Error(result.error??'The command was accepted and is still being applied. Check the saved task before retrying.');
-   if(epoch===recoveryEpoch.current)commandExpected.current={taskId:run.id,taskVersion:result.taskVersion,planVersion:request.expectedPlanVersion};
-  commandRetry.current.delete(signature);
+  if(replaceTerminalCommand(command.type,result.state)&&commandRetry.current.get(signature)===request)commandRetry.current.delete(signature);
+  if(result.state!=='applied')throw new Error(admissionMessage(result.error??'The command was accepted and is still being applied. Check the saved task before retrying.'));
+   if(current())commandExpected.current={taskId:run.id,taskVersion:result.taskVersion,planVersion:request.expectedPlanVersion};
+  if(commandRetry.current.get(signature)===request)commandRetry.current.delete(signature);
   return result;
  };
 
-  const [left,setLeft]=useState(true),[right,setRight]=useState(false),[tab,setTab]=useState<'assistant'|'preview'|'activity'|'exports'|'tools'>('preview');
- const settingsPreviousLeft=useRef<boolean|null>(null);
- const changeSettingsOpen=useCallback((open:boolean)=>{
+ const [desktopLeft,setDesktopLeft]=useState(true);
+ const [drawerLeft,setDrawerLeft]=useState(false);
+ const [navigationNarrow,setNavigationNarrow]=useState(false);
+ const left=navigationNarrow?drawerLeft:desktopLeft;
+ const setLeft=(value:SetStateAction<boolean>)=>(navigationNarrow?setDrawerLeft:setDesktopLeft)(value);
+ const [workAreaState,setWorkAreaState]=useState({key:workspaceScopeInput.key,section:'design' as WorkAreaSection,properties:false});
+ const workAreaCurrent=workAreaState.key===workspaceScopeInput.key;
+ const workAreaSection=workAreaCurrent?workAreaState.section:'design',propertiesOpen=workAreaCurrent&&workAreaState.properties;
+ if(!workAreaCurrent)setWorkAreaState({key:workspaceScopeInput.key,section:'design',properties:false});
+ const closeProperties=()=>setWorkAreaState(previous=>({...previous,properties:false}));
+ const settingsPreviousLeft=useRef<{desktop:boolean;drawer:boolean}|null>(null);
+ const settingsOpener=useRef<HTMLElement|null>(null);
+ const settingsFocusTransition=useRef<'open'|'close'|null>(null);
+ const changeSettingsOpen=useCallback((open:boolean,section?:string)=>{
+  if(open&&section)setSettingsTarget(previous=>({id:section,revision:(previous?.revision??0)+1}));
+  if(open){const active=document.activeElement;const menuTrigger=active instanceof HTMLElement&&active.closest('[role="menu"]')?Array.from(document.querySelectorAll<HTMLElement>('[aria-haspopup="menu"][data-state="open"]')).find(element=>element.getClientRects().length>0):null;settingsOpener.current=menuTrigger??(active instanceof HTMLElement&&active!==document.body&&active!==document.documentElement?active:null);}
+  settingsFocusTransition.current=open?'open':'close';
   setSettingsOpen(open);
   if(!open&&window.location.hash==='#settings'){const url=new URL(window.location.href);url.hash='';window.history.replaceState(null,'',url);}
-  if(!open)requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>('.desktop-navigation-header .desktop-panel-toggle')?.focus()));
  },[]);
+ useEffect(()=>{
+  const transition=settingsFocusTransition.current;
+  if(!transition||(transition==='open')!==settingsOpen)return;
+  if(!settingsOpen&&settingsPreviousLeft.current!==null&&left!==(navigationNarrow?settingsPreviousLeft.current.drawer:settingsPreviousLeft.current.desktop))return;
+  // Wait for Settings and the restored navigation to commit, after a launching menu closes.
+  let frame=requestAnimationFrame(()=>{frame=requestAnimationFrame(()=>{
+   if(settingsFocusTransition.current!==transition)return;
+   const opener=settingsOpener.current;
+   const target=settingsOpen?document.querySelector<HTMLElement>('.studio-settings-embedded main h1'):opener?.isConnected&&opener.getClientRects().length&&!opener.closest('[hidden],[inert]')?opener:Array.from(document.querySelectorAll<HTMLElement>('[aria-label="Open workspace navigation"],[aria-label="Expand navigation"],[aria-label="Show sidebar"],.desktop-navigation-header .desktop-panel-toggle,[aria-label="DATUMM workspace menu"],[aria-label="Chats"]')).find(element=>element.getClientRects().length>0&&!element.closest('[hidden],[inert]'));
+   if(target){target.focus();settingsFocusTransition.current=null;}
+  });});
+  return()=>cancelAnimationFrame(frame);
+ },[settingsOpen,left]);
  useEffect(()=>{
   const open=(event:KeyboardEvent)=>{if(event.ctrlKey&&event.key===','){event.preventDefault();changeSettingsOpen(true);}};
   window.addEventListener('keydown',open);
   return()=>window.removeEventListener('keydown',open);
  },[desktopPreview,changeSettingsOpen]);
  useEffect(()=>{
-  const transition=settingsSidebarTransition(settingsOpen,true,left,settingsPreviousLeft.current);
-  settingsPreviousLeft.current=transition.previousLeft;
-  if(transition.left!==left)setLeft(transition.left);
- },[settingsOpen,left]);
+  if(settingsOpen&&settingsPreviousLeft.current===null){
+   settingsPreviousLeft.current={desktop:desktopLeft,drawer:drawerLeft};
+   setDesktopLeft(false);setDrawerLeft(false);
+  }else if(!settingsOpen&&settingsPreviousLeft.current!==null){
+   const previous=settingsPreviousLeft.current;
+   setDesktopLeft(previous.desktop);setDrawerLeft(previous.drawer);
+   settingsPreviousLeft.current=null;
+  }
+ },[settingsOpen]);
  useEffect(()=>{
-  
+
   const sync=()=>changeSettingsOpen(window.location.hash==='#settings');
   sync();window.addEventListener('hashchange',sync);
   return()=>window.removeEventListener('hashchange',sync);
@@ -262,30 +324,90 @@ export function useWorkspaceState({authConfigured,accountKey,desktopPreview=fals
  const [workspacePane,setWorkspacePane]=useState<'chat'|'drawing'>('chat');
  const [activityFilter,setActivityFilter]=useState('all');
  const [activitySelection,setActivitySelection]=useState('');
- useEffect(()=>setTab('preview'),[]);
  const [viewportReady,setViewportReady]=useState(false);
  const [dismissedWorkflow,setDismissedWorkflow]=useState('');
- const [panelWidths,setPanelWidths]=useState({left:224,right:380});
- useEffect(()=>{try{const saved=JSON.parse(localStorage.getItem('datumm-panel-widths')??'null');if(saved&&Number.isFinite(saved.left)&&Number.isFinite(saved.right))setPanelWidths({left:Math.max(180,Math.min(440,saved.left===242?200:saved.left)),right:Math.max(320,Math.min(620,saved.right===316?380:saved.right))});}catch{}},[]);
- const resizePanel=(side:'left'|'right',width:number)=>setPanelWidths(previous=>{const next={...previous,[side]:width};try{localStorage.setItem('datumm-panel-widths',JSON.stringify(next));}catch{}return next;});
+ const [layout,setLayout]=useState({...DEFAULT_WORKSPACE_LAYOUT});
+ const [viewportWidth,setViewportWidth]=useState(1440);
+ useEffect(()=>{try{setLayout(readWorkspaceLayout(localStorage));}catch{}const update=()=>setViewportWidth(window.innerWidth);update();window.addEventListener('resize',update);return()=>window.removeEventListener('resize',update);},[]);
+ const effectiveLayout=effectiveWorkspaceLayout(layout,viewportWidth,left);
+ const panelWidths={left:effectiveLayout.navigationWidth,right:effectiveLayout.chatWidth};
+ const resizePanel=(side:'left'|'right',width:number)=>setLayout(previous=>{
+  const desired={...previous,[side==='left'?'navigationWidth':'chatWidth']:width};
+  const normalized=effectiveWorkspaceLayout(desired,viewportWidth,true);
+  const next={version:2,navigationWidth:normalized.navigationWidth,chatWidth:normalized.chatWidth};
+  try{localStorage.setItem('datumm-workspace-layout-v2',JSON.stringify(storedWorkspaceLayout(next)));}catch{}return next;
+ });
+ const selectWorkAreaSection=(section:WorkAreaSection)=>{setWorkAreaState(previous=>({...previous,key:workspaceScopeInput.key,section}));setStudioView(previous=>!runId&&previous!=='workspace'?previous:'workspace');setWorkspacePane('drawing');};
+ const openProperties=()=>{setWorkAreaState({key:workspaceScopeInput.key,section:'design',properties:true});setStudioView(previous=>!runId&&previous!=='workspace'?previous:'workspace');setWorkspacePane('drawing');};
 
  const [deviceDialog,setLegacyDeviceDialog]=useState(false),[pairing,setPairing]=useState(''),[search,setSearch]=useState(''),[actionBusy,setActionBusy]=useState(false);
+ const lifecycleAction=useRef<{epoch:number}|null>(null);
+ const actionScope={...workspaceGuard.current};
  const [localConnections,setLocalConnections]=useState(false);
  const setDeviceDialog=(open:boolean)=>liveRuntime?setLocalConnections(open):setLegacyDeviceDialog(open);
 const [accessDialog,setAccessDialog]=useState(false),[accessBatches,setAccessBatches]=useState(1),[accessMargin,setAccessMargin]=useState(0),[accessReview,setAccessReview]=useState<AccessReview|null>(null);
-const [placementContext,setPlacementContext]=useState<PlacementContext|null>(null),[placementTask,setPlacementTask]=useState('');
+const [savedPlacementContext,setPlacementContext]=useState<PlacementContext|null>(null),[placementTask,setPlacementTask]=useState('');
+const effectivePlacementDevice=deviceId||run?.device_id||'';
+const placementDeviceEpoch=useRef({device:effectivePlacementDevice,generation:1});
+if(placementDeviceEpoch.current.device!==effectivePlacementDevice)placementDeviceEpoch.current={device:effectivePlacementDevice,generation:placementDeviceEpoch.current.generation+1};
+const [placementScope,setPlacementScope]=useState<{key:string;generation:number;device:string;deviceGeneration:number}|null>(null);
 const [placementX,setPlacementX]=useState(''),[placementY,setPlacementY]=useState(''),[placementRotation,setPlacementRotation]=useState(''),[placementView,setPlacementView]=useState('');
-const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(null);
+const [savedConfirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(null);
+const placementOwned=Boolean(placementScope&&scopeCurrent(placementScope)&&placementScope.device===effectivePlacementDevice&&placementScope.deviceGeneration===placementDeviceEpoch.current.generation&&placementTask===run?.id);
+const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacement=placementOwned?savedConfirmedPlacement:null;
  const [historyView,setHistoryView]=useState<'recent'|'archived'>('recent'),[deleteTarget,setDeleteTarget]=useState<Run|null>(null),[deleteAllOpen,setDeleteAllOpen]=useState(false),[deletePhrase,setDeletePhrase]=useState('');
  const [canvasOpen,setCanvasOpen]=useState(false);
- const [designVersion,setDesignVersion]=useState<VariableVersion|null>(null),[designDiff,setDesignDiff]=useState<string>('');
- const [drawingError,setDrawingError]=useState(''),[drawingMissing,setDrawingMissing]=useState(false),[drawingLoading,setDrawingLoading]=useState(false),[drawingRetry,setDrawingRetry]=useState(0),[compareVersion,setCompareVersion]=useState<VariableVersion|null>(null);
- const [drawingStyle,setDrawingStyle]=useState<'presentation'|'linework'>('presentation');
- const reviewEpoch=useRef(0);
+ const [designRecord,setDesignRecord]=useState<{key:string;generation:number;value:VariableVersion|null}>({key:'',generation:0,value:null});
+ const designVersion=scopeCurrent(designRecord)?designRecord.value:null;
+ const currentDrawing=useRef(designVersion);currentDrawing.current=designVersion;
+ const currentDevice=useRef(deviceId||run?.device_id||'');currentDevice.current=deviceId||run?.device_id||'';
+ const setDesignVersion=(value:VariableVersion|null,token=workspaceGuard.current)=>{if(scopeCurrent(token))setDesignRecord({...token,value});};
+ const [drawingError,setDrawingError]=useState(''),[drawingMissing,setDrawingMissing]=useState(false),[drawingLoading,setDrawingLoading]=useState(false),[drawingRetry,setDrawingRetry]=useState(0);
+ const [,setUncertainSelections]=useState<Record<string,{plan:{planId:string;version:number;fingerprint:string};version?:VariableVersion;message:string}>>({});
+ const [selectionIssue,setSelectionIssue]=useState<{key:string;message:string}>({key:'',message:''});
+ const selectionLocks=useRef(new Map<string,{plan:{planId:string;version:number;fingerprint:string};version?:VariableVersion;message:string}>());
+ const [,setSelectionStorageRevision]=useState(0);
+ const selectionKey=JSON.stringify([workspaceAccountKey,run?.id,run?.data.agent_design?.briefId]);
+ const selectionTask=run?.id,selectionBrief=run?.data.agent_design?.briefId;
+ const selectionStorage=()=>{try{return window.localStorage;}catch{return null;}};
+ const selectionWebLocks=()=>{try{return window.navigator?.locks??null;}catch{return null;}};
+ useEffect(()=>{const update=(event:StorageEvent)=>{if(event.key?.startsWith('datumm-selection-uncertain:'))setSelectionStorageRevision(value=>value+1);};window.addEventListener('storage',update);return()=>window.removeEventListener('storage',update);},[]);
+ const readMarker=()=>selectionTask&&selectionBrief?readSelectionMarker(selectionStorage(),workspaceAccountKey,selectionTask,selectionBrief):{status:'ready' as const,plan:null};
+ const marker=readMarker();
+ if(marker.status==='ready'&&marker.plan&&!selectionLocks.current.has(selectionKey))selectionLocks.current.set(selectionKey,{plan:marker.plan,message:'Selection could not be confirmed. Check the saved selection before approval.'});
+ const selectionBlocked=()=>{const saved=readMarker();return selectionLocks.current.has(selectionKey)||saved.status!=='ready'||Boolean(saved.plan);};
+ const selectionUncertain=Boolean(selectionTask&&selectionBrief&&selectionBlocked()),selectionError=selectionLocks.current.get(selectionKey)?.message??(marker.status!=='ready'&&selectionTask&&selectionBrief?'Selection safety storage is unavailable or invalid. Open a new chat or restore browser storage.':selectionIssue.key===selectionKey?selectionIssue.message:'');
+ const withSelectionMutation=async(operation:()=>Promise<void>,allowMarker=false)=>{
+  const locks=selectionWebLocks(),token={...workspaceGuard.current},taskId=runId,briefId=run?.data.agent_design?.briefId;
+  if(!locks||!taskId||!briefId){setSelectionIssue({key:selectionKey,message:'Selection and approval are unavailable because browser locking is unavailable.'});return;}
+  try{await locks.request('datumm-selection-mutation:'+JSON.stringify([workspaceAccountKey,taskId,briefId]),{mode:'exclusive'},async()=>{
+   if(!scopeCurrent(token)||!scopeCurrent(actionScope)||currentRun.current?.id!==taskId||currentRun.current?.data.agent_design?.briefId!==briefId||(!allowMarker&&selectionBlocked()))return;
+   await operation();
+  });}catch(e){if(scopeCurrent(token))setSelectionIssue({key:selectionKey,message:e instanceof Error?e.message:'Selection lock is unavailable.'});}
+ };
+ const [comparisonRecord,setComparisonRecord]=useState<{key:string;request:number;loading:boolean;error:string;result:{kind:'previous'|'alternative';version:VariableVersion;diff:string}|null}>({key:'',request:0,loading:false,error:'',result:null});
+ const comparisonKey=JSON.stringify([workspaceGuard.current.key,workspaceGuard.current.generation,designVersion&&[designVersion.planId,designVersion.version,designVersion.fingerprint],run?.currentPlanRef&&[run.currentPlanRef.planId,run.currentPlanRef.version,run.currentPlanRef.fingerprint],run?.data.agent_design?.briefId,run?.data.agent_design?.candidates.map(c=>[c.planId,c.version,c.fingerprint])]);
+ const comparison=comparisonRecord.key===comparisonKey?comparisonRecord:null;
+ const compareVersion=comparison?.result?.version??null,designDiff=comparison?.result?.diff??'',comparisonKind=comparison?.result?.kind??null,comparisonError=comparison?.error??'',comparisonLoading=comparison?.loading??false;
+ const setCompareVersion=(value:VariableVersion|null)=>{if(value===null)setComparisonRecord(previous=>({...previous,request:previous.request+1,loading:false,result:null,error:''}));};
+ const [drawingStyle,setDrawingStyle]=useState<'presentation'|'linework'>('linework');
  const canvasTrigger=useRef<HTMLButtonElement|null>(null);
  const dialogTrigger=useRef<HTMLElement|null>(null);
- const pendingSubmission=useRef<{text:string;runStarted:boolean;taskId?:string;sourceKey:string;draftStore:PromptDraftStore;draftRevision?:string}|null>(null);
+ const [admissionPending,setAdmissionPending]=useState(false);
+ const pendingSubmission=useRef<{text:string;runStarted:boolean;taskId?:string;sourceKey:string;draftStore:PromptDraftStore;draftRevision?:string;startCursor:number;clientSubmissionId:string}|null>(null);
  const recoveryEpoch=useRef(0);
+ const transportMessageOwner=useRef<{accountKey:string;sourceKey:string;taskId:string|null}|null>(null);
+ const setMessagesAfterAccountChange=useRef(false);
+ const [uiScope,setUiScope]=useState({key:workspaceScopeInput.key,accountKey:workspaceAccountKey});
+ if(uiScope.key!==workspaceScopeInput.key){
+  setUiScope({key:workspaceScopeInput.key,accountKey:workspaceAccountKey});
+  setCanvasOpen(false);setCompareVersion(null);setDrawingError('');setDrawingMissing(false);setDrawingLoading(false);
+  setSelectedSourceId('');setSelectedDesignElement('');setDesignHighlights([]);setInspectedDesignFingerprint('');setConnectionNotice('');setError('');setActionBusy(false);
+  if(uiScope.accountKey!==workspaceAccountKey){
+   accountEpoch.current++;reviewEpoch.current++;recoveryEpoch.current++;pendingSubmission.current=null;submissionKey.current=null;queueRetry.current=null;commandRetry.current.clear();commandExpected.current=null;
+   transportMessageOwner.current=null;setRuns([]);setProjects([]);setRunId('');setRun(null);setSourceDrafts({});setAdmissionPending(false);displayPrompt('');setMode('plan');setModel('openai/gpt-6-luna');setReasoningEffort('high');modelPreferenceInitialized.current=false;setMessagesAfterAccountChange.current=true;
+  }
+ }
  const draftAccountKey=desktopAvailable
   ? !desktopPreview&&admittedSubject&&accountWorkspaceSubject===admittedSubject?'desktop:'+admittedSubject:null
   : !desktopPreview&&authConfigured&&accountKey?'web:'+accountKey:null;
@@ -298,13 +420,32 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   displayPrompt(promptDrafts.current.get(sourceKey));
   setDraftSaveStatus(promptDrafts.current.status(sourceKey));
  },[draftAccountKey,sourceKey,displayPrompt]);
+ const briefDraftScope={...workspaceGuard.current};
+ const prepareProjectBriefReference=(text:string):boolean|string=>{
+  if(!scopeCurrent(briefDraftScope)||draftOwner.current.account!==draftAccountKey||draftOwner.current.source!==sourceKey)return false;
+  const combined=appendViewportPrompt(promptValue.current,text);
+  if(combined.length>12000)return 'This brief and your current draft exceed 12,000 characters. Shorten your draft or paste only the needed brief entries; nothing was added.';
+  setPrompt(combined);
+  return true;
+ };
+ const prepareBriefUpdate=()=>{
+  // Reject old dialog callbacks, including a task revisited under a later scope generation.
+  if(!scopeCurrent(briefDraftScope)||!runId||currentRun.current?.id!==runId||!['completed','failed','cancelled','interrupted'].includes(currentRun.current.status)||hasPendingQuestion(currentRun.current)||(currentRun.current.data as {opencode_questions?: unknown[]}).opencode_questions?.length||draftOwner.current.account!==draftAccountKey||draftOwner.current.source!==sourceKey)return false;
+  setPrompt(previous=>appendViewportPrompt(previous,'Revise the task brief with the changes I describe below. Keep other requirements unchanged. Do not change Revit.\n\nChanges: '));
+  return true;
+ };
  const confirmPromptDraft=(key:string,text:string,store:PromptDraftStore,revision:string|undefined)=>{
   const result=store.confirm(key,text,revision);
   if(promptDrafts.current===store&&draftOwner.current.source===key){setDraftSaveStatus(result);if(promptValue.current===text)displayPrompt(store.get(key));}
  };
  const recoverLiveView=(taskId?:string)=>{const epoch=recoveryEpoch.current;setError('');setConnectionNotice('Checking the saved task after the live stream ended…');if(taskId)void api<Run>('tasks/'+encodeURIComponent(taskId)).then(task=>{if(recoveryEpoch.current===epoch){setRun(task);setConnectionNotice(savedTaskConnectionNotice(task));}}).catch(()=>{if(recoveryEpoch.current===epoch)setConnectionNotice('Saved task updates are unavailable. Check the connection before retrying; this message was already admitted.');});};
- const openCanvas=(trigger:HTMLButtonElement)=>{canvasTrigger.current=trigger;setStudioView('workspace');setRight(false);setCanvasOpen(true);};
- const restoreDialogFocus=(event:Event)=>{event.preventDefault();const trigger=dialogTrigger.current?.isConnected?dialogTrigger.current:document.querySelector<HTMLElement>('button[aria-label="Show sidebar"],button[aria-label="Account settings"],[aria-label="Search tasks"]');trigger?.focus();};
+ // History rows are a useful immediate preview, not an authoritative task read.
+ const refreshSelectedTask=async(taskId:string,epoch=recoveryEpoch.current)=>{
+  try{const value=await api<Run>('tasks/'+encodeURIComponent(taskId));if(epoch===recoveryEpoch.current&&value.id===taskId)setRun(value);}
+  catch{if(epoch===recoveryEpoch.current)setConnectionNotice('The saved chat is shown, but its latest updates could not be checked. Reopen it to retry.');}
+ };
+ const openCanvas=(trigger:HTMLButtonElement)=>{canvasTrigger.current=trigger;setStudioView('workspace');closeProperties();setCanvasOpen(true);};
+ const restoreDialogFocus=(event:Event)=>{event.preventDefault();const opener=dialogTrigger.current;const trigger=opener?.isConnected&&opener.getClientRects().length&&!opener.closest('[hidden],[inert]')?opener:Array.from(document.querySelectorAll<HTMLElement>('[aria-label="Open workspace navigation"],[aria-label="Expand navigation"],[aria-label="Show sidebar"],[aria-label^="Account settings"],[aria-label="Search chats and projects"],[aria-label="Search tasks"]')).find(element=>element.getClientRects().length>0&&!element.closest('[hidden],[inert]'));trigger?.focus();};
  const planSummary=run?.data.plan?`Plan revision ${run.data.plan.version} is ready. Review the layout below, describe a change, or build this version in Revit.`:null;
  const outcome=run?.modelOutcome;
  const proposalExpired=Boolean(run?.data.proposal?.expiresAt&&Date.parse(run.data.proposal.expiresAt)<=Date.now());
@@ -312,10 +453,11 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  const canRefreshFailedPreparation=Boolean(run?.status==='failed'&&(run.data.variable_selection||run.data.m09_revision)&&run.data.proposal&&!committedBuild&&['preparation_read_unavailable','native_busy','connection_error'].includes(run.data.failure?.code??''));
  const canEndFailedPreparation=Boolean(run?.status==='failed'&&run.data.variable_selection&&!committedBuild&&run.data.recovery?.data?.state==='rolled_back'&&run.data.recovery.data.sameDocument===true);
  const plannedAccessBatches=Math.min(3,run?.data.agent_task_plan?.steps.filter(step=>step.action==='execute_changes').length??1);
- const batchInProgress=run?.data.agent_result?.status==='in_progress'&&['running','queued','awaiting_approval'].includes(run.status);
+ const batchProgressCount=nativeBatchProgress(run);
+ const batchInProgress=batchProgressCount>0;
  const partialGoal=run?.data.agent_result?.status==='partial';
  const confirmedAnnotationFailure=outcome?.verifiedBatches===1&&run?.data.recovery?.data?.state==='failed'&&run.data.recovery.data.sameDocument===true;
- const buildSummary=run?.mode==='build'?run.status==='awaiting_approval'?`${outcome?.verifiedBatches?`${outcome.verifiedBatches} native batch verified. Tags and dimensions require a separate exact approval. `:''}The rollback dry run passed. Review the exact proposal below and approve it to build in Revit. No model changes were made by the dry run.`:outcome?.verifiedBatches&&!outcome.completedBuild?`${outcome.verifiedBatches} of ${outcome.expectedBatches} native batches passed read-back. The full build remains incomplete; inspect the pending or failed operation before continuing.`:batchInProgress?`${run.data.agent_result?.batchHistory?.length??1} native batch verified. DATUMM is checking the updated model before the next planned step.`:partialGoal?(outcome?.verified?'Revit verified the recorded native changes, but the overall goal remains partial. Review the remaining criteria below.':'The overall goal remains partial. Review the findings and verification limits below.'):outcome?.verified?`${queueData?.native_build?'The approved native proposal':run.data.draft_task?'The drafting task':run.data.variable_selection?'The selected concept':run.data.selected_plan?'The saved plan':'The verified 3BHK demonstration'} was built and verified in Revit. Review the element counts and save the project when you are ready.`:run.status==='failed'?(committedBuild?'The build committed in Revit. Full verification is unavailable; review the operation status below. Do not rebuild this plan.':outcome?.state==='unknown'?'The write outcome is unknown. Reconnect and check the original operation status before any new build.':'The build stopped. Review the error below.'):null:null;
+ const buildSummary=run?.mode==='build'?run.status==='awaiting_approval'?`${outcome?.verifiedBatches?`${outcome.verifiedBatches} native batch verified. Tags and dimensions require a separate exact approval. `:''}The rollback dry run passed. Review the exact proposal below and approve it to build in Revit. No model changes were made by the dry run.`:outcome?.verifiedBatches&&!outcome.completedBuild?`${outcome.verifiedBatches} of ${outcome.expectedBatches} native batches passed read-back. The full build remains incomplete; inspect the pending or failed operation before continuing.`:batchInProgress?`${batchProgressCount} native ${batchProgressCount===1?'batch':'batches'} verified. DATUMM is checking the updated model before the next planned step.`:partialGoal?(outcome?.verified?'Revit verified the recorded native changes, but the overall goal remains partial. Review the remaining criteria below.':'The overall goal remains partial. Review the findings and verification limits below.'):outcome?.verified?`${queueData?.native_build?'The approved native proposal':run.data.draft_task?'The drafting task':run.data.variable_selection?'The selected concept':run.data.selected_plan?'The saved plan':'The verified 3BHK demonstration'} was built and verified in Revit. Review the element counts and save the project when you are ready.`:run.status==='failed'?(committedBuild?'The build committed in Revit. Full verification is unavailable; review the operation status below. Do not rebuild this plan.':outcome?.state==='unknown'?'The write outcome is unknown. Reconnect and check the original operation status before any new build.':'The build stopped. Review the error below.'):null:null;
  const checkpointSummary=run?.status==='paused_limit'?
   run.data.operation_id?'The task paused after a Revit operation. Check its original status before starting another build.':
   run.data.agent_limit?.continuationAvailable?'The findings are saved. Continue the remaining analysis from this checkpoint when you are ready.':
@@ -338,20 +480,30 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  const completedGoal=run?.data.agent_result?.goal==='Build this exact drafting task'?run.data.agent_draft?.requestedGoal??run.data.draft_task?.requestedGoal??(run.data.agent_draft?.changes.title?completedDraftTitle(run.data.agent_draft.changes.title):run.data.agent_result.goal):run?.data.agent_result?.goal;
  const completedCriteria=run?.data.agent_result?.criteria?reviewCriteria(run.data.agent_result.criteria):[];
  const selectedDesignCandidate=run?.data.agent_design?.candidates.find(c=>c.planId===designVersion?.planId&&c.version===designVersion?.version)??run?.data.agent_design?.candidates.find(c=>c.planId===run.currentPlanRef?.planId&&c.version===run.currentPlanRef.version)??run?.data.agent_design?.candidates[0];
- const drawingCurrent=Boolean(designVersion&&run?.currentPlanRef?.planId===designVersion.planId&&run.currentPlanRef.version===designVersion.version&&run.currentPlanRef.fingerprint===designVersion.fingerprint);
+ const drawingCurrent=Boolean(!selectionUncertain&&designVersion&&run?.currentPlanRef?.planId===designVersion.planId&&run.currentPlanRef.version===designVersion.version&&run.currentPlanRef.fingerprint===designVersion.fingerprint);
+ const revisionCandidate=Boolean(designVersion&&run?.data.agent_design?.candidates.some(c=>c.planId===designVersion.planId&&c.version===designVersion.version&&c.fingerprint===designVersion.fingerprint));
+ const planRevisionBlockedReason=selectionUncertain?'Check the saved selection before revising this brief.':!drawingCurrent||!revisionCandidate||drawingError||drawingLoading?'Open the current drawing before revising this brief.':!run||!['completed','failed','cancelled','interrupted'].includes(run.status)||hasPendingQuestion(run)||(run.data as {opencode_questions?:unknown[]}).opencode_questions?.length?'Finish the active work or answer the pending question before revising.':'';
+ const revisionScope={...workspaceGuard.current},revisionEpoch=reviewEpoch.current,revisionBrief=run?.data.agent_design?.briefId,revisionDrawing=designVersion&&[designVersion.planId,designVersion.version,designVersion.fingerprint].join('\u0000');
+ const preparePlanRevision=()=>{
+  const current=currentRun.current,draw=currentDrawing.current,ref=current?.currentPlanRef;
+  if(planRevisionBlockedReason||selectionBlocked()||!scopeCurrent(revisionScope)||reviewEpoch.current!==revisionEpoch||!current||!draw||!ref||current.id!==runId||current.data.agent_design?.briefId!==revisionBrief||!current.data.agent_design?.candidates.some(c=>c.planId===draw.planId&&c.version===draw.version&&c.fingerprint===draw.fingerprint)||[draw.planId,draw.version,draw.fingerprint].join('\u0000')!==revisionDrawing||draw.planId!==ref.planId||draw.version!==ref.version||draw.fingerprint!==ref.fingerprint)return false;
+  return prepareBriefUpdate();
+ };
  const reviewAssumptions=Array.from(new Set([...(run?.data.agent_design?.assumptions??[]),...(designVersion?.graph.assumptions??[])]));
  const planAccepted=Boolean(drawingCurrent&&run?.acceptance?.plan.planId===designVersion?.planId&&run?.acceptance?.plan.version===designVersion?.version&&run?.acceptance?.plan.fingerprint===designVersion?.fingerprint);
  const buildStep=run?.data.agent_design?planBuildStep(run,drawingCurrent&&!drawingError?designVersion:null,placementTask===run.id&&Boolean(confirmedPlacement)):null;
- const designOwner=useRef('');
  useEffect(()=>{
-  if(designOwner.current!==(run?.id??'')){designOwner.current=run?.id??'';setDesignVersion(null);}
-  const ref=run?.currentPlanRef;if(!run?.data.agent_design||ref?.source!=='variable')return;
-  let cancelled=false;setDrawingLoading(true);setDrawingError('');setDrawingMissing(false);setCompareVersion(null);
+  const token={...workspaceGuard.current},ref=run?.currentPlanRef;
+  if(!run?.data.agent_design||ref?.source!=='variable'){setDrawingLoading(false);return;}
+  let cancelled=false;setDrawingLoading(true);setDrawingError('');setDrawingMissing(false);
   void api<VariableVersion>(`variable/plans/${ref.planId}/versions/${ref.version}${drawingRetry?'?retryRender=true':''}`).then(value=>{
-   if(cancelled)return;if(value.fingerprint!==ref.fingerprint)throw Error('Saved drawing fingerprint changed.');setDesignVersion(value);setDrawingStyle('presentation');
-  }).catch(e=>{if(!cancelled){setDrawingError((e as Error).message);setDrawingMissing((e as Error&{status?:number}).status===404);}}).finally(()=>{if(!cancelled)setDrawingLoading(false);});
+   if(cancelled||!scopeCurrent(token))return;
+   if(value.planId!==ref.planId||value.version!==ref.version||value.fingerprint!==ref.fingerprint)throw Error('Saved drawing identity changed.');
+   if(!designVersion||designVersion.planId!==value.planId||designVersion.version!==value.version||designVersion.fingerprint!==value.fingerprint)setDrawingStyle('linework');
+   setDesignVersion(value,token);
+  }).catch(e=>{if(!cancelled&&scopeCurrent(token)){setDrawingError((e as Error).message);setDrawingMissing((e as Error&{status?:number}).status===404);}}).finally(()=>{if(!cancelled&&scopeCurrent(token))setDrawingLoading(false);});
   return()=>{cancelled=true;};
- },[run?.id,run?.currentPlanRef?.planId,run?.currentPlanRef?.version,run?.currentPlanRef?.fingerprint,drawingRetry]);
+ },[workspaceScopeInput.key,run?.id,run?.currentPlanRef?.planId,run?.currentPlanRef?.version,run?.currentPlanRef?.fingerprint,drawingRetry]);
  const conceptBinding=run?.data.agent_design?.conceptImage?.planBinding;
  const conceptImageAlternative=conceptBinding?(run?.data.agent_design?.candidates.findIndex(c=>c.planId===conceptBinding.planId&&c.version===conceptBinding.version&&c.fingerprint===conceptBinding.fingerprint)??-1):-1;
  const conceptImageLabel=conceptImageAlternative>=0?`Plan alternative ${conceptImageAlternative+1}`:conceptBinding?`Saved plan version ${conceptBinding.version}`:'Illustrative only';
@@ -362,7 +514,8 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  const hasRenderablePlan=Boolean(run)&&isRenderablePlan(activeDrawing,previewSvg);
  const previewExportQuery=run?.data.agent_design&&designVersion&&run.data.agent_design.candidates.some(c=>c.planId===designVersion.planId&&c.version===designVersion.version)?`?planId=${encodeURIComponent(designVersion.planId)}&version=${designVersion.version}`:'';
  const previewCounts=run?.data.compiled?.counts??run?.data.agent_inspection?.counts??run?.data.inventory?.counts??{};
- const previewRooms=run?.data.compiled?.areas??(run?.data.agent_design&&designVersion&&selectedDesignCandidate?.planId===designVersion.planId&&selectedDesignCandidate.version===designVersion.version&&selectedDesignCandidate.fingerprint===designVersion.fingerprint?designVersion.graph.rooms.map(r=>({name:r.name,expectedAreaM2:Math.max(0,r.rect[2]-r.rect[0]-designVersion.graph.wallThicknessMm)*Math.max(0,r.rect[3]-r.rect[1]-designVersion.graph.wallThicknessMm)/1_000_000})):null)??run?.data.agent_design?.previewRooms??run?.data.inventory?.rooms.map(r=>({name:r.name,expectedAreaM2:r.areaM2}))??[];
+ const scheduleGraph=run?.data.agent_design&&designVersion&&selectedDesignCandidate?.planId===designVersion.planId&&selectedDesignCandidate.version===designVersion.version&&selectedDesignCandidate.fingerprint===designVersion.fingerprint?designVersion.graph:null;
+ const previewRooms=roomAreaSchedule(run?.data.compiled?.areas,scheduleGraph,run?.data.agent_design?.previewRooms,run?.data.inventory?.rooms);
   const previewLabel=plannedCandidate&&separateNativeFollowup?'Saved design reference · excludes the separate native proposal':queueData?.native_build?.svg?'Exact native proposal · schematic symbols':drawingCurrent?(run?.acceptance?.plan.fingerprint===designVersion?.fingerprint?'Accepted dimensioned plan':'Dimensioned concept plan'):run?.data.agent_design?'Older alternative preview · current drawing unavailable':outcome?.verified&&run?.data.draft_task?'Verified drafting comparison':run?.data.agent_draft&&!run.data.compiled?'Proposed drafting paths and positions':run?.data.compiled?'Proposed floor plan':'Measured model geometry';
  const previewRevision=run?.data.plan?.version??run?.data.selected_plan?.version??run?.data.proposal?.revision??run?.data.snapshot?.revision;
  const hasNativeQuantities=Boolean(run?.data.agent_quantity_pages?.length);
@@ -386,44 +539,57 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   ...(run?.data.concept?[{ext:'concept',name:'AI concept image',icon:Download,detail:conceptBinding?`${conceptImageLabel} · version ${conceptBinding.version} · illustrative only`:'Illustrative only, not measured geometry'}]:[])
  ];
 
- const transport=useMemo(()=>new DefaultChatTransport({api:'/api/chat',prepareSendMessagesRequest:({messages,body})=>{
-  // History and tool evidence live in the task store; only admit the new user text.
-  const latest=messages.filter(message=>message.role==='user').at(-1);
-  return {body:{...body,messages:latest?[{id:latest.id,role:'user',parts:latest.parts.filter(part=>part.type==='text')}]:[]}};
- }}),[]);
+ const transport=useMemo(()=>new AguiChatTransport(),[]);
 
- const {messages,sendMessage,status,setMessages,stop,error:chatError}=useChat({transport,onData:part=>{
+ const {messages:transportMessages,sendMessage,status,setMessages,stop,error:chatError}=useChat({transport,onData:part=>{
 
-  if(!pendingSubmission.current)return;
+  if(!pendingSubmission.current || !part.data || typeof part.data !== 'object' || !('clientSubmissionId' in part.data) || part.data.clientSubmissionId !== pendingSubmission.current.clientSubmissionId)return;
   if(part.type==='data-run'){
+   if(!('id' in part.data)||typeof part.data.id!=='string'||! /^[a-zA-Z0-9-]{1,128}$/.test(part.data.id))return;
+   const taskId=part.data.id;
    if(pendingSubmission.current){
-    const pending=pendingSubmission.current,taskId=(part.data as {id:string}).id,key=pending.sourceKey;
+    const pending=pendingSubmission.current,key=pending.sourceKey;
     pending.runStarted=true;pending.taskId=taskId;
+    if(transportMessageOwner.current)transportMessageOwner.current.taskId=taskId;
     confirmPromptDraft(key,pending.text,pending.draftStore,pending.draftRevision);
     if((key==='new'||key.startsWith('new:'))&&key!==taskId)pending.draftStore.move(key,taskId);
     setSourceDrafts(previous=>({...previous,[key]:[]}));
    }
    submissionKey.current=null;
-   setRunId((part.data as {id:string}).id);
+   setRunId(taskId);setAdmissionPending(false);
   }
 
   if(part.type==='data-progress'){
 
-   const event=part.data as RunEvent&{run?:Run};
-
-   if(event.stage==='snapshot'&&event.run){setRun(event.run);}
-
-   else setProjection(previous=>reduceProjection(previous,{event}));
+   if(!('record' in part.data)||!part.data.record||typeof part.data.record!=='object')return;
+   const record=part.data.record;
+   if(!('stage' in record)||typeof record.stage!=='string')return;
+   if(record.stage==='snapshot'){
+    if(!('run' in record)||!record.run||typeof record.run!=='object'||!('id' in record.run)||record.run.id!==pendingSubmission.current.taskId||!('events' in record.run)||!Array.isArray(record.run.events)||!('data' in record.run)||!record.run.data||typeof record.run.data!=='object'||!('status' in record.run)||typeof record.run.status!=='string')return;
+    setRun(record.run as Run);
+   }else{
+    if(!('index' in record)||typeof record.index!=='number'||!Number.isSafeInteger(record.index)||record.index<0||!('detail' in record)||typeof record.detail!=='string'||('taskId' in record&&record.taskId!==pendingSubmission.current.taskId))return;
+    setProjection(previous=>reduceProjection(previous,{event:record as RunEvent}));
+   }
 
   }
 
  }});
 
- const paused=Boolean(run&&terminal.has(run.status))||terminal.has(events.at(-1)?.stage??'');
+ const messageOwner=transportMessageOwner.current;
+ const messages=messageOwner?.accountKey===workspaceAccountKey&&(runId?messageOwner.taskId===runId:messageOwner.sourceKey===sourceKey&&!messageOwner.taskId)?transportMessages:[];
+ useEffect(()=>{if(setMessagesAfterAccountChange.current){setMessagesAfterAccountChange.current=false;setMessages([]);setAdmissionPending(false);}},[workspaceAccountKey]);
+ const admitted=pendingSubmission.current?.runStarted&&pendingSubmission.current.taskId===runId&&['submitted','streaming'].includes(status)?pendingSubmission.current:null;
+ const admittedTerminal=admitted&&(events.some(event=>(event.sequence??event.index+1)>admitted.startCursor&&terminal.has(event.stage))||Boolean(run&&terminal.has(run.status)&&(run.eventCursor??0)>admitted.startCursor));
+ const paused=admitted?Boolean(admittedTerminal):Boolean(run&&terminal.has(run.status))||terminal.has(events.at(-1)?.stage??'');
  const executing=!paused&&(status==='streaming'||status==='submitted'||Boolean(run&&!terminal.has(run.status)));
+ const cancelPending=stopRequested(run,events);
+ const cancelPendingRef=useRef(cancelPending);cancelPendingRef.current=cancelPending;
  const replying=useRef(false);
-  const busy=executing||actionBusy||mediaBusy;
-  const queueMessage=liveRuntime&&Boolean(run)&&(executing||promptQueue.length>0);
+ const questionObserver=useRef<AbortController|null>(null);
+ useEffect(()=>()=>{questionObserver.current?.abort();questionObserver.current=null;},[workspaceAccountKey,runId]);
+  const busy=executing||actionBusy||mediaBusy||admissionPending||cancelPending||Boolean(runId&&!run);
+  const queueMessage=!cancelPending&&liveRuntime&&Boolean(run)&&(executing||promptQueue.length>0);
 
  // A refused first prompt never created a task: take its optimistic bubble back (the text returns to the composer).
  const dropOptimistic=(text:string)=>setMessages(list=>{const i=list.map(m=>m.role==='user'&&m.parts.some(p=>p.type==='text'&&p.text===text)).lastIndexOf(true);return i<0?list:list.filter((_,k)=>k!==i);});
@@ -432,7 +598,7 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   const pending=pendingSubmission.current;
    if(!pending)return;
   if(pending&&!pending.runStarted){setPrompt(current=>current||pending.text);if(!currentRun.current)dropOptimistic(pending.text);}
-  pendingSubmission.current=null;
+  pendingSubmission.current=null;setAdmissionPending(false);
   if(pending?.runStarted){
    recoverLiveView(pending.taskId||currentRun.current?.id);return;
   }
@@ -453,6 +619,13 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  useEffect(()=>{if(connectionNotice&&run)setConnectionNotice(savedTaskConnectionNotice(run));},[run?.status,nativeQuestions.length]);
 
   const selectedDevice=devices.find(d=>d.id===deviceId);
+  // Invalidate synchronously during render, before an old effect can publish or
+  // a newly selected device can inherit the previous device's session count.
+  const sessionIdentity=JSON.stringify([workspaceAccountKey,liveRuntime,selectedDevice?.id??null,Boolean(selectedDevice?.online)]);
+  const sessionScope=useRef({identity:sessionIdentity,generation:0});
+  if(sessionScope.current.identity!==sessionIdentity)sessionScope.current={identity:sessionIdentity,generation:sessionScope.current.generation+1};
+  const sessionGeneration=sessionScope.current.generation;
+  const revitSessions=liveRuntime?devices.length:sessionObservation?.generation===sessionGeneration?sessionObservation.count:null;
   useEffect(()=>{
    if(!liveRuntime||!useCurrentModel||!selectedDevice?.online){setNativeContext(null);setNativeContextError('');return;}
    let live=true;setNativeContext(null);
@@ -461,25 +634,22 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   },[liveRuntime,useCurrentModel,selectedDevice?.id,selectedDevice?.online]);
 
  useEffect(()=>{
-  const narrow=window.matchMedia('(max-width:850px)');
-  const update=()=>{setLeft(!narrow.matches);setViewportReady(true);};
+  const narrow=window.matchMedia('(max-width:899px)');
+  const update=()=>{if(narrow.matches){setDrawerLeft(false);if(settingsPreviousLeft.current)settingsPreviousLeft.current.drawer=false;}setNavigationNarrow(narrow.matches);setViewportReady(true);};
   update();narrow.addEventListener('change',update);
   return()=>narrow.removeEventListener('change',update);
  },[]);
 
  useEffect(()=>{
   const closeDrawer=(event:KeyboardEvent)=>{
-   if(event.key!=='Escape'||event.defaultPrevented||Array.from(document.querySelectorAll('[role="dialog"]')).some(dialog=>dialog.getClientRects().length>0))return;
-   if(left&&window.matchMedia('(max-width:850px)').matches){
-    event.preventDefault();setLeft(false);requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>('button[aria-label="Show sidebar"]')?.focus());return;
-   }
-   if(right){
-    event.preventDefault();setRight(false);requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>('button[aria-label="Show inspector"]')?.focus());
+   if(event.key!=='Escape'||event.defaultPrevented||Array.from(document.querySelectorAll('[role="dialog"],[role="menu"]')).some(dialog=>dialog.id!=='workspace-navigation'&&dialog.getClientRects().length>0))return;
+   if(left&&window.matchMedia('(max-width:899px)').matches){
+    event.preventDefault();setLeft(false);requestAnimationFrame(()=>Array.from(document.querySelectorAll<HTMLButtonElement>('[aria-label="Open workspace navigation"],[aria-label="Expand navigation"],[aria-label="Show sidebar"]')).find(element=>element.getClientRects().length>0&&!element.closest('[hidden],[inert]'))?.focus());return;
    }
   };
   document.addEventListener('keydown',closeDrawer);
   return()=>document.removeEventListener('keydown',closeDrawer);
- },[left,right]);
+ },[left,navigationNarrow]);
 
  const refreshRuns=useCallback(async()=>{
    if(window.desktop&&!desktopPreview&&!testIdentity&&!['signed-in','expired-offline'].includes(accountStatus?.state??''))return true;
@@ -511,7 +681,7 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   accountEpoch.current++;
   if(accountWorkspaceSubject){
    setRuns([]);setProjects([]);setRun(null);setRunId('');setMessages([]);displayPrompt('');setNewProject('');setMode('plan');setSourceDrafts({});setSavedSources([]);setSelectedSourceId('');
-   setUseCurrentModel(false);setDesignVersion(null);setDesignDiff('');setCompareVersion(null);setInspectedDesignFingerprint('');setDesignHighlights([]);setSelectedDesignElement('');setPlanningGoalOpen(false);
+   setUseCurrentModel(false);setDesignVersion(null);setCompareVersion(null);setInspectedDesignFingerprint('');setDesignHighlights([]);setSelectedDesignElement('');setPlanningGoalOpen(false);
    placementDrafts.current.clear();notificationStates.current.clear();pendingSubmission.current=null;submissionKey.current=null;queueRetry.current=null;commandRetry.current.clear();commandExpected.current=null;recoveryEpoch.current++;
    modelPreferenceInitialized.current=false;setError('');setServiceError('');setConnectionNotice('');
    const url=new URL(window.location.href);url.searchParams.delete('task');window.history.replaceState(null,'',url);
@@ -549,16 +719,17 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   const chatModels=desktopAvailable?models.filter(id=>providerStatus?.state==='connected'&&providerStatus.preferences.models.includes(id)&&providerStatus.models.some(row=>row.id===id)):models;
 
   useEffect(()=>{
-   if(liveRuntime){setRevitSessions(devices.length);return;}
-   if(!selectedDevice?.online){setRevitSessions(null);return;}
-  let live=true;const check=async()=>{try{const sessions=await api<{sessionId:string}[]>(`devices/${selectedDevice.id}/tools`,'POST',{name:'list_revit_sessions',arguments:{}});if(live)setRevitSessions(sessions.length);}catch{if(live)setRevitSessions(null);}};
+  if(liveRuntime||!selectedDevice?.online)return;
+  let live=true;const current=()=>live&&sessionScope.current.generation===sessionGeneration;
+  const check=async()=>{try{const sessions=await api<{sessionId:string}[]>(`devices/${selectedDevice.id}/tools`,'POST',{name:'list_revit_sessions',arguments:{}});if(current())setSessionObservation({generation:sessionGeneration,count:Array.isArray(sessions)&&sessions.every(session=>session&&typeof session.sessionId==='string'&&Boolean(session.sessionId.trim()))?sessions.length:null});}catch{if(current())setSessionObservation({generation:sessionGeneration,count:null});}};
   const stop=settledPoll(check,7000);return()=>{live=false;stop();};
-  },[selectedDevice?.id,selectedDevice?.online,liveRuntime,devices.length]);
+  },[sessionGeneration]);
 
  useEffect(()=>{
   if(window.desktop&&!desktopPreview&&!testIdentity&&!['signed-in','expired-offline'].includes(accountStatus?.state??''))return;
    const epoch=recoveryEpoch.current;let live=true;
   const taskId=new URL(window.location.href).searchParams.get('task');
+  if(taskId)setRunId(taskId);
    if(taskId)void api<Run>('tasks/'+encodeURIComponent(taskId)).then(value=>{if(!live||epoch!==recoveryEpoch.current)return;setRun(value);setRunId(value.id);setMode(value.mode);setModel(value.model);setReasoningEffort(value.reasoningEffort??'high');}).catch(e=>{if(live&&epoch===recoveryEpoch.current)setError((e as Error).message);});
    return()=>{live=false;};
  },[desktopPreview,accountStatus?.state,testIdentity]);
@@ -571,34 +742,71 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  },[runId]);
 
  const openPollMs=openChatPollMs(run?.id===runId?run.status:undefined);
+ const selectedListVersion=runs.find(value=>value.id===runId)?.taskVersion;
+ useEffect(()=>{
+  const selected=currentRun.current;
+  // A newer list revision can resume a settled task in another tab. Fetch its
+  // complete record instead of replacing it with a possibly partial list row.
+  if(selected?.id===runId&&typeof selectedListVersion==='number'&&typeof selected.taskVersion==='number'&&selectedListVersion>selected.taskVersion)void refreshSelectedTask(runId);
+ },[runId,selectedListVersion,workspaceAccountKey]);
  useEffect(()=>{
   if(!runId||openPollMs===null)return;
-  let live=true;const tick=async()=>{const value=await api<Run>('runs/'+runId);if(live)setRun(value);};
+  const epoch=recoveryEpoch.current;
+  let live=true;const tick=async()=>{const value=await api<Run>('runs/'+runId);if(live&&epoch===recoveryEpoch.current&&value.id===runId)setRun(value);};
   const stop=settledPoll(tick,openPollMs);return()=>{live=false;stop();};
- },[runId,openPollMs]);
+ },[runId,openPollMs,workspaceAccountKey]);
 
  const replyToQuestion=async(payload:ReplyPayload|{question_id:string;answer:string})=>{
+  if(cancelPendingRef.current)throw new Error('Stop requested. Wait for the task status before answering.');
   if(!run||replying.current)throw new Error('Your answer is already being sent.');
   const replyDraftStore=promptDrafts.current,replyDraft=prompt,replySource=sourceKey,replyDraftRevision=replyDraftStore.revision(sourceKey),replyEpoch=recoveryEpoch.current;
+  const replyQuestionVersion=('question_version' in payload?payload.question_version:undefined)??run.data.agent_question?.version??1;
+  if(run.status!=='needs_input'||run.data.agent_question?.id!==payload.question_id||(run.data.agent_question?.version??1)!==replyQuestionVersion)throw new Error('The saved question changed. Review it before answering.');
   replying.current=true;setActionBusy(true);setError('');
   try{
-   try{await taskCommand({type:'answer',questionId:payload.question_id,questionVersion:('question_version' in payload?payload.question_version:undefined)??run.data.agent_question?.version??1,...('answer' in payload?{answer:payload.answer}:{answers:payload.answers})});}
+   const command={type:'answer',questionId:payload.question_id,questionVersion:replyQuestionVersion,...('answer' in payload?{answer:payload.answer}:{answers:payload.answers})};
+   const signature=JSON.stringify({taskId:run.id,command});
+   let request=commandRetry.current.get(signature);
+   if(!request){const expected=expectedVersion();request={schemaVersion:2,idempotencyKey:crypto.randomUUID(),expectedTaskVersion:expected.taskVersion,expectedPlanVersion:expected.planVersion,command:{schemaVersion:2,...command}};commandRetry.current.set(signature,request);}
+   const isCurrent=()=>replyEpoch===recoveryEpoch.current&&currentRun.current?.id===run.id;
+   try{
+    questionObserver.current?.abort();const observer=new AbortController();questionObserver.current=observer;
+    const answer={questionId:command.questionId,questionVersion:command.questionVersion,...('answer' in command?{answer:command.answer}:{answers:command.answers})};
+    const stream=await transport.resumeQuestion({taskId:run.id,idempotencyKey:request.idempotencyKey,expectedTaskVersion:request.expectedTaskVersion,expectedPlanVersion:request.expectedPlanVersion,eventCursor:projection.cursor},payload.question_id,replyQuestionVersion,answer,crypto.randomUUID(),observer.signal);
+    const reader=stream.getReader();let admitted=false;
+    const observe=async()=>{try{for(;;){const next=await reader.read();if(next.done)break;if(!isCurrent())continue;const part=next.value;
+      if(part.type==='data-run')admitted=true;
+      if(part.type==='data-progress'&&part.data&&typeof part.data==='object'&&'record' in part.data){const event=part.data.record as RunEvent&{run?:Run};if(event.stage==='snapshot'&&event.run?.id===run.id)setRun(event.run);else if(event.taskId===run.id)setProjection(previous=>reduceProjection(previous,{event}));}
+    }}catch{if(isCurrent()&&admitted)recoverLiveView(run.id);}finally{if(questionObserver.current===observer)questionObserver.current=null;reader.releaseLock();}};
+    // Admission must be observed before clearing the answer; observation continues in the background.
+    for(;;){const next=await reader.read();if(!isCurrent()){await reader.cancel();return;}if(next.done)throw new Error('The answer could not be confirmed. Check the saved task before retrying.');if(next.value.type==='data-run'){admitted=true;break;}}
+    commandRetry.current.delete(signature);void observe();
+   }
    catch(failure){
+    if(replyEpoch!==recoveryEpoch.current)return;
     // A lost HTTP response can follow an accepted atomic resume. Read its
     // receipt before offering a retry; never create a second task.
     const current=await api<Run>(`runs/${run.id}`).catch(()=>null);
-    if(current?.data.agent_reply_receipt?.questionId!==payload.question_id)throw failure;
+    if(replyEpoch!==recoveryEpoch.current)return;
+    const applied=(current as (Run&{commandReceipts?:{commandId:string;state:string}[]})|null)?.commandReceipts?.some(row=>row.commandId===request.idempotencyKey&&row.state==='applied');
+    if(current?.id!==run.id||!applied||current.data.agent_reply_receipt?.questionId!==payload.question_id||current.data.agent_reply_receipt.version!==replyQuestionVersion){
+     const status=(failure as Error&{status?:number}).status;
+     if(status&&status<500){commandRetry.current.delete(signature);if(current?.id===run.id){setRun(current);commandExpected.current={taskId:run.id,taskVersion:current.taskVersion??0,planVersion:current.currentPlanRef?.version??0};}}
+     throw failure;
+    }
+    commandRetry.current.delete(signature);
    }
    if('answer' in payload&&payload.answer.trim()===replyDraft.trim())confirmPromptDraft(replySource,replyDraft,replyDraftStore,replyDraftRevision);
    if(replyEpoch!==recoveryEpoch.current)return;
    const current=await api<Run>(`runs/${run.id}`).catch(()=>null);
    if(replyEpoch!==recoveryEpoch.current)return;
    setRun(current??{...run,status:'queued',data:{...run.data,agent_question:undefined}});
-  }finally{replying.current=false;setActionBusy(false);}
+  }finally{replying.current=false;if(replyEpoch===recoveryEpoch.current)setActionBusy(false);}
  };
 
-  const submit=async(text=prompt,recipe=false,override?:Mode,variableSelection?:VariableBinding,draftFingerprint?:string)=>{
-   if(!hasPromptContent(text)||actionBusy||mediaBusy)return;
+  const submitCore=async(text=prompt,recipe=false,override?:Mode,variableSelection?:VariableBinding,draftFingerprint?:string)=>{
+   if(!hasPromptContent(text)||actionBusy||mediaBusy||admissionPending||cancelPending||(pendingSubmission.current&&!pendingSubmission.current.runStarted)||runId&&!run)return;
+   if((override??mode)==='build'&&run?.data.agent_design&&selectionBlocked()){setError('Check the saved selection before Build.');return;}
    const references=splitViewportPrompt(text).references;
    if(text.length>12000){setError('This message exceeds 12,000 characters including annotation context. Send a smaller batch; your draft is preserved.');return;}
    for(const {annotation} of references){
@@ -633,15 +841,15 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
      queueRetry.current=null;setSources([]);
       const saved=await api<Run>(`tasks/${run.id}`);if(queueEpoch===recoveryEpoch.current)setRun(saved);
      }catch(failure){if(queueEpoch===recoveryEpoch.current)setError((failure as Error).message+' Your prompt is preserved.');}
-    finally{setActionBusy(false);}return;
+    finally{if(queueEpoch===recoveryEpoch.current)setActionBusy(false);}return;
    }
    if(busy&&!variableSelection)return;
   if((override??mode)==='build'&&(!selectedDevice?.online||revitSessions!==1)){
    setError(!selectedDevice?.online?(devices.some(d=>d.online)?'Select your online Revit device in Connections before building.':'Build needs the DATUMM Revit plugin connected. Follow the setup steps above the message box, or continue in Plan mode. Your prompt is preserved.'):'Enable the DATUMM local bridge in Revit and close its settings panel before building.');return;
   }
-   setError('');setConnectionNotice('');if(!run){setRun(null);setRunId('');setDesignVersion(null);setDesignDiff('');}if(!preserveDraft)displayPrompt('');
+   setError('');setConnectionNotice('');if(!run){setRun(null);setRunId('');setDesignVersion(null);}if(!preserveDraft)displayPrompt('');
   if(run?.data.agent_design&&(override??mode)==='build'&&!run.data.compiled&&!run.data.operation_id)setBuildSetupOpen(true);
-  const epoch=recoveryEpoch.current,submission={text,runStarted:false,sourceKey,draftStore:promptDrafts.current,draftRevision:promptDrafts.current.revision(sourceKey)};pendingSubmission.current=submission;
+  const epoch=recoveryEpoch.current,submission={text,runStarted:false,sourceKey,draftStore:promptDrafts.current,draftRevision:promptDrafts.current.revision(sourceKey),startCursor:run?projection.cursor:0,clientSubmissionId:crypto.randomUUID()};pendingSubmission.current=submission;transportMessageOwner.current={accountKey:workspaceAccountKey,sourceKey,taskId:runId||null};setAdmissionPending(true);
   const isCurrent=()=>recoveryEpoch.current===epoch&&pendingSubmission.current===submission;
 
   const signature=JSON.stringify({taskId:run?.id,text,mode:override??mode,model,reasoningEffort,recipe,projectId:newProject,attachmentIds:sources.map(row=>row.id)});
@@ -654,13 +862,14 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
     const saved=await api<Run>(`tasks/${run.id}`);
     if(!isCurrent())return;
     if(saved.status==='queued'||saved.status==='running')throw new Error('This task is running. Queue the next prompt instead.');
+    submission.startCursor=Math.max(submission.startCursor,saved.eventCursor??0);
     setRun(saved);
     commandExpected.current={taskId:saved.id,taskVersion:saved.taskVersion??0,planVersion:saved.currentPlanRef?.version??0};
    }
    const expected=expectedVersion();
-   requestKey.body??={mode:override??mode,model,reasoningEffort,modelContextRequirement:useCurrentModel?'read':'auto',deviceId:deviceId||run?.device_id,recipe,taskId:run?.id,projectId:run?undefined:newProject||undefined,idempotencyKey:requestKey.key,expectedTaskVersion:expected.taskVersion,expectedPlanVersion:expected.planVersion,eventCursor:run?.eventCursor??0,visiblePlan:drawingCurrent&&!drawingError?run?.currentPlanRef:null,acceptedAssumptions:reviewAssumptions,placement:placementTask===run?.id?confirmedPlacement:null};
+   requestKey.body??={mode:override??mode,model,reasoningEffort,modelContextRequirement:useCurrentModel?'read':'auto',deviceId:deviceId||run?.device_id,recipe,taskId:run?.id,projectId:run?undefined:newProject||undefined,idempotencyKey:requestKey.key,expectedTaskVersion:expected.taskVersion,expectedPlanVersion:expected.planVersion,eventCursor:submission.startCursor,visiblePlan:drawingCurrent&&!drawingError?run?.currentPlanRef:null,acceptedAssumptions:reviewAssumptions,placement:placementTask===run?.id?confirmedPlacement:null};
    requestKey.body.attachmentIds=sources.map(row=>row.id);
-   await sendMessage({text},{body:requestKey.body});
+   await sendMessage({text},{body:{...requestKey.body,clientSubmissionId:submission.clientSubmissionId}});
   }catch(failure){
     if(!isCurrent())return;
     if(!pendingSubmission.current?.runStarted&&!preserveDraft)setPrompt(current=>current||text);
@@ -669,21 +878,36 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
     setBlockedChat(known?.blockingTask?{id:known.blockingTask.id,message:known.message}:null);
    if(known?.state==='rejected')submissionKey.current=null;
    if(pendingSubmission.current?.runStarted)recoverLiveView(pendingSubmission.current.taskId);
-   else setError(known?known.message+' Your prompt is preserved.':failure instanceof Error?failure.message+' Your prompt is preserved; check the saved task before retrying.':'DATUMM could not start this task. Your prompt is preserved; check whether another task is active.');
+   else setError(known?known.message+' Your prompt is preserved.':failure instanceof Error?(/^(?:failed to fetch|networkerror when attempting to fetch resource\.?|load failed)$/i.test(failure.message)?'DATUMM could not be reached.':failure.message)+' Your prompt is preserved; check the saved task before retrying.':'DATUMM could not start this task. Your prompt is preserved; check whether another task is active.');
    pendingSubmission.current=null;
-  }
+  }finally{if(recoveryEpoch.current===epoch)setAdmissionPending(false);}
 
  };
 
+ const submit=async(text=prompt,recipe=false,override?:Mode,variableSelection?:VariableBinding,draftFingerprint?:string)=>{
+  if(run?.data.agent_design&&(override??mode)==='build'&&!(run.status==='needs_input'&&run.data.agent_question)){
+   await withSelectionMutation(async()=>{if(drawingIdentity(currentRun.current?.currentPlanRef)!==drawingIdentity(run.currentPlanRef)||drawingIdentity(currentDrawing.current)!==drawingIdentity(designVersion))return;await submitCore(text,recipe,override,variableSelection,draftFingerprint);});return;
+  }
+  await submitCore(text,recipe,override,variableSelection,draftFingerprint);
+ };
+
   const queueAction=async(action:'resume'|'remove'|'edit'|'stop',item?:typeof promptQueue[number])=>{
-   if(!run||actionBusy)return;
+   if(!run||actionBusy||cancelPendingRef.current||!scopeCurrent(actionScope)||currentRun.current?.id!==run.id)return;
+   const epoch=recoveryEpoch.current;if(lifecycleAction.current?.epoch===epoch)return;
+   const token={epoch};lifecycleAction.current=token;
+   const current=()=>recoveryEpoch.current===epoch&&scopeCurrent(actionScope)&&currentRun.current?.id===run.id;
+   if(action==='edit'&&item){
+    if(promptValue.current.length){lifecycleAction.current=null;setError('Your current draft is preserved. Clear it before editing a queued prompt.');return;}
+    setPrompt(item.prompt);setMode(item.mode);setModel(item.model);setReasoningEffort(item.reasoningEffort);
+   }
    setActionBusy(true);setError('');
    try{
     if(action==='stop')await api(`tasks/${run.id}/cancel`,'POST',{});
     else if(action==='resume')await api(`tasks/${run.id}/queue/resume`,'POST',{});
-    else if(item){await api(`tasks/${run.id}/queue/${item.id}`,'DELETE');if(action==='edit'){setPrompt(item.prompt);setMode(item.mode);setModel(item.model);setReasoningEffort(item.reasoningEffort);}}
-    setRun(await api<Run>(`tasks/${run.id}`));
-   }catch(failure){setError((failure as Error).message);}finally{setActionBusy(false);}
+    else if(item)await api(`tasks/${run.id}/queue/${item.id}`,'DELETE');
+    if(!current())return;
+    const value=await api<Run>(`tasks/${run.id}`);if(current()&&value.id===run.id)setRun(value);
+   }catch(failure){if(current())setError(action==='edit'?'Your draft is preserved. Check the queue before sending; removal could not be confirmed.':(failure as Error).message);}finally{if(lifecycleAction.current===token)lifecycleAction.current=null;if(current())setActionBusy(false);}
   };
 
   const reviewTaskAccess=async()=>{
@@ -701,76 +925,140 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
    setRun({...run,status:'queued'});setAccessDialog(false);setAccessReview(null);
   }catch(e){setError((e as Error).message);}finally{setActionBusy(false);}
  };
- const reviewAlternative=async(candidate:{planId:string;version:number;fingerprint:string})=>{
-  if(!run?.data.agent_design)return;
-  const epoch=++reviewEpoch.current,taskId=run.id;setActionBusy(true);setDrawingError('');
+ const selectAlternative=async(selection:AlternativeSelection)=>{
+  if(!scopeCurrent(actionScope))return;
+  await withSelectionMutation(async()=>{
+  const token={...workspaceGuard.current},taskId=runId,briefId=run?.data.agent_design?.briefId,candidate=selection.plan,baseRef=drawingIdentity(run?.currentPlanRef),baseDrawing=drawingIdentity(designVersion);
+  const valid=()=>{const selected=currentRun.current,design=selected?.data.agent_design;return scopeCurrent(token)&&selection.scope.key===token.key&&selection.taskId===taskId&&selected?.id===taskId&&drawingIdentity(selected.currentPlanRef)===baseRef&&drawingIdentity(currentDrawing.current)===baseDrawing&&Boolean(design&&design.briefId===briefId&&selection.briefId===briefId&&design.candidates.some(row=>row.planId===candidate.planId&&row.version===candidate.version&&row.fingerprint===candidate.fingerprint));};
+  if(!valid()||selectionBlocked())return;
+  const epoch=++reviewEpoch.current;setActionBusy(true);setSelectionIssue({key:selectionKey,message:''});
+  const owned=()=>scopeCurrent(token)&&epoch===reviewEpoch.current&&currentRun.current?.id===taskId;
+  const current=()=>owned()&&valid();
   try{
    const version=await api<VariableVersion>(`variable/plans/${candidate.planId}/versions/${candidate.version}`);
-   if(version.fingerprint!==candidate.fingerprint)throw new Error('This concept changed; reload alternatives.');
-   if(epoch!==reviewEpoch.current)return;
-   const review=await api<{selectionRevision:number}>(`variable/briefs/${run.data.agent_design.briefId}/alternatives`);
-   await api(`variable/briefs/${run.data.agent_design.briefId}/selection`,'POST',{planId:candidate.planId,version:candidate.version,fingerprint:candidate.fingerprint,expectedSelectionRevision:review.selectionRevision});
-   if(epoch!==reviewEpoch.current)return;
+   if(!current())return;
+   if(version.planId!==candidate.planId||version.version!==candidate.version||version.fingerprint!==candidate.fingerprint)throw new Error('This concept changed; reload alternatives.');
+   const review=await api<{selectionRevision:number}>(`variable/briefs/${briefId}/alternatives`);
+   if(!current())return;
+   if(!briefId||!await claimSelectionMarker(selectionStorage(),selectionWebLocks(),workspaceAccountKey,taskId,briefId,candidate))throw new Error('Selection was not sent because browser storage or locking is unavailable, or another selection is pending. Check storage and the saved selection before trying again.');
+   const unresolved={plan:candidate,version,message:'Selection could not be confirmed. Check the saved selection before approval.'};selectionLocks.current.set(selectionKey,unresolved);setUncertainSelections(previous=>({...previous,[selectionKey]:unresolved}));
+   if(!current()){if(await releaseSelectionMarker(selectionStorage(),selectionWebLocks(),workspaceAccountKey,taskId,briefId,candidate)){selectionLocks.current.delete(selectionKey);setUncertainSelections(previous=>{const next={...previous};delete next[selectionKey];return next;});}return;}
+   const receipt=await api<{selected:{planId:string;version:number;fingerprint:string}}>(`variable/briefs/${briefId}/selection`,'POST',{planId:candidate.planId,version:candidate.version,fingerprint:candidate.fingerprint,expectedSelectionRevision:review.selectionRevision});
+   if(!current())return;
    const refreshed=await api<Run>('tasks/'+taskId);
-   if(epoch!==reviewEpoch.current)return;
-   setDesignVersion(version);setDrawingStyle('presentation');setDesignDiff('');setCompareVersion(null);setRun(refreshed);
-  }catch(e){if(epoch===reviewEpoch.current)setDrawingError((e as Error).message);}finally{if(epoch===reviewEpoch.current)setActionBusy(false);}
+   if(!current()||refreshed.id!==taskId)return;
+   if(drawingIdentity(receipt.selected)!==drawingIdentity(candidate)||drawingIdentity(refreshed.currentPlanRef)!==drawingIdentity(candidate)||refreshed.data.agent_design?.briefId!==briefId||!refreshed.data.agent_design.candidates.some(row=>drawingIdentity(row)===drawingIdentity(candidate))||(refreshed.taskVersion??0)<(currentRun.current?.taskVersion??0)||(refreshed.eventCursor??0)<(currentRun.current?.eventCursor??0))throw new Error('Saved selection is not yet confirmed.');
+   if(!await releaseSelectionMarker(selectionStorage(),selectionWebLocks(),workspaceAccountKey,taskId,briefId,candidate,current))throw new Error('Saved selection is confirmed but the safety marker could not be cleared. Check it again.');
+   selectionLocks.current.delete(selectionKey);setUncertainSelections(previous=>{const next={...previous};delete next[selectionKey];return next;});
+   if(!current())return;
+   if(!designVersion||designVersion.planId!==version.planId||designVersion.version!==version.version||designVersion.fingerprint!==version.fingerprint)setDrawingStyle('linework');
+   setDesignVersion(version,token);setCompareVersion(null);setRun(refreshed);
+  }catch(e){if(current()&&!selectionLocks.current.has(selectionKey))setSelectionIssue({key:selectionKey,message:(e as Error).message});}finally{if(owned())setActionBusy(false);}
+  });
  };
- const compareDrawing=async()=>{
+ const reconcilePlanSelection=async()=>{
+  const pending=selectionLocks.current.get(selectionKey),token={...workspaceGuard.current},taskId=runId,briefId=run?.data.agent_design?.briefId;if(!pending||!taskId)return;
+  await withSelectionMutation(async()=>{
+  if(selectionLocks.current.get(selectionKey)!==pending)return;
+  const epoch=++reviewEpoch.current,baseRef=drawingIdentity(run?.currentPlanRef),baseVersion=run?.taskVersion,baseCursor=run?.eventCursor;
+  const owned=()=>scopeCurrent(token)&&reviewEpoch.current===epoch&&currentRun.current?.id===taskId;
+  const current=()=>owned()&&currentRun.current?.data.agent_design?.briefId===briefId&&drawingIdentity(currentRun.current?.currentPlanRef)===baseRef&&currentRun.current?.taskVersion===baseVersion&&currentRun.current?.eventCursor===baseCursor&&selectionLocks.current.get(selectionKey)===pending;setActionBusy(true);
+  try{const saved=await api<Run>('tasks/'+taskId);if(!current())return;if(saved.id!==taskId||saved.data.agent_design?.briefId!==briefId||!saved.data.agent_design?.candidates.some(row=>drawingIdentity(row)===drawingIdentity(pending.plan))||drawingIdentity(saved.currentPlanRef)!==drawingIdentity(pending.plan)||(saved.taskVersion??0)<(currentRun.current?.taskVersion??0)||(saved.eventCursor??0)<(currentRun.current?.eventCursor??0))throw new Error('The saved task has not confirmed the requested selection.');
+   const version=pending.version??await api<VariableVersion>(`variable/plans/${encodeURIComponent(pending.plan.planId)}/versions/${pending.plan.version}`);if(!current())return;if(drawingIdentity(version)!==drawingIdentity(pending.plan))throw new Error('The saved drawing identity changed.');
+   if(!briefId||!await releaseSelectionMarker(selectionStorage(),selectionWebLocks(),workspaceAccountKey,taskId,briefId,pending.plan,current))throw new Error('The safety marker could not be cleared. Check the saved selection again.');
+   const stillCurrent=current();
+   selectionLocks.current.delete(selectionKey);setUncertainSelections(previous=>{const next={...previous};delete next[selectionKey];return next;});
+   if(!stillCurrent)return;setDesignVersion(version,token);setRun(saved);setDrawingError('');
+  }catch(e){if(current()){const next={...pending,message:(e as Error).message};selectionLocks.current.set(selectionKey,next);setUncertainSelections(previous=>({...previous,[selectionKey]:next}));}}finally{if(owned())setActionBusy(false);}
+  },true);
+ };
+ const drawingIdentity=(value:{planId:string;version:number;fingerprint:string}|null|undefined)=>value?JSON.stringify([value.planId,value.version,value.fingerprint]):'';
+ const beginDrawingReview=(candidate=selectedDesignCandidate)=>{
+  const scope={...workspaceGuard.current},epoch=++reviewEpoch.current,taskId=run?.id,briefId=run?.data.agent_design?.briefId;
+  const drawing=drawingIdentity(designVersion),ref=drawingIdentity(run?.currentPlanRef),candidateKey=drawingIdentity(candidate);
+  const owned=()=>scopeCurrent(scope)&&reviewEpoch.current===epoch&&currentRun.current?.id===taskId;
+  const current=()=>{const selected=currentRun.current,design=selected?.data.agent_design;return owned()&&design?.briefId===briefId&&drawingIdentity(currentDrawing.current)===drawing&&drawingIdentity(selected?.currentPlanRef)===ref&&(!candidateKey||Boolean(design?.candidates.some(row=>drawingIdentity(row)===candidateKey)));};
+  return {owned,current};
+ };
+ const compareDrawing=async(requested?:'previous'|'alternative')=>{
   if(!designVersion||!run?.data.agent_design)return;
-  setActionBusy(true);try{
-   const other=designVersion.version>1?{planId:designVersion.planId,version:designVersion.version-1}:run.data.agent_design.candidates.find(c=>c.planId!==designVersion.planId);
-   if(!other)throw Error('No other saved version is available.');
+  const {owned,current}=beginDrawingReview(),request=reviewEpoch.current,key=comparisonKey;
+  const kind=requested??(designVersion.version>1?'previous':'alternative');
+  const alternative=run.data.agent_design.candidates.find(c=>c.planId!==designVersion.planId);
+  const other=kind==='previous'?(designVersion.version>1?{planId:designVersion.planId,version:designVersion.version-1}:null):alternative;
+  const known=other?run.data.agent_design.candidates.find(c=>c.planId===other.planId&&c.version===other.version):undefined;
+  const stillCurrent=()=>current()&&(!known||Boolean(currentRun.current?.data.agent_design?.candidates.some(c=>c.planId===known.planId&&c.version===known.version&&c.fingerprint===known.fingerprint)));
+  setComparisonRecord(previous=>({key,request,loading:true,error:'',result:previous.key===key?previous.result:null}));setActionBusy(true);
+  try{
+   if(!other)throw Error(kind==='previous'?'No previous version was requested because this is version 1.':'No other loaded alternative is available.');
    const prior=await api<VariableVersion>(`variable/plans/${other.planId}/versions/${other.version}`);
+   if(!stillCurrent())return;
+   if(prior.planId!==other.planId||prior.version!==other.version||(known&&prior.fingerprint!==known.fingerprint))throw Error('Comparison drawing identity changed.');
    const query=new URLSearchParams({leftPlanId:prior.planId,leftVersion:String(prior.version),rightPlanId:designVersion.planId,rightVersion:String(designVersion.version)});
    const diff=await api<{changedRooms:{key:string}[];siteChanged:boolean}>(`variable/diff?${query}`);
-   setCompareVersion(prior);setDesignDiff(`${diff.changedRooms.length} rooms changed${diff.siteChanged?' · footprint/entry changed':''}.`);
-  }catch(e){setDrawingError((e as Error).message);}finally{setActionBusy(false);}
+   if(!stillCurrent())return;
+   setComparisonRecord(previous=>previous.key===key&&previous.request===request?{...previous,result:{kind,version:prior,diff:`${diff.changedRooms.length} rooms changed${diff.siteChanged?' · footprint/entry changed':''}.`}}:previous);
+  }catch(e){if(stillCurrent())setComparisonRecord(previous=>previous.key===key&&previous.request===request?{...previous,error:(e as Error).message}:previous);}finally{setComparisonRecord(previous=>previous.key===key&&previous.request===request?{...previous,loading:false}:previous);if(owned())setActionBusy(false);}
  };
  const acceptDrawing=async()=>{
-  if(!drawingCurrent||drawingError||!run?.currentPlanRef||!designVersion)return;
+  if(!scopeCurrent(actionScope)||selectionBlocked()||!drawingCurrent||drawingError||!run?.currentPlanRef||!designVersion)return;
+  await withSelectionMutation(async()=>{
+  const {owned,current}=beginDrawingReview();
   setActionBusy(true);try{
-   const binding=await bindCurrentVariable();
+   const binding=await bindCurrentVariable(current);if(!current())return;
    await taskCommand({type:'accept_plan',plan:{schemaVersion:2,source:'variable',briefId:binding.briefId,planId:binding.planId,version:binding.version,fingerprint:binding.fingerprint},acceptedAssumptions:reviewAssumptions});
-   if(mode==='build'&&run.mode!=='build')await taskCommand({type:'change_mode',mode:'build'});
-   setRun(await api<Run>('tasks/'+run.id));
-   if(mode==='build'){setBuildSetupOpen(true);await reviewPlacement();}
-  }catch(e){setDrawingError((e as Error).message);}finally{setActionBusy(false);}
+   if(!current())return;
+   const saved=await api<Run>('tasks/'+run.id);if(!current()||saved.id!==run.id)return;setRun(saved);
+  }catch(e){if(current())setDrawingError((e as Error).message);}finally{if(owned())setActionBusy(false);}
+  });
  };
- const switchDrawingToBuild=async()=>{if(!drawingCurrent||drawingError||drawingLoading)return;setActionBusy(true);try{await taskCommand({type:'change_mode',mode:'build'});setMode('build');setRun(await api<Run>('tasks/'+run!.id));setBuildSetupOpen(true);if(planAccepted)await reviewPlacement();}catch(e){setDrawingError((e as Error).message);}finally{setActionBusy(false);}};
- const bindCurrentVariable=async():Promise<VariableBinding>=>{
+ const switchDrawingToBuild=async()=>{if(!scopeCurrent(actionScope)||selectionBlocked()||!drawingCurrent||drawingError||drawingLoading||!run)return;await withSelectionMutation(async()=>{if(drawingIdentity(currentRun.current?.currentPlanRef)!==drawingIdentity(run.currentPlanRef)||drawingIdentity(currentDrawing.current)!==drawingIdentity(designVersion))return;const {owned,current}=beginDrawingReview();setActionBusy(true);try{await taskCommand({type:'change_mode',mode:'build'});if(!current())return;const saved=await api<Run>('tasks/'+run.id);if(!current()||saved.id!==run.id)return;setMode('build');setRun(saved);setBuildSetupOpen(true);if(planAccepted)await reviewPlacement();}catch(e){if(current())setDrawingError((e as Error).message);}finally{if(owned())setActionBusy(false);}});};
+ const bindCurrentVariable=async(current:()=>boolean):Promise<VariableBinding>=>{
+   if(selectionBlocked())throw new Error('Check the saved selection before approval.');
    if(!run?.data.agent_design)throw new Error('Open a concept first.');
    const design=run.data.agent_design;
    const candidate=selectedDesignCandidate;
    if(!candidate)throw new Error('The selected concept version is unavailable. Reload the concept and review it again.');
+   if(designVersion&&drawingIdentity(candidate)!==drawingIdentity(designVersion))throw new Error('The selected concept differs from the displayed drawing. Reload and review it again.');
    const review=await api<{selectionRevision:number}>(`variable/briefs/${design.briefId}/alternatives`);
+   if(!current())throw new Error('The selected drawing changed. Review it again.');
    const choice=await api<{selectionRevision:number;selected:{planId:string;version:number;fingerprint:string}}>(`variable/briefs/${design.briefId}/selection`,'POST',{
     planId:candidate.planId,version:candidate.version,fingerprint:candidate.fingerprint,expectedSelectionRevision:review.selectionRevision});
+   if(!current())throw new Error('The selected drawing changed. Review it again.');
    if(choice.selected.planId!==candidate.planId||choice.selected.version!==candidate.version||choice.selected.fingerprint!==candidate.fingerprint)throw new Error('Plan selection changed; review it again.');
    return {briefId:design.briefId,planId:candidate.planId,version:candidate.version,
     fingerprint:candidate.fingerprint,selectionRevision:choice.selectionRevision};
  };
  const buildVariable=async(placement=confirmedPlacement)=>{
-  if(!run?.data.agent_design)return;
+  if(!scopeCurrent(actionScope)||selectionBlocked()||!run?.data.agent_design)return;
+  await withSelectionMutation(async()=>{
+  const {owned,current:currentDrawingReview}=beginDrawingReview(),device=currentDevice.current,deviceGeneration=placementDeviceEpoch.current.generation;
+  const current=()=>currentDrawingReview()&&currentDevice.current===device&&placementDeviceEpoch.current.generation===deviceGeneration;
   setActionBusy(true);setError('');
   try{
-   const binding=await bindCurrentVariable();
+   const binding=await bindCurrentVariable(current);if(!current())return;
    if(!planAccepted||run.mode!=='build')throw Error('Accept this exact plan and switch to Build first.');
    if(placementTask!==run.id||!placement)throw Error('Review and confirm native placement first.');
    await taskCommand({type:'prepare_build',deviceId:deviceId||run.device_id,selectionRevision:binding.selectionRevision,placement});
-   setRun(await api<Run>('tasks/'+run.id));
+   if(!current())return;
+   const saved=await api<Run>('tasks/'+run.id);if(!current()||saved.id!==run.id)return;setRun(saved);
    setBuildSetupOpen(false);
-  }catch(e){setError((e as Error).message);}finally{setActionBusy(false);}
+  }catch(e){if(current())setError((e as Error).message);}finally{if(owned())setActionBusy(false);}
+  });
  };
  const reviewPlacement=async()=>{
-  if(!run)return;
+  if(!scopeCurrent(actionScope)||selectionBlocked()||!run)return;
   const device=deviceId||run.device_id;
   if(!device){setError('Revit is not connected. Open Revit, connect the DATUMM plugin, then choose the placement again.');return;}
-  setActionBusy(true);setError('');setConfirmedPlacement(null);
-  try{const context=await api<PlacementContext>(`tasks/${run.id}/build-context?deviceId=${encodeURIComponent(device)}`);setPlacementContext(context);setPlacementTask(run.id);setPlacementView('');}
-  catch(e){setError((e as Error).message);}finally{setActionBusy(false);}
+  const scope={...workspaceGuard.current},epoch=++reviewEpoch.current,taskId=run.id,deviceGeneration=placementDeviceEpoch.current.generation;
+  const owned=()=>scopeCurrent(scope)&&reviewEpoch.current===epoch&&currentRun.current?.id===taskId;
+  const current=()=>owned()&&currentDevice.current===device&&placementDeviceEpoch.current.generation===deviceGeneration;
+  setActionBusy(true);setError('');setConfirmedPlacement(null);setPlacementScope(null);
+  try{const context=await api<PlacementContext>(`tasks/${taskId}/build-context?deviceId=${encodeURIComponent(device)}`);if(!current())return;setPlacementContext(context);setPlacementTask(taskId);setPlacementScope({...scope,device,deviceGeneration});setPlacementView('');}
+  catch(e){if(current())setError((e as Error).message);}finally{if(owned())setActionBusy(false);}
  };
  const confirmPlacement=async()=>{
+  if(!scopeCurrent(actionScope)||selectionBlocked())return;
   const view=placementContext?.plans.find(v=>v.id===placementView);
   if(!placementContext||!view||[placementX,placementY,placementRotation].some(v=>!v.trim()||!Number.isFinite(Number(v)))){setError('Choose the native plan view and enter origin X/Y in mm and rotation explicitly.');return;}
   const x=Number(placementX),y=Number(placementY),rotation=Number(placementRotation);
@@ -779,7 +1067,7 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   setConfirmedPlacement(placement);setError('');await buildVariable(placement);
  };
  const buildLegacy=async()=>{
-  if(!run?.currentPlanRef||run.currentPlanRef.source==='variable')return;
+  if(!scopeCurrent(actionScope)||selectionBlocked()||!run?.currentPlanRef||run.currentPlanRef.source==='variable')return;
   setActionBusy(true);setError('');
   try{
    await taskCommand({type:'accept_plan',plan:run.currentPlanRef});
@@ -789,13 +1077,18 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   }catch(e){setError((e as Error).message);}finally{setActionBusy(false);}
  };
  const grantVariable=async()=>{
-  if(!selectedDevice?.online||revitSessions!==1)return;
+  if(!scopeCurrent(actionScope)||selectionBlocked()||!selectedDevice?.online||revitSessions!==1)return;
+  await withSelectionMutation(async()=>{
+  const {owned,current:currentDrawingReview}=beginDrawingReview(),device=selectedDevice.id,deviceGeneration=placementDeviceEpoch.current.generation;
+  const current=()=>currentDrawingReview()&&currentDevice.current===device&&placementDeviceEpoch.current.generation===deviceGeneration;
   setActionBusy(true);setError('');
   try{
-   const binding=await bindCurrentVariable();
-   await api(`devices/${selectedDevice.id}/agent-control`,'POST',{...binding,maxBuilds:1});
+   const binding=await bindCurrentVariable(current);if(!current())return;
+   await api(`devices/${device}/agent-control`,'POST',{...binding,maxBuilds:1});
+   if(!current())return;
    await refresh();
-  }catch(e){setError((e as Error).message);}finally{setActionBusy(false);}
+  }catch(e){if(current())setError((e as Error).message);}finally{if(owned())setActionBusy(false);}
+  });
  };
  const revokeVariableGrant=async()=>{
   if(!selectedDevice)return;
@@ -805,27 +1098,32 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  };
 
 
- const closeMobileNav=()=>{if(window.matchMedia('(max-width:850px)').matches)setLeft(false);};
- const newTask=(projectId='')=>{if(mediaBusy)return;setStudioView('workspace');setWorkspacePane('chat');setCanvasOpen(false);setTab('preview');setRight(false);setPlanningGoalOpen(false);setNewProject(projectId);recoveryEpoch.current++;setConnectionNotice('');reviewEpoch.current++;setActionBusy(false);setCompareVersion(null);setDrawingError('');const url=new URL(window.location.href);url.searchParams.delete('task');window.history.replaceState(null,'',url);pendingSubmission.current=null;void stop();submissionKey.current=null;commandRetry.current.clear();setRun(null);setRunId('');setMessages([]);setDesignVersion(null);setDesignDiff('');setError('');displayPrompt(promptDrafts.current.get(projectId?'new:'+projectId:'new'));setUseCurrentModel(false);closeMobileNav();};
+ const closeMobileNav=()=>{if(window.matchMedia('(max-width:899px)').matches)setLeft(false);};
+ const newTask=(projectId='')=>{if(mediaBusy)return;setStudioView('workspace');setWorkspacePane('chat');setCanvasOpen(false);setWorkAreaState({key:workspaceScopeInput.key,section:'design',properties:false});closeProperties();setPlanningGoalOpen(false);setNewProject(projectId);questionObserver.current?.abort();recoveryEpoch.current++;setConnectionNotice('');reviewEpoch.current++;setActionBusy(false);setCompareVersion(null);setDrawingError('');const url=new URL(window.location.href);url.searchParams.delete('task');window.history.replaceState(null,'',url);pendingSubmission.current=null;transportMessageOwner.current=null;void stop();submissionKey.current=null;commandRetry.current.clear();setRun(null);setRunId('');setMessages([]);setAdmissionPending(false);setDesignVersion(null);setError('');displayPrompt(promptDrafts.current.get(projectId?'new:'+projectId:'new'));setUseCurrentModel(false);closeMobileNav();};
 
- const selectRun=(value:Run)=>{if(mediaBusy)return;setStudioView('workspace');setWorkspacePane('chat');setCanvasOpen(false);setTab('preview');setRight(false);setPlanningGoalOpen(false);displayPrompt(promptDrafts.current.get(value.id));recoveryEpoch.current++;setConnectionNotice('');reviewEpoch.current++;setActionBusy(false);setCompareVersion(null);setDrawingError('');pendingSubmission.current=null;submissionKey.current=null;void stop();commandRetry.current.clear();setRun(value);setRunId(value.id);setMode(value.mode);setModel(value.model);setReasoningEffort(value.reasoningEffort??'high');setUseCurrentModel((value.data as Run['data']&{model_context_requirement?:string}).model_context_requirement==='read');setDesignVersion(null);setDesignDiff('');setMessages([]);closeMobileNav();};
+ const selectRun=(value:Run)=>{if(mediaBusy)return;setStudioView('workspace');setWorkspacePane('chat');setCanvasOpen(false);setWorkAreaState({key:workspaceScopeInput.key,section:'design',properties:false});closeProperties();setPlanningGoalOpen(false);displayPrompt(promptDrafts.current.get(value.id));questionObserver.current?.abort();recoveryEpoch.current++;setConnectionNotice('');reviewEpoch.current++;setActionBusy(false);setCompareVersion(null);setDrawingError('');pendingSubmission.current=null;transportMessageOwner.current=null;submissionKey.current=null;void stop();commandRetry.current.clear();setRun(value);setRunId(value.id);setMode(value.mode);setModel(value.model);setReasoningEffort(value.reasoningEffort??'high');setUseCurrentModel((value.data as Run['data']&{model_context_requirement?:string}).model_context_requirement==='read');setDesignVersion(null);setMessages([]);setAdmissionPending(false);closeMobileNav();void refreshSelectedTask(value.id);};
   const selectRunRef=useRef(selectRun);selectRunRef.current=selectRun;
   useEffect(()=>window.desktop?.onNavigateTask(id=>{const epoch=++recoveryEpoch.current;void api<Run>('tasks/'+id).then(value=>{if(epoch===recoveryEpoch.current)selectRunRef.current(value);}).catch(e=>{if(epoch===recoveryEpoch.current)setError((e as Error).message);});}),[]);
 
- const act=async(action:string)=>{if(!run)return;setActionBusy(true);setError('');try{
+ const act=async(action:string)=>{if(!run||actionBusy||cancelPendingRef.current||!scopeCurrent(actionScope)||currentRun.current?.id!==run.id)return;
+  const epoch=recoveryEpoch.current;if(lifecycleAction.current?.epoch===epoch)return;
+  const token={epoch};lifecycleAction.current=token;
+  const current=()=>recoveryEpoch.current===epoch&&scopeCurrent(actionScope)&&currentRun.current?.id===run.id;
+  setActionBusy(true);setError('');try{
    if(action==='resume'||action==='refresh-proposal'){
     const proposal=run.data.proposal;if(!proposal)throw new Error('Reload the exact native proposal.');
     await taskCommand({type:action==='resume'?'approve_exact_proposal':'refresh_exact_proposal',proposalId:proposal.proposalId,approvalHash:proposal.approvalHash,documentId:proposal.documentId,revision:proposal.revision});
    }else if(['pause','continue','cancel'].includes(action))await taskCommand({type:action});
    else await api('runs/'+run.id+'/'+action,'POST');
-   const value=await api<Run>('runs/'+run.id);setRun(value);await refresh();
-  }catch(e){setError((e as Error).message);}finally{setActionBusy(false);}};
+   if(!current())return;
+   const value=await api<Run>('runs/'+run.id);if(!current()||value.id!==run.id)return;setRun(value);await refresh();
+  }catch(e){if(current())setError((e as Error).message);}finally{if(lifecycleAction.current===token)lifecycleAction.current=null;if(current())setActionBusy(false);}};
 
  const pair=async()=>{setError('');try{const result=await api<{code:string}>('pairing','POST');setPairing(result.code);}catch(e){setError((e as Error).message);}};
 
  const revoke=async(id:string)=>{try{await api('devices/'+id,'DELETE');if(deviceId===id)setDeviceId('');await refresh();}catch(e){setError((e as Error).message);}};
 
- const setControl=async(device:Device)=>{setActionBusy(true);setError('');try{await api('devices/'+device.id+'/control',device.fullControl?'DELETE':'POST');await refresh();}catch(e){setError((e as Error).message);}finally{setActionBusy(false);}};
+ const setControl=async(device:Device)=>{if(!scopeCurrent(actionScope)||!device.fullControl&&selectionBlocked())return;setActionBusy(true);setError('');try{await api('devices/'+device.id+'/control',device.fullControl?'DELETE':'POST');await refresh();}catch(e){setError((e as Error).message);}finally{setActionBusy(false);}};
 
  const organizeDone=async(item:Run)=>{try{const saved=await api<Run>(`tasks/${item.id}/history/done`,item.data.organized_done?'DELETE':'POST',{expectedTaskVersion:item.taskVersion});if(runId===item.id)setRun(saved);await refresh();}catch(e){setError((e as Error).message);}};
  // A feature counts as unsupported (until reload) only when its own route answers 404/405; any other failure is an error.
@@ -849,10 +1147,11 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  const contextTitle=typeof nativeContext?.context.title==='string'?nativeContext.context.title:run?.data.context?.title??(selectedDevice?.online?'Revit connected':'Your model, in context');
  const contextView=typeof nativeContext?.context.activeViewName==='string'?nativeContext.context.activeViewName:run?.data.context?.activeViewName??(selectedDevice?.online?'Inspect to read the active view and level.':'Connect Revit to bring your project into the conversation.');
 
- const openStudioView=(view:'activity'|'schedules')=>{openWorkspaceView(view,{setStudioView,setWorkspacePane,setLeft,narrow:window.matchMedia('(max-width:850px)').matches});setCanvasOpen(false);setRight(false);requestAnimationFrame(()=>document.querySelector<HTMLElement>('#workspace-drawing .studio-page')?.focus());};
+ const openStudioView=(view:'activity'|'schedules')=>{setWorkAreaState(previous=>({...previous,section:'activity'}));openWorkspaceView(view,{setStudioView,setWorkspacePane,setLeft,narrow:window.matchMedia('(max-width:899px)').matches});setCanvasOpen(false);closeProperties();requestAnimationFrame(()=>document.querySelector<HTMLElement>('#workspace-drawing .studio-page')?.focus());};
  const toggleLeft=()=>setLeft(value=>!value);
- const toggleRight=()=>{if(!right){setTab('preview');setWorkspacePane('drawing');}setRight(value=>!value);};
- const hasContent=messages.length>0||Boolean(run);
+
+ const scene=workspaceScene(runId,run?.id,admissionPending);
+ const hasContent=Boolean(runId);
 
  const unreadIds=new Set(runs.filter(item=>isUnread(item,seen,runId)).map(item=>item.id));
  const filteredChats=runs.filter(item=>(!workflowFilter||workflowState(item).kind===workflowFilter&&!item.data.organized_done)&&item.title.toLowerCase().includes(search.toLowerCase()));
@@ -860,15 +1159,22 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
  const currentProject=projects.find(project=>project.id===(run?.projectId||newProject)&&!project.isDefault);
  const orderedProjects=projects.filter(project=>!project.isDefault).sort((a,b)=>(projectOrder.includes(a.id)?projectOrder.indexOf(a.id):projectOrder.length)-(projectOrder.includes(b.id)?projectOrder.indexOf(b.id):projectOrder.length));
  const reviewScroll=useRef<StickToBottomContext|null>(null);
- const focusReview=(selector:string)=>{setCanvasOpen(false);reviewFocus(selector,{setStudioView,setWorkspacePane,setRight,reviewScroll});};
+ const focusReview=(selector:string)=>{setCanvasOpen(false);reviewFocus(selector,{setStudioView,setWorkspacePane,closeProperties,reviewScroll,requestFrame:(callback:FrameRequestCallback)=>{const token={...workspaceGuard.current};return requestAnimationFrame(time=>{if(scopeCurrent(token))callback(time);});}});};
  const continueDesignBuild=async()=>{
-  if(!run)return;setActionBusy(true);setError('');
-  try{if(queueData?.design?.selected||queueData?.native_build){if(run.mode!=='build'&&!queueData?.native_build){await taskCommand({type:'change_mode',mode:'build'});setRun(await api<Run>('tasks/'+run.id));}setMode('build');}setRight(true);setTab('preview');focusReview(queueData?.native_build?'[aria-label="Native build review"]':queueData?.design?.selected?'[aria-label="Accepted design placement"]':'[aria-label="Validated design preview"]');}
-  catch(error){setError((error as Error).message);throw error;}finally{setActionBusy(false);}
+  if(!scopeCurrent(actionScope)||selectionBlocked()||!run)return;
+  const current=()=>scopeCurrent(actionScope)&&currentRun.current?.id===run.id&&(!run.data.agent_design||(drawingIdentity(currentRun.current.currentPlanRef)===drawingIdentity(run.currentPlanRef)&&drawingIdentity(currentDrawing.current)===drawingIdentity(designVersion)));
+  const proceed=async()=>{if(!current())return;setActionBusy(true);setError('');
+   try{if(queueData?.design?.selected||queueData?.native_build){if(run.mode!=='build'&&!queueData?.native_build){await taskCommand({type:'change_mode',mode:'build'});if(!current())return;const saved=await api<Run>('tasks/'+run.id);if(!current()||saved.id!==run.id)return;setRun(saved);}setMode('build');}openProperties();focusReview(queueData?.native_build?'[aria-label="Native build review"]':queueData?.design?.selected?'[aria-label="Accepted design placement"]':'[aria-label="Validated design preview"]');}
+   catch(error){if(current())setError((error as Error).message);throw error;}finally{if(scopeCurrent(actionScope))setActionBusy(false);}
+  };
+  if(run.data.agent_design)await withSelectionMutation(proceed);else await proceed();
  };
  const designDraftKey=run&&queueData?.design?run.id+':'+queueData.design.brief.briefId:'';
-  const askFromCanvas=(text:string)=>{setPrompt(previous=>appendViewportPrompt(previous,text));setCanvasOpen(false);setWorkspacePane('chat');setRight(false);requestAnimationFrame(()=>document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message DATUMM"]')?.focus());};
+  const askFromCanvas=(text:string)=>{setPrompt(previous=>appendViewportPrompt(previous,text));setCanvasOpen(false);setWorkspacePane('chat');closeProperties();requestAnimationFrame(()=>document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message DATUMM"]')?.focus());};
  const nativeAction=async(action:'approve'|'reconcile'|'show'|'select')=>{
+       if(!scopeCurrent(actionScope))throw new Error('Task view changed. Review the current task again.');
+       if(action==='approve'&&selectionBlocked())throw new Error('Check the saved selection before approval.');
+       if(cancelPendingRef.current)throw new Error('Stop requested. Wait for the task status before continuing.');
        if(!run||!queueData?.native_build)return;setActionBusy(true);
        try{if(!window.desktop)throw new Error('Open the desktop to approve native operations.');const row=queueData.native_build;const result=await window.desktop.nativeBuildAction(run.id,action,{expectedTaskVersion:run.taskVersion,proposal:{proposalId:row.proposal.proposalId,approvalHash:row.proposal.approvalHash,documentId:row.changes.documentId,expectedRevision:row.changes.expectedRevision}});setRun(result as Run);}catch(error){try{setRun(await api<Run>(`tasks/${run.id}`));}catch{}throw error;}finally{setActionBusy(false);}
       };
@@ -882,9 +1188,9 @@ const [confirmedPlacement,setConfirmedPlacement]=useState<NativePlacement|null>(
   const activityRuns=runs.filter(item=>activityFilter==='all'||(activityFilter==='done'?item.status==='completed':workflowState(item).kind===activityFilter));
   const activityView=activityRun?latestTaskActivity(activityRun,activityRun.id===run?.id?events:activityRun.events):null;
   const currentActivity=run?latestTaskActivity(run,events):null;
-  const showDesktopAssistant=true;
+
  const draftSaveNotice=prompt&&draftSaveStatus==='unavailable'?'This draft is kept in this tab. Browser storage is unavailable; copy your text before reloading.':draftSaveStatus==='memory'&&draftAccountKey&&prompt?'This draft is kept in this tab because it falls outside browser draft limits. Copy your text before reloading.':'';
- return {serviceError,draftSaveNotice,openStudioView,workspacePane,setWorkspacePane,projectsSupported,chatMenuUnsupported,unreadIds,renameChat,moveChat,createProject,archiveProject,projects,runId,mediaBusy,actionBusy,selectRun,dialogTrigger,updateHistory,setProjectContextOpen,setDeleteTarget,left,viewportReady,setLeft,panelWidths,resizePanel,toggleLeft,newTask,search,setSearch,studioView,setStudioView,runs,historyView,filteredChats,desktopAvailable,orderedProjects,collapsedProjects,setCollapsedProjects,setRenameTitle,setRenameTarget,setProjectOrder,setWorkflowFilter,workflowFilter,defaultProject,changeSettingsOpen,authConfigured,setDeviceDialog,setHistoryView,setDeletePhrase,setDeleteAllOpen,liveRuntime,desktopPreview,queueData,run,designDraftKey,placementDrafts,selectedSource,executing,setDesignHighlights,selectedDesignElement,setInspectedDesignFingerprint,setRight,setTab,model,askFromCanvas,setActionBusy,setRun,setPrompt,refresh,mode,continueDesignBuild,devices,setMode,focusReview,nativeAction,hasContent,reviewScroll,messages,traceTurns,nativeQuestions,savedTurns,nativeTodos,designTurn,nativeTurn,responseSummary,planningGoalOpen,recoveryEpoch,busy,savedSources,setSelectedSourceId,nativeContext,nativeContextError,commandExpected,taskCommand,proposalExpired,committedBuild,act,setAccessBatches,plannedAccessBatches,setAccessMargin,setAccessReview,setAccessDialog,setError,replyToQuestion,outcome,openCanvas,selectedDevice,buildLegacy,reviewAlternative,drawingLoading,drawingError,drawingMissing,setDrawingRetry,designVersion,drawingCurrent,compareVersion,canvasInputEnabled,persistentProperties,setDrawingStyle,compareDrawing,setCompareVersion,drawingStyle,designDiff,reviewAssumptions,planAccepted,acceptDrawing,switchDrawingToBuild,buildStep,revitSessions,placementTask,confirmedPlacement,buildVariable,setBuildSetupOpen,reviewPlacement,revokeVariableGrant,grantVariable,previewSvg,previewRooms,batchInProgress,partialGoal,verifiedBatchCount,verifiedCount,verifiedBreakdown,completedGoal,completedCriteria,checkpointFindings,submit,verifiedNativeBatches,confirmedAnnotationFailure,canRefreshFailedPreparation,canEndFailedPreparation,connected,workspaceReady,offlineFixture,dismissedWorkflow,workflowNoticeKey,setDismissedWorkflow,promptQueue,prompt,queueAction,runtimeConfig,messageError,blockedChat,setBlockedChat,connectionNotice,setConnectionNotice,useCurrentModel,setUseCurrentModel,draftReferences,commandsOpen,commandMatches,commandIndex,chooseCommand,visiblePrompt,setCommandIndex,setCommandsDismissed,sendShortcut,sourceKey,sources,setSources,setMediaBusy,buildUnavailable,chatModels,reasoningEffort,modelPreferenceInitialized,setModel,setReasoningEffort,queueMessage,providerStatus,contextView,right,tab,hasRenderablePlan,activeDrawing,setSelectedDesignElement,plannedCandidate,separateNativeFollowup,contextTitle,previewLabel,previewCounts,currentActivity,eventDetail,exportItems,mcpToolsError,mcpTools,setSendShortcut,setCanvasInputEnabled,setPersistentProperties,needsAccountAdmission,accountStatus,accountStatusError,accountActionError,accountBusy,accountWorkspaceLoading,accountAction,settingsOpen,showDesktopAssistant,toggleRight,currentProject,deviceId,accountExpired,renameTarget,renameTitle,error,accessDialog,restoreDialogFocus,accessBatches,accessMargin,reviewTaskAccess,accessReview,enableTaskAccess,buildSetupOpen,placementContext,placementView,setPlacementView,setConfirmedPlacement,placementX,setPlacementX,placementY,setPlacementY,placementRotation,setPlacementRotation,confirmPlacement,activityView,activityFilter,setActivityFilter,activityRuns,activityRun,setActivitySelection,designHighlights,deviceDialog,setDeviceId,revoke,setControl,deleteTarget,removeTask,deleteAllOpen,deletePhrase,removeAllTasks,canvasOpen,setCanvasOpen,canvasTrigger,models,projectContextOpen,localConnections,setLocalConnections};
+ return {scene,settingsTarget,prepareProjectBriefReference,prepareBriefUpdate,preparePlanRevision,planRevisionBlockedReason,selectionError,selectionUncertain,reconcilePlanSelection,comparisonError,comparisonLoading,comparisonKind,workspaceScopeInput,workAreaSection,propertiesOpen,selectWorkAreaSection,openProperties,closeProperties,effectiveLayout,layout,serviceError,draftSaveNotice,openStudioView,workspacePane,setWorkspacePane,projectsSupported,chatMenuUnsupported,unreadIds,renameChat,moveChat,createProject,archiveProject,projects,runId,mediaBusy,actionBusy,selectRun,dialogTrigger,updateHistory,setProjectContextOpen,setDeleteTarget,left,viewportReady,setLeft,panelWidths,resizePanel,toggleLeft,newTask,search,setSearch,studioView,setStudioView,runs,historyView,filteredChats,desktopAvailable,orderedProjects,collapsedProjects,setCollapsedProjects,setRenameTitle,setRenameTarget,setProjectOrder,setWorkflowFilter,workflowFilter,defaultProject,changeSettingsOpen,authConfigured,setDeviceDialog,setHistoryView,setDeletePhrase,setDeleteAllOpen,liveRuntime,desktopPreview,queueData,run,designDraftKey,placementDrafts,selectedSource,executing,cancelPending,setDesignHighlights,selectedDesignElement,setInspectedDesignFingerprint,model,askFromCanvas,setActionBusy,setRun,setPrompt,refresh,mode,continueDesignBuild,devices,setMode,focusReview,nativeAction,hasContent,reviewScroll,messages,traceTurns,nativeQuestions,savedTurns,nativeTodos,designTurn,nativeTurn,responseSummary,planningGoalOpen,recoveryEpoch,busy,savedSources,setSelectedSourceId,nativeContext,nativeContextError,commandExpected,taskCommand,proposalExpired,committedBuild,act,setAccessBatches,plannedAccessBatches,setAccessMargin,setAccessReview,setAccessDialog,setError,replyToQuestion,outcome,openCanvas,selectedDevice,buildLegacy,selectAlternative,drawingLoading,drawingError,drawingMissing,setDrawingRetry,designVersion,drawingCurrent,compareVersion,canvasInputEnabled,persistentProperties,setDrawingStyle,compareDrawing,setCompareVersion,drawingStyle,designDiff,reviewAssumptions,planAccepted,acceptDrawing,switchDrawingToBuild,buildStep,revitSessions,placementTask,confirmedPlacement,buildVariable,setBuildSetupOpen,reviewPlacement,revokeVariableGrant,grantVariable,previewSvg,previewRooms,batchInProgress,batchProgressCount,partialGoal,verifiedBatchCount,verifiedCount,verifiedBreakdown,completedGoal,completedCriteria,checkpointFindings,submit,verifiedNativeBatches,confirmedAnnotationFailure,canRefreshFailedPreparation,canEndFailedPreparation,connected,workspaceReady,offlineFixture,dismissedWorkflow,workflowNoticeKey,setDismissedWorkflow,promptQueue,prompt,queueAction,runtimeConfig,messageError,blockedChat,setBlockedChat,connectionNotice,setConnectionNotice,useCurrentModel,setUseCurrentModel,draftReferences,commandsOpen,commandMatches,commandIndex,chooseCommand,visiblePrompt,setCommandIndex,setCommandsDismissed,sendShortcut,sourceKey,sources,setSources,setMediaBusy,buildUnavailable,chatModels,reasoningEffort,modelPreferenceInitialized,setModel,setReasoningEffort,queueMessage,providerStatus,contextView,hasRenderablePlan,activeDrawing,setSelectedDesignElement,plannedCandidate,separateNativeFollowup,contextTitle,previewLabel,previewCounts,currentActivity,eventDetail,exportItems,mcpToolsError,mcpTools,setSendShortcut,setCanvasInputEnabled,setPersistentProperties,needsAccountAdmission,accountStatus,accountStatusError,accountActionError,accountBusy,accountWorkspaceLoading,accountAction,settingsOpen,currentProject,deviceId,accountExpired,renameTarget,renameTitle,error,accessDialog,restoreDialogFocus,accessBatches,accessMargin,reviewTaskAccess,accessReview,enableTaskAccess,buildSetupOpen,placementContext,placementView,setPlacementView,setConfirmedPlacement,placementX,setPlacementX,placementY,setPlacementY,placementRotation,setPlacementRotation,confirmPlacement,activityView,activityFilter,setActivityFilter,activityRuns,activityRun,setActivitySelection,designHighlights,deviceDialog,setDeviceId,revoke,setControl,deleteTarget,removeTask,deleteAllOpen,deletePhrase,removeAllTasks,canvasOpen,setCanvasOpen,canvasTrigger,models,projectContextOpen,localConnections,setLocalConnections};
 }
 
 export type WorkspaceState = ReturnType<typeof useWorkspaceState>;

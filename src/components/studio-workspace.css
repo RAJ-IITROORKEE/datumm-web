@@ -1,5 +1,5 @@
-/* Approved Superdesign studio shell; runtime theme preferences remain authoritative. */
-.desktop-workspace{--studio-line:var(--separator);--studio-paper:#faf9f6;--studio-ink:#242424;position:relative}
+/* DATUMM workspace; affectUI roles are the visual authority. */
+.desktop-workspace{--studio-line:var(--separator);--studio-paper:var(--panel);--studio-ink:var(--ink);position:relative}
 .desktop-titlebar.chat-window-header{height:44px;background:var(--chrome);border-color:var(--separator)}
 .desktop-titlebar.chat-window-header .desktop-navigation-header{border-right:0}
 .chat-window-header .desktop-navigation-header,.chat-window-header .desktop-chat-actions,.chat-window-header .window-controls button{height:44px}
@@ -68,7 +68,7 @@
 .studio-empty{display:flex;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:32px;text-align:center;color:var(--muted-foreground)}
 .studio-empty h2{font-size:18px;font-weight:400;margin:0}
 .studio-empty p{font-size:12px;line-height:1.7;max-width:400px;margin:0}
-.studio-canvas-stage .studio-empty{color:#5b5955}
+.studio-canvas-stage .studio-empty{color:var(--text)}
 .desktop-workspace .inspector{grid-column:3;grid-row:2;position:relative;display:flex;top:0;min-width:0;min-height:0;width:auto;box-shadow:none;background:var(--card);border-left:1px solid var(--studio-line)}
 .desktop-workspace .inspector-tabs{height:40px;min-height:40px;padding:0 10px;gap:8px;border-bottom:1px solid var(--studio-line);flex:none}
 .desktop-workspace .inspector-tabs>button{font-size:11px;font-weight:400;flex:none;white-space:nowrap}
@@ -85,18 +85,16 @@
 .studio-assistant-panel .assistant-label{font-size:11px;letter-spacing:0;margin:12px 0 12px}
 .studio-assistant-panel .assistant-label .brand-mark{width:20px;height:20px}
 .studio-assistant-panel .composer-area{margin:0;max-width:none;padding:10px 20px 12px}
-.desktop-workspace .composer{display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;position:relative;background:var(--background);border:1px solid #68655e;border-radius:10px;overflow:visible;padding:14px}
+.desktop-workspace .composer{display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;position:relative;background:var(--background);border:1px solid var(--line);border-radius:10px;overflow:visible;padding:14px}
 .desktop-workspace .composer:focus-within{border-color:var(--trace-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--trace-accent) 12%,transparent)}
 .desktop-workspace .composer textarea{flex:none;min-height:88px;max-height:180px;padding:6px 4px;font-size:13px;line-height:1.6;background:none;outline:0;border:0;border-radius:0}
 .desktop-workspace .composer-toolbar{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:8px;padding:0;margin-top:8px;flex:none;width:100%}
 .desktop-workspace .composer-right,.studio-attachment-control,.studio-voice-control{display:contents}
 .studio-model-control{order:1;display:flex;align-items:center}
-.studio-mode-trigger{order:2;display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:76px;min-height:36px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:none;color:var(--foreground);font-size:11px}
-.studio-mode-trigger:hover{background:var(--secondary)}
+.studio-mode-trigger{order:2}
 .studio-attachment-control>.composer-media-controls{order:3;margin-left:auto}
 .studio-voice-control>.composer-media-controls{order:4}
-.desktop-workspace .composer-media-controls{padding:0;gap:0;min-height:32px}
-.desktop-workspace .send-button{order:5;width:29px;height:29px;border-radius:6px;background:var(--foreground);color:var(--background);flex:none}
+.desktop-workspace .send-button{order:5;width:28px;height:28px;min-height:28px;border-radius:8px;background:var(--send-fill);color:var(--send-ink);flex:none}
 .desktop-workspace .composer-sources{order:-1;flex-basis:100%;width:100%;margin-bottom:8px}
 .desktop-workspace .composer-toolbar .media-error{order:9;flex-basis:100%}
 .studio-voice-control>[aria-label="Listening preview"]{position:absolute;bottom:calc(100% + 10px);left:0;right:0;margin:0;z-index:20}
@@ -144,7 +142,7 @@
 .studio-pipeline-steps>span[data-state=current],.studio-pipeline-steps>span[data-state=attention]{color:var(--trace-thought)}
 .studio-pipeline-steps i{width:7px;height:7px;border:1px solid currentColor;border-radius:50%;box-shadow:inset 0 0 0 2px var(--background);background:currentColor}
 .studio-pipeline-status{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
-.studio-pipeline>div{position:absolute;bottom:100%;left:0;right:0;max-height:42dvh;overflow:auto;padding:18px 20px;background:var(--card);border:1px solid var(--studio-line);border-radius:8px 8px 0 0;box-shadow:0 -10px 30px #0002;font-size:12px}
+.studio-pipeline>div{position:absolute;bottom:100%;left:0;right:0;max-height:42dvh;overflow:auto;padding:18px 20px;background:var(--card);border:1px solid var(--studio-line);border-radius:8px 8px 0 0;box-shadow:0 -10px 30px var(--shadow-ink);font-size:12px}
 .studio-global-footer{grid-column:1/-1;grid-row:-2/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 14px;border-top:1px solid var(--separator);font-size:9px;color:var(--muted-foreground);min-width:0;background:var(--chrome)}
 .studio-global-footer>span{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .studio-global-footer>span:nth-child(2){font-size:9px}
@@ -179,7 +177,7 @@
 .studio-titlebar-options>summary{display:grid;place-items:center;height:32px;width:30px;cursor:pointer;list-style:none;border-radius:5px;color:var(--muted-foreground)}
 .studio-titlebar-options>summary::-webkit-details-marker{display:none}
 .studio-titlebar-options>summary:hover{background:var(--secondary)}
-.studio-titlebar-options>div{position:absolute;z-index:100;right:0;top:36px;min-width:180px;display:flex;align-items:center;justify-content:space-between;padding:7px;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px #0004}
+.studio-titlebar-options>div{position:absolute;z-index:100;right:0;top:36px;min-width:180px;display:flex;align-items:center;justify-content:space-between;padding:7px;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px var(--shadow-ink)}
 .desktop-workspace .inspector-tabs .studio-panel-options{width:24px;margin-left:auto;border:0;color:var(--muted-foreground)}
 .desktop-workspace .inspector-tabs .studio-inspector-close{margin-left:0}
 .studio-page{flex:1;min-height:0;overflow:auto;padding:34px}
@@ -231,10 +229,10 @@
 @media(max-width:1100px){.studio-heading>.studio-status{display:none}.studio-heading h1{font-size:14px}.studio-artifact-header{padding:0 14px}.studio-pipeline-steps{gap:6px}.studio-pipeline-steps>span{font-size:9px}.studio-page{padding:24px}}
 @media(max-width:850px){
  .workspace.desktop-workspace,.workspace.desktop-workspace.viewport-ready,.workspace.desktop-workspace.left-closed,.workspace.desktop-workspace.viewport-ready.left-closed,.workspace.desktop-workspace.right-closed,.workspace.desktop-workspace.viewport-ready.right-closed,.workspace.desktop-workspace.viewport-ready.left-closed.right-closed{grid-template-columns:52px minmax(0,1fr)}
- .desktop-workspace .sidebar{position:fixed;top:44px;bottom:26px;left:0;width:min(var(--left-panel-width),85vw);height:auto;z-index:45;box-shadow:20px 0 48px #0006}
- .studio-nav-rail{display:flex}.desktop-workspace.viewport-ready .sidebar-backdrop{display:block;position:fixed;inset:44px 0 26px;z-index:44;background:#0007}
- .workspace.desktop-workspace.viewport-ready:not(.right-closed) .inspector{position:fixed;top:110px;right:0;bottom:70px;width:min(var(--right-panel-width),90vw);z-index:43;box-shadow:-20px 0 48px #0007}
- .desktop-workspace.viewport-ready .inspector-backdrop{display:block;position:fixed;inset:110px 0 70px;z-index:42;background:#0005}
+ .desktop-workspace .sidebar{position:fixed;top:44px;bottom:26px;left:0;width:min(var(--left-panel-width),85vw);height:auto;z-index:45;box-shadow:20px 0 48px var(--shadow-ink)}
+ .studio-nav-rail{display:flex}.desktop-workspace.viewport-ready .sidebar-backdrop{display:block;position:fixed;inset:44px 0 26px;z-index:44;background:rgba(0,0,0,.45)}
+ .workspace.desktop-workspace.viewport-ready:not(.right-closed) .inspector{position:fixed;top:110px;right:0;bottom:70px;width:min(var(--right-panel-width),90vw);z-index:43;box-shadow:-20px 0 48px var(--shadow-ink)}
+ .desktop-workspace.viewport-ready .inspector-backdrop{display:block;position:fixed;inset:110px 0 70px;z-index:42;background:rgba(0,0,0,.45)}
  .studio-heading p{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.studio-artifact-actions button{font-size:10px;padding:6px 8px}.studio-connection{display:none}.studio-global-footer>span:nth-child(2){display:none}
  .studio-new-chat .main-content{padding:24px 20px}.studio-new-chat .studio-welcome h1{font-size:27px}.studio-settings-embedded{grid-column:2/-1}.studio-page-heading{align-items:flex-start;flex-direction:column}
 }
@@ -286,11 +284,6 @@
 .studio-assistant-panel .composer{padding:8px 10px;border-radius:9px}
 .workspace.desktop-workspace .studio-assistant-panel .composer textarea{height:44px;min-height:44px;padding:2px 0;font-size:var(--studio-chat-font-size);line-height:1.5}
 .studio-assistant-panel .composer-toolbar{margin-top:4px;gap:5px}
-.studio-assistant-panel .studio-mode-trigger,.studio-assistant-panel .studio-model-control>button{min-height:28px;height:28px;padding:4px 8px;font-size:11px;gap:5px}
-.studio-assistant-panel .studio-mode-trigger{min-width:62px;border-radius:6px}
-.studio-assistant-panel .composer-media-controls{min-height:28px}
-.studio-assistant-panel .composer-toolbar .icon-button,.studio-assistant-panel .send-button{width:28px;height:28px;min-height:28px}
-.studio-assistant-panel .composer-toolbar .icon-button>svg{width:15px;height:15px}
 .studio-assistant-panel .workspace-controls{margin-bottom:3px;gap:5px}
 .studio-assistant-panel .workspace-controls button{min-height:24px}
 .studio-assistant-panel .workspace-controls .header-actions{gap:8px}
@@ -366,7 +359,7 @@
 .studio-canvas-stage .threeStage { min-height:0; flex:1; height:auto; }
 
 /* Agent workspace: question dock, plan dock, turn process accordion, status dots, short windows. */
-.question-dock{margin:0 12px 8px;padding:12px 14px;border:1px solid var(--trace-accent);border-radius:14px;background:var(--card);color:var(--foreground);box-shadow:0 2px 12px #0003;display:grid;gap:8px;min-width:0}
+.question-dock{margin:0 12px 8px;padding:12px 14px;border:1px solid var(--trace-accent);border-radius:14px;background:var(--card);color:var(--foreground);box-shadow:0 2px 12px var(--shadow-ink);display:grid;gap:8px;min-width:0}
 .question-dock>header{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted-foreground)}
 .question-dock>header strong{font-weight:600;color:var(--foreground)}.question-dock>header span{margin-left:auto}
 .question-dock-progress{height:3px;border-radius:2px;background:var(--secondary);overflow:hidden}.question-dock-progress>span{display:block;height:100%;background:var(--trace-accent);transition:width .2s}
@@ -422,6 +415,36 @@
 /* The question and plan docks sit in normal flow above the composer, no wider than it. */
 .composer-dock{flex:none;width:100%;max-width:760px;margin:0 auto;padding:0 32px;box-sizing:border-box}
 .composer-dock>.question-dock,.composer-dock>.plan-dock{margin:0 0 8px}
+
+/* M8: shared drawing controls; paper/geometry stay in the technical renderer. */
+.desktop-workspace .plan-dock{background:var(--panel);border-color:var(--line);color:var(--text);font-size:13px;line-height:20px;border-radius:10px}
+.desktop-workspace .plan-dock-header{min-height:32px;padding:6px 12px;color:var(--ink);font-size:13px;font-weight:500;border-radius:10px}
+.desktop-workspace .plan-dock-header span,.desktop-workspace .plan-dock li{color:var(--text)}
+.desktop-workspace .plan-dock-header:hover{background:var(--hover)}
+.desktop-workspace .studio-properties-panel{padding:16px;color:var(--ink);font-size:13px;line-height:20px;background:var(--panel)}
+.desktop-workspace .studio-properties-panel h2{font-size:14px;line-height:20px;font-weight:500;margin:12px 0 5px}
+.desktop-workspace .studio-property-section-label{font-size:12px;line-height:16px;letter-spacing:0;color:var(--muted);margin-bottom:12px}
+.desktop-workspace .studio-property-muted,.desktop-workspace .studio-property-grid small,.desktop-workspace .studio-property-facts dd,.desktop-workspace .studio-properties-panel .studio-property-identity{font-size:12px;line-height:16px;color:var(--text)}
+.desktop-workspace .studio-property-grid{gap:12px;margin:16px 0}
+.desktop-workspace .studio-property-grid strong{font-size:13px;line-height:20px;font-weight:500}
+.desktop-workspace .studio-property-grid code{font-size:12px;line-height:16px;color:var(--text);overflow-wrap:anywhere}
+.desktop-workspace .studio-property-facts{margin-bottom:20px}
+.desktop-workspace .studio-property-facts>div{border-color:var(--line)}
+.desktop-workspace .studio-property-facts dt,.desktop-workspace .studio-property-field{color:var(--text)}
+.desktop-workspace .studio-property-field{gap:6px;font-size:13px;line-height:20px;margin-bottom:12px}
+.desktop-workspace .studio-property-field :is(input,select){min-height:32px!important;padding:5px 8px;border:1px solid var(--line-strong);border-radius:6px;background:var(--composer);color:var(--ink);font-size:13px;line-height:20px}
+.desktop-workspace .studio-property-pair{gap:12px}
+.desktop-workspace .studio-properties-panel form>button,.desktop-workspace .studio-property-review button{min-height:28px;border-radius:6px;font-size:13px;line-height:20px;font-weight:500}
+.desktop-workspace .studio-property-review{padding:14px;border-color:var(--line);border-radius:10px;background:var(--tray)}
+.desktop-workspace .studio-property-review strong{font-size:13px;line-height:20px;font-weight:500}
+.desktop-workspace .studio-property-review p{font-size:13px;line-height:20px;color:var(--text);margin:10px 0 12px}
+.desktop-workspace .viewport-reference-chip{padding:4px 7px;border-color:var(--line);border-radius:6px;background:var(--chip);color:var(--text);font-size:12px!important;line-height:16px!important}
+.desktop-workspace .viewport-reference-chip:hover{background:var(--hover);color:var(--ink)}
+.desktop-workspace .viewport-reference-item>p{font-size:13px;line-height:20px;color:var(--text)}
+.desktop-workspace .viewport-reference-editor[open]{max-width:100%;padding:8px;border-color:var(--line);border-radius:10px;background:var(--panel)}
+.desktop-workspace .viewport-reference-editor label{font-size:12px;line-height:16px;color:var(--text)}
+.desktop-workspace .viewport-reference-editor :is(textarea,select){border:1px solid var(--line-strong);border-radius:6px;background:var(--composer);color:var(--ink);font-size:13px!important;line-height:20px;padding:6px 8px!important}
+@media(max-width:700px),(pointer:coarse){.desktop-workspace .studio-property-field :is(input,select),.desktop-workspace .viewport-reference-editor :is(textarea,select){font-size:16px!important}.desktop-workspace .studio-properties-panel form>button,.desktop-workspace .studio-property-review button{min-height:36px}}
 .composer-dock>.question-dock{max-height:min(55vh,420px);overflow-y:auto}
 .studio-assistant-panel .composer-dock{max-width:none;padding:0 12px}
 @media(max-width:700px){.composer-dock{padding:0 12px}}
@@ -434,120 +457,211 @@
 .share-link{display:grid;gap:8px}.share-link input{width:100%;min-width:0;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--background);color:var(--foreground);font-size:12px}
 .share-link input:focus-visible{outline:2px solid var(--trace-accent);outline-offset:2px}.share-error{color:var(--trace-error);font-size:12px;margin:0}
 
-/* The workspace keeps the same three mounts through empty, running and review states. */
-.workspace.desktop-workspace#datumm-workspace,
-.workspace.desktop-workspace#datumm-workspace.viewport-ready {
-  --studio-paper:var(--background);--studio-ink:var(--foreground);
-  grid-template-columns:min(var(--left-panel-width),23vw) clamp(320px,var(--chat-panel-width),40vw) minmax(360px,1fr);
-  grid-template-rows:64px minmax(0,1fr) 26px;
-  overflow:hidden;
+/* Option A: one stable chat and one contained, four-section work area. */
+#datumm-workspace.workspace.desktop-workspace {
+  --studio-paper:var(--panel);--studio-ink:var(--ink);
+  grid-template-columns:var(--left-panel-width) var(--chat-panel-width) minmax(0,1fr);
+  grid-template-rows:64px minmax(0,1fr) 26px;column-gap:8px;overflow:hidden;
 }
-.workspace.desktop-workspace#datumm-workspace.left-closed {grid-template-columns:52px clamp(320px,var(--chat-panel-width),40vw) minmax(360px,1fr)}
-#datumm-workspace .studio-chat-column {grid-column:2;grid-row:2;position:relative;display:flex;min-width:0;min-height:0;border-right:1px solid var(--separator);background:var(--card)}
-#datumm-workspace .studio-stage {grid-column:3;grid-row:2;overflow:hidden;position:relative;background:var(--background)}
-#datumm-workspace .studio-drawing-content {display:flex;flex:1;min-width:0;min-height:0;overflow:hidden}
-#datumm-workspace .studio-drawing-content[hidden] {display:none}
-.studio-drawing-content>.plan-canvas {width:100%;flex:1;min-width:0;min-height:0;margin:0;border:0;border-radius:0;box-shadow:none}
-#datumm-workspace .studio-artifact-header {grid-column:2/-1}
-#datumm-workspace .studio-global-footer {grid-row:3}
-#datumm-workspace .studio-pane-switch {display:none}
-.studio-workarea-toolbar {display:flex;align-items:center;gap:4px;min-height:44px;padding:5px 10px;border-bottom:1px solid var(--separator);flex:none;min-width:0;background:var(--card)}
-.studio-workarea-toolbar button {display:flex;align-items:center;justify-content:center;gap:6px;min-height:32px;border:0;border-radius:6px;background:none;color:var(--muted-foreground);padding:6px 8px;font-size:11px;white-space:nowrap}
-.studio-workarea-toolbar button:hover,.studio-workarea-toolbar button[aria-pressed=true] {background:var(--secondary);color:var(--foreground)}
-.studio-workarea-tools {flex:1}
-.studio-open-output-label {font-size:11px;color:var(--muted-foreground)}
-#datumm-workspace .inspector {position:absolute;z-index:32;top:64px;bottom:26px;right:0;width:min(400px,calc(100% - 16px));grid-column:auto;grid-row:auto;box-shadow:-8px 0 28px #0002;border-left:1px solid var(--separator);background:var(--card)}
-#datumm-workspace .inspector-backdrop {display:block;position:absolute;inset:64px 0 26px;z-index:31;width:100%;height:auto;border:0;background:#0002}
-#datumm-workspace .inspector-tabs {height:44px;min-height:44px;gap:14px}
-#datumm-workspace .inspector-tabs button {min-height:32px}
-#datumm-workspace .inspector-body {min-height:0;overflow:auto}
-#datumm-workspace .studio-drawing-empty {padding:32px 24px;color:var(--muted-foreground);background:var(--background)}
-#datumm-workspace .studio-drawing-empty h2 {font-size:18px;color:var(--foreground)}
-#datumm-workspace .studio-chat-column .main-panel {display:flex;flex-direction:column;min-height:0;width:100%;overflow:hidden}
-#datumm-workspace .studio-chat-column .main-content {flex:1;min-height:0;overflow:hidden}
-#datumm-workspace .studio-chat-column .conversation-inner {padding:24px 20px!important;font-size:13px;line-height:1.65}
-.workspace.desktop-workspace .studio-chat-column .datumm-markdown {font-size:13px;line-height:1.7}
-#datumm-workspace .studio-chat-column .composer-area {padding:10px 14px 14px;flex:none}
-#datumm-workspace .studio-chat-column .composer textarea {min-height:72px;font-size:13px;line-height:1.6}
-#datumm-workspace .studio-chat-column :is(.studio-mode-trigger,.studio-model-control>button,.composer-toolbar .icon-button,.send-button) {min-height:32px}
-#datumm-workspace .studio-chat-column .studio-welcome {padding:24px 20px;max-width:100%;margin:auto}
-#datumm-workspace .studio-chat-column .studio-welcome h1 {font-size:25px;font-weight:500;line-height:1.3;letter-spacing:-.025em;overflow-wrap:anywhere;margin:0 0 12px}
-#datumm-workspace .studio-chat-column .studio-welcome p {font-size:13px;line-height:1.7;color:var(--muted-foreground)}
-#datumm-workspace .studio-chat-column .studio-welcome-brand {margin-bottom:24px}
-#datumm-workspace .studio-chat-column .studio-new-chat-suggestions {display:grid;margin-top:20px}
-#datumm-workspace .studio-chat-column .studio-new-chat-suggestions button {text-align:left;justify-content:flex-start}
-#datumm-workspace .studio-chat-column .studio-new-chat-assurance {margin-top:24px;line-height:1.6}
-#datumm-workspace .studio-chat-column .panel-resize-right {right:-4px;left:auto;z-index:10}
-#datumm-workspace .studio-page {min-height:0;overflow:auto}
-#datumm-workspace .studio-activity-layout {grid-template-columns:minmax(0,1fr)}
-#datumm-workspace .studio-activity-detail {border-left:0;border-top:1px solid var(--separator);padding:20px 0 0}
-.workspace.desktop-workspace#datumm-workspace.studio-drawing-focused {grid-template-columns:minmax(0,1fr)}
-.studio-drawing-focused :is(.sidebar,.studio-nav-rail,.studio-chat-column,.studio-pane-switch) {display:none!important}
-.studio-drawing-focused .studio-stage,.studio-drawing-focused .studio-artifact-header {grid-column:1/-1}
-.studio-settings-open#datumm-workspace :is(.studio-chat-column,.studio-pane-switch) {display:none!important}
-#datumm-workspace.studio-settings-open .studio-settings-header {grid-column:2/-1}
-#datumm-workspace :is(button,a,input,select,textarea,summary,[tabindex]):focus-visible {outline:2px solid var(--ring,var(--trace-accent));outline-offset:2px}
-#datumm-workspace .studio-annotation-note {border-left:1px solid var(--separator)}
-@media(max-width:1180px) {
-  .workspace.desktop-workspace#datumm-workspace,.workspace.desktop-workspace#datumm-workspace.viewport-ready {grid-template-columns:min(var(--left-panel-width),27vw) minmax(0,1fr);grid-template-rows:64px 44px minmax(0,1fr) 26px}
-  .workspace.desktop-workspace#datumm-workspace.left-closed {grid-template-columns:52px minmax(0,1fr)}
-  #datumm-workspace .studio-pane-switch {grid-column:2;grid-row:2;display:flex;gap:4px;padding:5px 14px;border-bottom:1px solid var(--separator);background:var(--card)}
-  .studio-pane-switch button {display:flex;align-items:center;gap:6px;min-height:32px;padding:6px 14px;border:0;border-radius:6px;background:none;color:var(--muted-foreground);font-size:12px}
-  .studio-pane-switch button[aria-pressed=true] {background:var(--secondary);color:var(--foreground)}
-  #datumm-workspace .studio-stage,#datumm-workspace .studio-chat-column {grid-column:2;grid-row:3}
-  #datumm-workspace.studio-pane-chat .studio-stage,#datumm-workspace.studio-pane-drawing .studio-chat-column {display:none}
-  #datumm-workspace .studio-global-footer {grid-row:4}
-  #datumm-workspace .studio-chat-column .panel-resize {display:none}
-  #datumm-workspace .inspector {top:108px}
-  #datumm-workspace .inspector-backdrop {top:108px}
-  .workspace.desktop-workspace#datumm-workspace.studio-drawing-focused {grid-template-rows:64px minmax(0,1fr) 26px}
-  .studio-drawing-focused .studio-stage {grid-column:1/-1;grid-row:2;display:flex!important}
-  .studio-drawing-focused .studio-global-footer {grid-row:3}
-  .studio-drawing-focused .inspector,.studio-drawing-focused .inspector-backdrop {top:64px}
+#datumm-workspace .sidebar{grid-column:1;grid-row:1/-2}
+#datumm-workspace .studio-chat-column{grid-column:2;grid-row:2;position:relative;display:flex;min-width:0;min-height:0;background:var(--panel);border:1px solid var(--separator);border-radius:12px;overflow:visible}
+#datumm-workspace .studio-stage{grid-column:3;grid-row:2;display:flex;flex-direction:column;position:relative;min-width:0;min-height:0;overflow:hidden;background:var(--panel);border:1px solid var(--separator);border-radius:12px}
+#datumm-workspace .studio-artifact-header{grid-column:2/-1}
+#datumm-workspace .studio-global-footer{grid-row:3}
+#datumm-workspace .studio-pane-switch{display:none}
+#datumm-workspace .studio-drawing-content{display:flex;flex:1;min-width:0;min-height:0;overflow:hidden}
+#datumm-workspace [hidden]{display:none!important}
+.studio-drawing-content>.plan-canvas{width:100%;flex:1;min-width:0;min-height:0;margin:0;border:0;border-radius:0;box-shadow:none}
+.studio-preview-output{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;overflow:hidden}
+.studio-workarea-toolbar{display:flex;align-items:center;gap:4px;min-height:44px;padding:5px 10px;border-bottom:1px solid var(--separator);flex:none;min-width:0;background:var(--panel);overflow-x:auto}
+.studio-workarea-toolbar button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:32px;border:0;border-radius:6px;background:none;color:var(--muted-foreground);padding:6px 8px;font:inherit;white-space:nowrap}
+.studio-workarea-toolbar button:hover,.studio-workarea-toolbar button[aria-pressed=true]{background:var(--secondary);color:var(--foreground)}
+.studio-workarea-tools{flex:1}
+#datumm-workspace .studio-drawing-empty{padding:32px 24px;color:var(--muted-foreground);background:var(--panel)}
+#datumm-workspace .studio-drawing-empty h2{font-size:18px;color:var(--foreground)}
+#datumm-workspace .studio-chat-column .main-panel{display:flex;flex-direction:column;min-height:0;width:100%;overflow:hidden;border-radius:12px}
+#datumm-workspace .studio-chat-column .main-content{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+#datumm-workspace .studio-chat-column .conversation-inner{padding:24px 20px!important;font-size:13px;line-height:1.65}
+#datumm-workspace .studio-chat-column .datumm-markdown{font-size:14px;line-height:22.4px}
+#datumm-workspace .studio-chat-column .composer-area{padding:10px 14px 14px;flex:none}
+#datumm-workspace .studio-chat-column .composer{--composer-write:var(--panel);--composer-input-ink:#000;--composer-placeholder:rgba(0,0,0,.36);display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0;border:0;border-radius:16px;background:var(--composer);box-shadow:var(--composer-shadow);overflow:visible}
+.dark #datumm-workspace .studio-chat-column .composer,[data-theme=dark] #datumm-workspace .studio-chat-column .composer{--composer-write:#1c1c1e;--composer-input-ink:#fff;--composer-placeholder:rgba(255,255,255,.36)}
+#datumm-workspace .studio-chat-column .composer:focus-within{border:0;box-shadow:var(--composer-shadow)}
+#datumm-workspace .studio-chat-column .composer .composer-input{min-width:0;padding:14px 10px 10px;border-radius:16px;background:var(--composer-write)}
+#datumm-workspace .studio-chat-column .composer .composer-input>textarea{display:block;flex:none;width:calc(100% - 8px);height:40px;min-height:40px;max-height:180px;margin:0 4px;padding:0;border:0;background:transparent;color:var(--composer-input-ink);font:400 13px/20px var(--font-sans);resize:none}
+#datumm-workspace .studio-chat-column .composer .composer-input>textarea::placeholder{color:var(--composer-placeholder);opacity:1}
+:root[data-contrast=high] #datumm-workspace .studio-chat-column .composer .composer-input>textarea::placeholder{color:var(--ink)}
+#datumm-workspace .studio-chat-column .composer .composer-toolbar{display:flex;align-items:center;justify-content:flex-start;flex-wrap:nowrap;gap:4px;width:100%;min-width:0;margin:14px 0 0;padding:0}
+#datumm-workspace .studio-chat-column .composer .studio-attachment-control{display:flex;flex:none;order:initial;margin:0}
+#datumm-workspace .studio-chat-column .composer .composer-media-controls{display:flex;flex:none;order:initial;margin:0;padding:0;gap:0}
+#datumm-workspace .studio-chat-column .composer .studio-mode-trigger{display:inline-flex;align-items:center;justify-content:center;flex:none;order:initial;gap:6px;height:28px;min-height:28px;margin:0;padding:0 8px;border:0;border-radius:6px;background:transparent;color:var(--muted);font:400 13px/20px var(--font-sans);white-space:nowrap}
+#datumm-workspace .studio-chat-column .composer .studio-mode-trigger:hover,#datumm-workspace .studio-chat-column .composer .studio-mode-trigger[data-state=open]{background:var(--hover);color:var(--ink)}
+#datumm-workspace .studio-chat-column .composer .composer-right{display:flex;align-items:center;justify-content:flex-end;flex-wrap:nowrap;flex:1;min-width:0;gap:4px;margin-left:auto}
+#datumm-workspace .studio-chat-column .composer .studio-model-control{display:flex;align-items:center;flex:0 1 auto;order:initial;min-width:0;margin:0;max-width:100%}
+#datumm-workspace .studio-chat-column .composer .studio-model-control>button{max-width:100%;min-width:0}
+#datumm-workspace .studio-chat-column .composer .studio-voice-control{display:flex;flex:none;order:initial}
+#datumm-workspace .studio-chat-column .composer .send-button{display:grid;place-items:center;flex:none;order:initial;width:28px;min-width:28px;height:28px;min-height:28px;margin-left:2px;padding:0;border:0;border-radius:8px;background:var(--send-fill);color:var(--send-ink);opacity:1}
+#datumm-workspace .studio-chat-column .composer .send-button:disabled{background:var(--send-disabled-fill);color:var(--send-disabled-ink);opacity:1}
+#datumm-workspace .studio-chat-column .composer .composer-tray{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;height:37px;min-height:37px;padding:0 8px 0 6px}
+#datumm-workspace .studio-chat-column .composer .composer-context-actions{display:flex;align-items:center;justify-content:flex-end;gap:2px;min-width:0}
+#datumm-workspace .studio-chat-column .composer .composer-tray-link{display:inline-flex;align-items:center;flex:0 1 auto;gap:7px;min-width:0;height:26px;min-height:26px;padding:0 9px 0 7px;margin:0;border:0;border-radius:999px;background:transparent;color:var(--muted);font:400 12px/20px var(--font-sans);white-space:nowrap}
+#datumm-workspace .studio-chat-column .composer .composer-tray-link>svg{flex:none}
+#datumm-workspace .studio-chat-column .composer .composer-tray-link>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#datumm-workspace .studio-chat-column .composer .composer-tray-link:hover,#datumm-workspace .studio-chat-column .composer .context-toggle.active{background:var(--hover);color:var(--ink)}
+#datumm-workspace .studio-chat-column .composer-model-notice{margin:6px 4px 0;color:var(--text);font-size:12px;line-height:18px}
+.composer-mode-menu{min-width:220px;max-width:calc(100vw - 24px)}
+@media(max-width:850px){#datumm-workspace .studio-chat-column .composer .composer-input>textarea{font-size:16px}}
+@media(max-width:600px){#datumm-workspace .studio-chat-column .composer .composer-context-label{display:none}#datumm-workspace .studio-chat-column .composer .composer-right{gap:4px}#datumm-workspace .studio-chat-column .composer .composer-input>textarea{font-size:16px}}
+@media(max-width:360px){#datumm-workspace .studio-chat-column .composer .studio-mode-trigger{gap:4px;padding:0 6px}#datumm-workspace .studio-chat-column .composer .composer-toolbar{gap:2px}#datumm-workspace .studio-chat-column .composer .composer-tray-link{gap:5px;padding:0 6px}}
+#datumm-workspace .studio-chat-column .composer textarea{min-height:72px;font-size:13px;line-height:20px}
+#datumm-workspace .studio-chat-column .panel-resize-right{right:-10px;left:auto;z-index:10;width:12px}
+#datumm-workspace .studio-chat-column .panel-resize-right:hover,#datumm-workspace .studio-chat-column .panel-resize-right:focus-visible{background:transparent;opacity:1}
+#datumm-workspace .studio-chat-column .panel-resize-right::after{content:"";position:absolute;top:50%;left:5px;width:2px;height:40px;transform:translateY(-50%);border-radius:2px;background:var(--line-strong);pointer-events:none}
+#datumm-workspace .studio-chat-column .panel-resize-right:hover::after,#datumm-workspace .studio-chat-column .panel-resize-right:focus-visible::after{background:var(--accent)}
+#datumm-workspace .studio-page{min-height:0;overflow:auto}
+#datumm-workspace .studio-activity-layout{grid-template-columns:minmax(0,1fr)}
+.studio-diagnostics{margin-top:24px;padding-top:16px;border-top:1px solid var(--separator)}
+.studio-diagnostics summary{cursor:pointer}.studio-diagnostics pre{overflow:auto;max-width:100%;font-size:12px}
+.studio-task-loading,.studio-admission-status{padding:12px 20px;color:var(--muted-foreground);font-size:13px}
+#datumm-workspace :is(button,a,input,select,textarea,summary,[tabindex]):focus-visible{outline:2px solid var(--ui-as-focus);outline-offset:2px}
+
+/* Home grows around the same mounted composer, through pending admission. */
+#datumm-workspace:is(.studio-scene-home,.studio-scene-submitting):not(.studio-secondary-view):not(.studio-settings-open){grid-template-columns:var(--left-panel-width) minmax(0,1fr);grid-template-rows:minmax(0,1fr);column-gap:0}
+#datumm-workspace:is(.studio-scene-home,.studio-scene-submitting):not(.studio-secondary-view):not(.studio-settings-open)>.sidebar{grid-row:1}
+#datumm-workspace:is(.studio-scene-home,.studio-scene-submitting):not(.studio-secondary-view):not(.studio-settings-open)>:is(.studio-stage,.studio-artifact-header,.studio-pane-switch,.studio-global-footer){display:none}
+#datumm-workspace:is(.studio-scene-home,.studio-scene-submitting):not(.studio-secondary-view):not(.studio-settings-open)>.studio-chat-column{grid-column:2;grid-row:1;margin:8px 8px 8px 0;display:flex}
+#datumm-workspace:is(.studio-scene-home,.studio-scene-submitting) .studio-chat-column .main-content{justify-content:center;padding:64px 24px;overflow:auto}
+#datumm-workspace:is(.studio-scene-home,.studio-scene-submitting) .studio-chat-column .studio-welcome{width:100%;max-width:672px;padding:0;margin:0 auto 24px}
+#datumm-workspace:is(.studio-scene-home,.studio-scene-submitting) .studio-welcome h1{font-size:28px;line-height:34px;font-weight:500;letter-spacing:-.7px;margin:0 0 12px;overflow-wrap:normal}
+#datumm-workspace:is(.studio-scene-home,.studio-scene-submitting) .studio-welcome p{font-size:13px;line-height:20px;margin:0;color:var(--muted-foreground)}
+#datumm-workspace:is(.studio-scene-home,.studio-scene-submitting) .studio-chat-column .composer-area{width:100%;max-width:672px;margin:0 auto;padding:0}
+#datumm-workspace:is(.studio-scene-home,.studio-scene-submitting) .studio-chat-column .composer{padding:0;min-height:143px}
+#datumm-workspace:is(.studio-scene-home,.studio-scene-submitting) .studio-chat-column .composer textarea{min-height:40px;height:40px;padding:0;line-height:20px}
+#datumm-workspace:is(.studio-scene-home,.studio-scene-submitting) .studio-chat-column .studio-new-chat-suggestions{display:flex;flex-wrap:wrap;gap:7px;margin-top:22px}
+#datumm-workspace:is(.studio-scene-home,.studio-scene-submitting) .studio-new-chat-suggestions button{min-height:32px;padding:0 12px 0 11px;font-size:12px;border-radius:16px}
+#datumm-workspace:is(.studio-scene-home,.studio-scene-submitting) .studio-new-chat-assurance{margin:16px 0 0;font-size:11px;line-height:18px;color:var(--muted-foreground)}
+#datumm-workspace .studio-starter-replace{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px;font-size:13px;line-height:20px;color:var(--ink)}
+#datumm-workspace .studio-starter-replace>span{flex-basis:100%}
+#datumm-workspace .studio-starter-replace button{min-height:36px;max-width:100%;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--text);font:inherit;overflow-wrap:anywhere;cursor:pointer}
+#datumm-workspace .studio-starter-replace button:hover{background:var(--hover);color:var(--ink)}
+#datumm-workspace .studio-starter-notice{margin:8px 0 0;color:var(--text);font-size:12px;line-height:18px}
+#datumm-workspace .studio-starter-notice:empty{display:none}
+@media(max-width:560px),(pointer:coarse){
+ #datumm-workspace:is(.studio-scene-home,.studio-scene-submitting) .studio-chat-column .studio-new-chat-suggestions button,#datumm-workspace .studio-starter-replace button{min-height:44px}
 }
-@media(max-width:850px) {
-  .workspace.desktop-workspace#datumm-workspace,.workspace.desktop-workspace#datumm-workspace.viewport-ready,.workspace.desktop-workspace#datumm-workspace.left-closed {grid-template-columns:52px minmax(0,1fr)}
-  #datumm-workspace .sidebar {position:absolute;top:0;bottom:26px;left:0;z-index:40;width:min(300px,calc(100vw - 40px));height:auto;grid-row:auto;grid-column:auto;box-shadow:8px 0 28px #0002}
-  #datumm-workspace .sidebar-backdrop {display:block;position:absolute;inset:0;z-index:39;background:#0004}
-  #datumm-workspace .studio-heading p {display:none}
-  #datumm-workspace .studio-artifact-actions .studio-connection {font-size:0!important;gap:0;padding:9px!important}
-  #datumm-workspace .studio-artifact-actions .studio-connection .connection-dot {width:8px;height:8px}
-  #datumm-workspace .studio-artifact-actions .studio-review-primary {font-size:11px;padding:7px}
+#datumm-workspace:is(.studio-scene-home,.studio-scene-submitting):not(.studio-secondary-view) .panel-resize-right{display:none}
+
+#datumm-workspace.studio-single:not(.studio-settings-open){grid-template-columns:var(--left-panel-width) minmax(0,1fr);grid-template-rows:64px 44px minmax(0,1fr) 26px}
+#datumm-workspace.studio-single .studio-pane-switch{grid-column:2;grid-row:2;display:flex;gap:4px;padding:5px 14px;border-bottom:1px solid var(--separator);background:var(--panel)}
+.studio-pane-switch button{display:flex;align-items:center;gap:6px;min-height:32px;padding:6px 14px;border:0;border-radius:6px;background:none;color:var(--muted-foreground);font:inherit}
+.studio-pane-switch button[aria-pressed=true]{background:var(--secondary);color:var(--foreground)}
+#datumm-workspace.studio-single :is(.studio-stage,.studio-chat-column){grid-column:2;grid-row:3}
+#datumm-workspace.studio-single.studio-pane-chat .studio-stage,#datumm-workspace.studio-single.studio-pane-drawing .studio-chat-column{display:none}
+#datumm-workspace.studio-single .studio-global-footer{grid-row:4}
+#datumm-workspace.studio-single .studio-chat-column .panel-resize{display:none}
+#datumm-workspace.studio-drawing-focused:not(.studio-settings-open){grid-template-columns:minmax(0,1fr);grid-template-rows:64px minmax(0,1fr) 26px}
+#datumm-workspace.studio-drawing-focused :is(.sidebar,.studio-nav-rail,.studio-chat-column,.studio-pane-switch){display:none!important}
+#datumm-workspace.studio-drawing-focused .studio-stage{grid-column:1/-1;grid-row:2;display:flex!important}
+#datumm-workspace.studio-drawing-focused .studio-global-footer{grid-row:3}
+#datumm-workspace.studio-drawing-focused .studio-artifact-header{grid-column:1/-1}
+
+#datumm-workspace.studio-settings-open{grid-template-columns:minmax(0,1fr);grid-template-rows:64px minmax(0,1fr) 26px}
+#datumm-workspace.studio-settings-open>:is(.sidebar,.studio-nav-rail,.sidebar-backdrop,.studio-chat-column,.studio-stage,.studio-pane-switch,.studio-artifact-header){display:none!important}
+#datumm-workspace.studio-settings-open>.studio-settings-header{grid-column:1/-1;grid-row:1;width:100%;min-width:0}
+#datumm-workspace.studio-settings-open>.studio-settings-embedded{grid-column:1/-1;grid-row:2;width:100%;min-width:0;min-height:0;justify-self:stretch;align-self:stretch}
+#datumm-workspace.studio-settings-open>.studio-global-footer{grid-column:1/-1;grid-row:3}
+#datumm-workspace .studio-settings-embedded .settings-content{grid-column:auto;grid-row:auto;min-width:0}
+.studio-web-menu-trigger{display:none}
+#datumm-workspace:is(.studio-scene-home,.studio-scene-submitting):not(.studio-secondary-view) .studio-welcome h1{text-align:center;margin:0}
+#datumm-workspace:is(.studio-scene-home,.studio-scene-submitting):not(.studio-secondary-view) .studio-welcome p{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+@media(max-width:850px){
+ #datumm-workspace.workspace.desktop-workspace:not(.studio-settings-open):not(.studio-drawing-focused){grid-template-columns:52px minmax(0,1fr)}
+ #datumm-workspace .sidebar{position:absolute;top:0;bottom:26px;left:0;z-index:40;width:min(264px,calc(100vw - 40px));height:auto;grid-row:auto;grid-column:auto;box-shadow:20px 0 48px var(--shadow-ink)}
+ #datumm-workspace .sidebar-backdrop{display:block;position:absolute;inset:0;z-index:39;background:rgba(0,0,0,.45)}
+ #datumm-workspace .studio-heading p{display:none}
+ #datumm-workspace .studio-chat-column .composer textarea{font-size:16px}
+ #datumm-workspace .studio-settings-embedded .setting-row{align-items:stretch;flex-direction:column;gap:12px}
+ #datumm-workspace .studio-settings-embedded .setting-row select{width:100%;max-width:100%;min-width:0}
 }
-@media(max-width:500px) {
-  .workspace.desktop-workspace#datumm-workspace,.workspace.desktop-workspace#datumm-workspace.viewport-ready,.workspace.desktop-workspace#datumm-workspace.left-closed {grid-template-columns:minmax(0,1fr);grid-template-rows:56px 44px minmax(0,1fr) 26px}
-  #datumm-workspace :is(.studio-stage,.studio-chat-column,.studio-pane-switch,.studio-artifact-header) {grid-column:1/-1}
-  #datumm-workspace .studio-nav-rail {display:none}
-  #datumm-workspace .studio-artifact-header {padding:0 12px;gap:8px}
-  #datumm-workspace .studio-heading h1 {font-size:13px}
-  #datumm-workspace .studio-workarea-toolbar {gap:0;padding:5px 6px}
-  .studio-workarea-toolbar button {padding:6px;font-size:10px}
-  .studio-workarea-toolbar button[aria-label="Open properties"] span {display:none}
-  #datumm-workspace .inspector,#datumm-workspace .inspector-backdrop {top:100px}
-  .workspace.desktop-workspace#datumm-workspace.studio-drawing-focused {grid-template-rows:56px minmax(0,1fr) 26px}
-  .studio-drawing-focused .inspector,.studio-drawing-focused .inspector-backdrop {top:56px}
+@media(max-width:500px){
+ #datumm-workspace .studio-web-menu-trigger{position:absolute;top:14px;left:14px;z-index:38;display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:6px;background:var(--panel);color:var(--text)}
+ #datumm-workspace .studio-web-menu-trigger:hover{background:var(--hover);color:var(--ink)}
+ #datumm-workspace:has(.studio-web-menu-trigger) .studio-artifact-header{padding-left:48px}
+ #datumm-workspace.workspace.desktop-workspace:not(.studio-settings-open):not(.studio-drawing-focused){grid-template-columns:minmax(0,1fr)}
+ #datumm-workspace :is(.studio-stage,.studio-chat-column,.studio-pane-switch,.studio-artifact-header){grid-column:1/-1}
+ #datumm-workspace .studio-nav-rail{display:none}
+ #datumm-workspace .studio-artifact-header{padding:0 12px;gap:8px}
+ #datumm-workspace .studio-heading h1{font-size:13px}
+ #datumm-workspace .studio-workarea-toolbar{gap:0;padding:5px 6px}
+ #datumm-workspace .studio-workarea-toolbar button{padding:6px;font-size:12px}
+ #datumm-workspace .studio-workarea-toolbar button[aria-label="Open properties"] span{display:none}
+ #datumm-workspace:is(.studio-scene-home,.studio-scene-submitting):not(.studio-secondary-view):not(.studio-settings-open)>.studio-chat-column{grid-column:1;margin:6px}
+ #datumm-workspace:is(.studio-scene-home,.studio-scene-submitting) .studio-chat-column .main-content{padding:56px 12px 40px}
+ #datumm-workspace:is(.studio-scene-home,.studio-scene-submitting) .studio-welcome h1{font-size:23px;line-height:29px}
+ #datumm-workspace.studio-single:not(.studio-settings-open){grid-template-rows:56px 44px minmax(0,1fr) 26px}
+ #datumm-workspace.studio-drawing-focused:not(.studio-settings-open),#datumm-workspace.studio-settings-open{grid-template-rows:56px minmax(0,1fr) 26px}
 }
-/* Settings owns the available viewport; editor panes stay mounted behind it. */
-#datumm-workspace.workspace.desktop-workspace.studio-settings-open,
-#datumm-workspace.workspace.desktop-workspace.studio-settings-open.viewport-ready,
-#datumm-workspace.workspace.desktop-workspace.studio-settings-open.left-closed,
-#datumm-workspace.workspace.desktop-workspace.studio-settings-open.studio-drawing-focused {
-  grid-template-columns:minmax(0,1fr);
-  grid-template-rows:64px minmax(0,1fr) 26px;
+
+/* affectUI agent sidebar: one expanded list or its collapsed icon rail. */
+#datumm-workspace.workspace.desktop-workspace.studio-stable-layout{--navigation-column-width:var(--left-panel-width)}
+#datumm-workspace.workspace.desktop-workspace.studio-stable-layout.left-closed{--navigation-column-width:52px}
+#datumm-workspace.workspace.desktop-workspace.studio-stable-layout:not(.studio-settings-open):not(.studio-drawing-focused){grid-template-columns:var(--navigation-column-width) var(--chat-panel-width) minmax(0,1fr)}
+#datumm-workspace .studio-navigation-shell{display:flex;grid-column:1;grid-row:1/-1;min-width:0;min-height:0;background:var(--chrome)}
+#datumm-workspace:not(.studio-drawing-focused) .studio-global-footer{grid-column:2/-1}
+#datumm-workspace .studio-navigation-shell>.sidebar{position:relative;inset:auto;flex:1;min-width:0;width:var(--left-panel-width);max-width:none;height:calc(100% - 16px);margin:8px 0;border:0;border-radius:10px;box-shadow:none}
+#datumm-workspace.workspace.desktop-workspace.studio-stable-layout:is(.studio-scene-home,.studio-scene-submitting):not(.studio-secondary-view):not(.studio-settings-open):not(.studio-drawing-focused){grid-template-columns:var(--navigation-column-width) minmax(0,1fr)}
+#datumm-workspace.workspace.desktop-workspace.studio-stable-layout.studio-single:not(.studio-settings-open):not(.studio-drawing-focused){grid-template-columns:var(--navigation-column-width) minmax(0,1fr)}
+#datumm-workspace.workspace.desktop-workspace.studio-stable-layout.studio-settings-open{grid-template-columns:52px minmax(0,1fr)}
+#datumm-workspace.studio-settings-open .studio-navigation-shell>.sidebar{display:none}
+#datumm-workspace.workspace.desktop-workspace.studio-stable-layout.studio-settings-open>:is(.studio-settings-header,.studio-settings-embedded,.studio-global-footer){grid-column:2}
+#datumm-workspace.studio-drawing-focused .studio-navigation-shell{display:none}
+@media(min-width:900px){
+ #datumm-workspace .studio-web-menu-trigger{display:none}
 }
-#datumm-workspace.studio-settings-open > :is(.sidebar,.studio-nav-rail,.sidebar-backdrop) {display:none!important}
-#datumm-workspace.studio-settings-open > .studio-settings-header {grid-column:1/-1;grid-row:1;width:100%;min-width:0}
-#datumm-workspace.studio-settings-open > .studio-settings-embedded {grid-column:1/-1;grid-row:2;width:100%;min-width:0;min-height:0;justify-self:stretch;align-self:stretch}
-#datumm-workspace.studio-settings-open > .studio-global-footer {grid-column:1/-1;grid-row:3}
-#datumm-workspace .studio-settings-embedded .settings-content {grid-column:auto;grid-row:auto;min-width:0}
-@media(max-width:650px) {
-  #datumm-workspace.studio-settings-open > .studio-settings-header {padding:0 18px}
-  #datumm-workspace .studio-settings-embedded .setting-row {align-items:stretch;flex-direction:column;gap:12px}
-  #datumm-workspace .studio-settings-embedded .setting-row select {width:100%;max-width:100%;min-width:0}
+@media(max-width:899px){
+ #datumm-workspace.workspace.desktop-workspace.studio-stable-layout:not(.studio-settings-open):not(.studio-drawing-focused),
+ #datumm-workspace.workspace.desktop-workspace.studio-stable-layout:is(.studio-scene-home,.studio-scene-submitting):not(.studio-secondary-view):not(.studio-settings-open):not(.studio-drawing-focused),
+ #datumm-workspace.workspace.desktop-workspace.studio-stable-layout.studio-single:not(.studio-settings-open):not(.studio-drawing-focused),
+ #datumm-workspace.workspace.desktop-workspace.studio-stable-layout.studio-settings-open{grid-template-columns:minmax(0,1fr)}
+ #datumm-workspace .studio-navigation-shell{position:absolute;inset:0 auto 0 0;z-index:45;width:min(var(--left-panel-width),calc(100vw - 12px));box-shadow:20px 0 48px var(--shadow-ink)}
+ #datumm-workspace.left-closed .studio-navigation-shell,#datumm-workspace.studio-settings-open .studio-navigation-shell{display:none}
+ #datumm-workspace .studio-navigation-shell>.sidebar{width:auto;flex:1;}
+ #datumm-workspace .sidebar-backdrop{display:block;position:absolute;inset:0;z-index:44;background:rgba(0,0,0,.45)}
+ #datumm-workspace .studio-web-menu-trigger{position:absolute;top:14px;left:14px;z-index:38;display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:6px;background:var(--panel);color:var(--text)}
+ #datumm-workspace:has(.studio-web-menu-trigger) .studio-artifact-header{padding-left:54px}
+ #datumm-workspace.workspace.desktop-workspace.studio-stable-layout :is(.studio-stage,.studio-chat-column,.studio-pane-switch,.studio-artifact-header){grid-column:1/-1}
+ #datumm-workspace.workspace.desktop-workspace.studio-stable-layout .studio-global-footer{grid-column:1/-1}
+ #datumm-workspace.workspace.desktop-workspace.studio-stable-layout:is(.studio-scene-home,.studio-scene-submitting):not(.studio-secondary-view):not(.studio-settings-open)>.studio-chat-column{grid-column:1;margin:8px}
+ #datumm-workspace.workspace.desktop-workspace.studio-stable-layout.studio-settings-open>:is(.studio-settings-header,.studio-settings-embedded,.studio-global-footer){grid-column:1}
 }
-@media(max-width:500px) {
-  #datumm-workspace.workspace.desktop-workspace.studio-settings-open,
-  #datumm-workspace.workspace.desktop-workspace.studio-settings-open.viewport-ready,
-  #datumm-workspace.workspace.desktop-workspace.studio-settings-open.left-closed,
-  #datumm-workspace.workspace.desktop-workspace.studio-settings-open.studio-drawing-focused {grid-template-rows:56px minmax(0,1fr) 26px}
+
+.studio-workarea-toggle{display:grid;place-items:center;flex:none;width:28px;height:28px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer}
+.studio-workarea-toggle:hover{background:var(--hover);color:var(--ink)}
+@media(min-width:900px){
+ #datumm-workspace.workspace.desktop-workspace.studio-stable-layout.studio-split.studio-workarea-closed:not(.studio-settings-open):not(.studio-drawing-focused){grid-template-columns:var(--navigation-column-width) minmax(0,1fr)}
+ #datumm-workspace.studio-split.studio-workarea-closed:not(.studio-drawing-focused)>.studio-stage{display:none}
+ #datumm-workspace.studio-split.studio-workarea-closed:not(.studio-drawing-focused)>.studio-chat-column{grid-column:2}
+ .conversation-outcome{margin:8px 0 12px;color:var(--muted-foreground);font-size:13px;line-height:1.5}
 }
+
+#datumm-workspace .studio-navigation-shell>.studio-nav-rail{width:52px;flex:none;height:100%;min-height:0;border:0;overflow-y:auto}
+
+@media(max-width:899px){
+ #datumm-workspace .studio-web-menu-trigger{width:44px;height:44px;top:8px;left:8px}
+ #datumm-workspace.studio-single:not(.studio-settings-open){grid-template-rows:64px 54px minmax(0,1fr) 26px}
+ #datumm-workspace.studio-single .studio-pane-switch{padding-block:5px}
+ #datumm-workspace .studio-pane-switch button,#datumm-workspace .studio-workarea-toolbar button{min-height:44px}
+ #datumm-workspace .studio-chat-column .composer .studio-mode-trigger,#datumm-workspace .studio-chat-column .composer .send-button{height:44px;min-height:44px}
+ #datumm-workspace .studio-chat-column .composer .send-button{width:44px;min-width:44px}
+ #datumm-workspace .studio-chat-column .composer .composer-tray{height:auto;min-height:44px}
+ #datumm-workspace .studio-chat-column .composer .composer-tray-link{height:44px;min-height:44px;min-width:44px}
+}
+@media(max-width:500px){
+ #datumm-workspace.studio-single:not(.studio-settings-open){grid-template-rows:56px 54px minmax(0,1fr) 26px}
+}
+
+/* Conversation: keep each request distinct while recorded activity stays quiet. */
+#datumm-workspace .studio-chat-column .conversation-turn + .conversation-turn{margin-top:24px;padding-top:0}
+#datumm-workspace .studio-chat-column .conversation-inner .is-user{max-width:88%}
+#datumm-workspace .studio-chat-column .conversation-inner .is-user > div{padding:10px 13px;border-radius:12px;background:var(--chip);color:var(--ink);line-height:1.55}
+#datumm-workspace .studio-chat-column .conversation-inner .is-assistant > .assistant-label{margin:14px 0 5px;color:var(--ink);font-size:12px;font-weight:500}

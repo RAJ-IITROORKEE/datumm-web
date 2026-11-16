@@ -31,7 +31,7 @@ test('hosted lead stages become flat spans with child rows',()=>{
   const seq=['command_accepted','agent_stage_start','context_packet','agent_action','intent_repair','agent_stage_complete','agent_stage_start','context_packet','agent_action','research','agent_stage_complete','agent_stage_start','context_compacted','context_packet','agent_action','needs_input','agent_stage_complete','needs_input'];
   const events=seq.map((stage,index)=>({index,stage,detail:stage==='agent_stage_start'?`Planning ${index}`:stage,agent:{name:'Lead'}}));
   const spans=stageSpans(events);
-  assert.deepEqual(spans.map(s=>[s.title,s.done,s.children.map(c=>c.stage)]),[['Planning 1',true,['agent_action']],['Planning 6',true,['agent_action','research']],['Planning 11',true,['agent_action']]]);
+  assert.deepEqual(spans.map(s=>[s.title,s.done,s.children.map(c=>c.stage)]),[['Planning 1',false,['agent_action']],['Planning 6',false,['agent_action','research']],['Planning 11',false,['agent_action']]]);
 });
 
 test('an unclosed stage is still running and no stages gives no spans',()=>{
@@ -53,10 +53,23 @@ test('span titles come from the first note, summaries from the last',()=>{
   const [a,b]=stageSpans(events);
   assert.equal(a.title.length,80);
   assert.equal(a.summary,'Found the walls; next I will draft');
-  assert.equal(a.done,true);
+  assert.equal(a.done,false);
   assert.equal(b.title,'Planning the next step');
   assert.equal(b.summary,'');
   assert.equal(latestNote(events),'Found the walls; next I will draft');
   assert.equal(latestNote(events.slice(4)),'Planning the next step');
   assert.equal(latestNote([]),'');
+});
+
+test('hosted action completion requires unique matching activity and execution identities',()=>{
+ const start={index:0,stage:'agent_stage_start'}, action={index:1,stage:'agent_action',activityId:'a',executionId:'e',turnId:'t'}, done={index:2,stage:'agent_stage_complete',activityId:'a',executionId:'e',turnId:'t',controlOutcome:'success'};
+ assert.equal(stageSpans([start,action,done])[0].done,true);
+ for(const seq of [[start,{...action,activityId:undefined},done],[start,action,{...done,executionId:'other'}],[start,action,done,{...done,index:3}],[start,action,{...action,index:1.5},done],[start,done]]) assert.equal(stageSpans(seq)[0].done,false);
+});
+
+test('parented phase events remain together and correlate by exact activity identity',()=>{
+ const scope={activityId:'a',executionId:'e',turnId:'t',taskId:'task',parentStepId:'step'};
+ const events=[{index:0,stage:'agent_stage_start',parentStepId:'step'},{index:1,stage:'agent_action',...scope},{index:2,stage:'agent_stage_complete',controlOutcome:'success',...scope}];
+ const {rest,steps}=nestProcess(events);assert.equal(steps.length,0);assert.equal(rest.length,3);assert.equal(stageSpans(rest)[0].done,true);
+ assert.equal(stageSpans(nestProcess([events[0],events[1],{...events[2],turnId:'other'}]).rest)[0].done,false);
 });

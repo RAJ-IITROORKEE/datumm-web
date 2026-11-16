@@ -2,7 +2,7 @@
 .activitySummary {
   min-width: 0;
   max-width: 100%;
-  color: var(--foreground);
+  color: var(--ink);
   font: 400 13px/1.65 "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
   overflow-wrap: anywhere;
 }
@@ -10,17 +10,17 @@
 .activity { margin: 10px 0; }
 .disclosure { min-width: 0; }
 .activity :is(summary, pre):focus-visible {
-  outline: 2px solid var(--trace-accent);
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
   border-radius: 5px;
 }
 .activity summary { cursor: pointer; list-style: none; }
 .activity summary::-webkit-details-marker { display: none; }
-.activity summary:hover { color: var(--foreground); background: var(--secondary); }
-.activity summary:active { background: var(--secondary); }
+.activity summary:hover { color: var(--ink); background: var(--hover); }
+.activity summary:active { background: var(--hover); }
 .activity summary > svg { flex: none; }
 .activity :is(p, h3, h4) { margin: 0; }
-.activity .chevron { flex: none; margin-left: auto; color: var(--muted-foreground); transition: transform 160ms ease-out; }
+.activity .chevron { flex: none; margin-left: auto; color: var(--text); transition: transform 160ms ease-out; }
 .activity details[open] > summary > .chevron { transform: rotate(180deg); }
 
 .summary {
@@ -31,31 +31,31 @@
   min-height: 36px;
   padding: 5px 6px;
   border-radius: 5px;
-  color: var(--muted-foreground);
+  color: var(--text);
 }
 .summaryLabel { min-width: 0; font-weight: 500; }
 .summaryMeta { font-size: 12px; font-variant-numeric: tabular-nums; }
 .body { min-width: 0; margin: 6px 0 0; padding: 14px 0 0; border-top: 1px solid var(--separator, var(--border)); }
 .heading { display: grid; gap: 4px; margin-bottom: 14px; }
 .activity .heading h3 { font: 600 15px/1.45 "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif; letter-spacing: -.015em; }
-.activity .heading p { color: var(--muted-foreground); font-size: 12px; }
+.activity .heading p { color: var(--text); font-size: 12px; }
 .publicUpdate { margin: 8px 0; white-space: pre-wrap; max-width: 74ch; }
-.live { display: flex; align-items: center; gap: 8px; min-height: 36px; color: var(--muted-foreground); }
+.live { display: flex; align-items: center; gap: 8px; min-height: 36px; color: var(--text); }
 
-.tools { margin: 14px 0; padding: 0; list-style: none; border: 1px solid var(--separator, var(--border)); border-radius: 7px; }
+.tools { display: grid; gap: 8px; margin: 14px 0; padding: 0; list-style: none; }
 .tool { min-width: 0; }
-.tool + .tool { border-top: 1px solid var(--separator, var(--border)); }
+.tool + .tool { border: 0; }
 .toolSummary { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; min-height: 40px; padding: 10px 12px; border-radius: 6px; }
 .toolName { flex: 1 1 120px; min-width: 0; font-weight: 500; }
-.state { color: var(--muted-foreground); font-size: 12px; }
+.state { color: var(--text); font-size: 12px; }
 .tool[data-state=failed] > details > summary { color: var(--trace-error); }
 .tool[data-state=failed] > details > summary .state { color: inherit; }
 .tool[data-state=completed] > details > summary > svg:first-child { color: var(--trace-success); }
-.tool[data-state=active] > details > summary > svg:first-child { color: var(--trace-accent); }
-.metric { color: var(--muted-foreground); font-size: 12px; font-variant-numeric: tabular-nums; }
+.tool[data-state=active] > details > summary > svg:first-child { color: var(--accent); }
+.metric { color: var(--text); font-size: 12px; font-variant-numeric: tabular-nums; }
 .toolBody { min-width: 0; padding: 12px; border-top: 1px solid var(--separator, var(--border)); }
 .evidenceBlock + .evidenceBlock { margin-top: 14px; }
-.activity .evidenceBlock h4 { margin-bottom: 6px; color: var(--muted-foreground); font-size: 12px; font-weight: 500; }
+.activity .evidenceBlock h4 { margin-bottom: 6px; color: var(--text); font-size: 12px; font-weight: 500; }
 .activity .evidenceBlock pre {
   box-sizing: border-box;
   max-width: 100%;
@@ -69,43 +69,43 @@
   word-break: break-word;
   border: 0;
   border-radius: 5px;
-  background: var(--secondary);
-  color: var(--foreground);
+  background: var(--hover);
+  color: var(--ink);
   font: 12px/1.65 SFMono-Regular, Consolas, "Liberation Mono", monospace;
   tab-size: 2;
 }
-.activity .note { max-width: 74ch; color: var(--muted-foreground); font-size: 12px; }
+.activity .note { max-width: 74ch; color: var(--text); font-size: 12px; }
 .toolBody > .note { margin-bottom: 12px; }
 .technical { min-width: 0; margin-top: 12px; border-top: 1px solid var(--separator, var(--border)); }
-.technical > summary { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; min-height: 38px; padding: 8px 4px; color: var(--muted-foreground); }
+.technical > summary { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; min-height: 38px; padding: 8px 4px; color: var(--text); }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 12px 18px; margin: 6px 0 14px; }
 .facts > div { min-width: 0; }
-.facts dt { color: var(--muted-foreground); font-size: 12px; }
+.facts dt { color: var(--text); font-size: 12px; }
 .facts dd { margin: 2px 0 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .specialists { list-style: none; margin: 0; padding: 0; }
 .specialists .technical { margin-top: 0; }
 .todos { display: grid; gap: 10px; list-style: none; padding: 0; margin: 14px 0; }
 .todos li { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
-.todos svg { flex: none; margin-top: 3px; color: var(--muted-foreground); }
+.todos svg { flex: none; margin-top: 3px; color: var(--text); }
 .todos [data-status=completed] svg { color: var(--trace-success); }
-.todos [data-status=in_progress] svg { color: var(--trace-accent); }
-.todos small { display: block; color: var(--muted-foreground); font-size: 12px; }
+.todos [data-status=in_progress] svg { color: var(--accent); }
+.todos small { display: block; color: var(--text); font-size: 12px; }
 .events { display: grid; gap: 12px; margin: 6px 0 12px; padding: 0; list-style: none; }
 .events li { display: flex; gap: 8px; min-width: 0; }
-.events svg { flex: none; margin-top: 3px; color: var(--muted-foreground); }
+.events svg { flex: none; margin-top: 3px; color: var(--text); }
 .events li > div { min-width: 0; }
-.events time { color: var(--muted-foreground); font-size: 12px; font-variant-numeric: tabular-nums; }
-.footer { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 8px 16px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--separator, var(--border)); color: var(--muted-foreground); font-size: 12px; }
+.events time { color: var(--text); font-size: 12px; font-variant-numeric: tabular-nums; }
+.footer { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 8px 16px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--separator, var(--border)); color: var(--text); font-size: 12px; }
 .runtime { flex: 1 1 150px; min-width: 0; }
 .runtime > summary { display: flex; align-items: center; gap: 8px; width: fit-content; min-height: 28px; }
 .runtime > p { padding-top: 6px; }
 
 .activitySummary { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
 .activitySummary > li { display: grid; grid-template-columns: 15px minmax(0, 1fr); gap: 8px; padding: 11px 0; border-bottom: 1px solid var(--separator, var(--border)); }
-.activitySummary > li > svg { margin-top: 3px; color: var(--muted-foreground); }
+.activitySummary > li > svg { margin-top: 3px; color: var(--text); }
 .activitySummary strong { display: block; font-weight: 500; }
-.activitySummary small { display: block; margin-top: 2px; color: var(--muted-foreground); font-size: 12px; }
-.activitySummary time { grid-column: 2; color: var(--muted-foreground); font-size: 12px; font-variant-numeric: tabular-nums; }
+.activitySummary small { display: block; margin-top: 2px; color: var(--text); font-size: 12px; }
+.activitySummary time { grid-column: 2; color: var(--text); font-size: 12px; font-variant-numeric: tabular-nums; }
 .activitySummary [data-stage=failed] > svg,
 .activitySummary [data-stage=tool_failed] > svg { color: var(--trace-error); }
 
@@ -120,3 +120,7 @@
 }
 :global([data-motion=reduce]) .activity .chevron { transition: none; }
 :global([data-motion=reduce]) .activity :global(.working-segments) i { animation: none; opacity: .8; }
+.activitySummaryCompact > li { grid-template-columns: 15px minmax(0, 1fr) auto; align-items: start; padding: 8px 0; }
+.activitySummaryCompact strong { overflow-wrap: anywhere; }
+.activitySummaryCompact small { display: inline; margin: 0; font-size: 11px; }
+.activitySummaryCompact time { grid-column: 3; white-space: nowrap; }

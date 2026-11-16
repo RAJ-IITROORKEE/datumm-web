@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import * as React from 'react';
 import * as jsxRuntime from 'react/jsx-runtime';
+import {renderToStaticMarkup} from 'react-dom/server';
 import ts from 'typescript';
 import * as profileModule from '../src/lib/onboarding-profile.mjs';
 import {validateProfileInput,readOnboardingProfile,nextOnboardingProfile,handleProfileRequest} from '../src/lib/onboarding-profile.mjs';
@@ -34,6 +35,24 @@ test('resume and completion remain durable across later profile edits',()=>{
   assert.throws(()=>nextOnboardingProfile({name:'',domain:'',useCases:[],step:'profile'},completed));
   assert.equal(readOnboardingProfile({datummOnboarding:{...completed,version:99}}),null);
   assert.equal(readOnboardingProfile({datummOnboarding:{...completed,useCases:['bad']}}),null);
+});
+
+test('actual resumed onboarding and profile editor submit editable fields without stored timestamps',async()=>{
+ for(const component of ['AccountOnboarding','AccountProfileEditor']){
+  const fixture=store(),stored=nextOnboardingProfile(valid,null,'2026-11-13T09:00:00Z');fixture.records.accountA.privateMetadata.datummOnboarding=stored;
+  const initial=readOnboardingProfile(fixture.records.accountA.privateMetadata),bodies=[];let completed=0;
+  const props=component==='AccountOnboarding'?{initial,onComplete(){completed++;}}:{profile:initial};
+  const h=onboardingHarness(props,{component,effects:component==='AccountProfileEditor',fetch:async(_path,init)=>{
+   if(init.method==='GET')return Response.json({profile:initial});
+   const body=JSON.parse(init.body);bodies.push(body);return handleProfileRequest(request(body),fixture.dependencies());
+  }});
+  h.render();await new Promise(setImmediate);const tree=h.render();if(component==='AccountOnboarding')elements(tree).find(element=>element.type==='button'&&element.props.children==='Skip for now').props.onClick();else submit(tree);
+  await new Promise(setImmediate);
+  assert.deepEqual(Object.keys(bodies[0]).sort(),['domain','name','step','useCases']);
+  assert.equal(fixture.records.accountA.privateMetadata.datummOnboarding.step,'complete');
+  assert.ok(fixture.records.accountA.privateMetadata.datummOnboarding.completedAt);
+  if(component==='AccountOnboarding')assert.equal(completed,1);
+ }
 });
 
 test('unauthenticated and cross-origin mutations never reach the account store',async()=>{
@@ -73,19 +92,25 @@ test('invalid, oversized and failed saves return recoverable errors without inve
 });
 
 // Exercise the actual component handlers with persistent hook state; no DOM or live account is needed.
-function onboardingHarness(props) {
+function onboardingHarness(props,{component='AccountOnboarding',fetch,effects=false}={}) {
   const slots=[];
-  let cursor=0;
-  const hooks={...React,useEffect:()=>{},useRef:initial=>{
+  const pending=[];
+  let cursor=0,unmounted=false,updatesAfterUnmount=0;
+  const hooks={...React,useEffect:(callback,deps)=>{
+    if(!effects)return;
+    const slot=cursor++,previous=slots[slot];
+    if(previous&&deps.every((value,index)=>Object.is(value,previous.deps[index])))return;
+    pending.push(()=>{previous?.cleanup?.();slots[slot]={deps,cleanup:callback()};});
+  },useRef:initial=>{
     const slot=cursor++;return slots[slot]??=( {current:initial} );
   },useState:initial=>{
     const slot=cursor++;
     if(!(slot in slots))slots[slot]=typeof initial==='function'?initial():initial;
-    return [slots[slot],next=>{slots[slot]=typeof next==='function'?next(slots[slot]):next;}];
+    return [slots[slot],next=>{if(unmounted)updatesAfterUnmount++;slots[slot]=typeof next==='function'?next(slots[slot]):next;}];
   }};
   const exports={};
   const source=readFileSync(new URL('../src/components/onboarding/account-onboarding.tsx',import.meta.url),'utf8');
-  const context={exports,Error,require(name){
+  const context={exports,Error,AbortController,fetch,require(name){
     if(name==='react')return hooks;
     if(name==='react/jsx-runtime')return jsxRuntime;
     if(name==='@/lib/onboarding-profile.mjs')return profileModule;
@@ -93,8 +118,8 @@ function onboardingHarness(props) {
     if(name.endsWith('.json'))return {default:{}};
     return new Proxy({},{get:()=>()=>null});
   }};
-  runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText,context);
-  return {render(){cursor=0;return exports.AccountOnboarding({accountControl:null,...props});}};
+  runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText+`\nexports.testComponent = ${component};`,context);
+  return {render(){cursor=0;const tree=exports.testComponent({accountControl:null,...props});pending.splice(0).forEach(run=>run());return tree;},unmount(){unmounted=true;slots.forEach(value=>value?.cleanup?.());},get updatesAfterUnmount(){return updatesAfterUnmount;}};
 }
 function elements(tree) {
   if(!React.isValidElement(tree))return [];
@@ -161,4 +186,175 @@ test('Skip and Open workspace share one pending completion and disable Back',asy
   assert.equal(elements(harness.render()).filter(element=>element.type==='button').every(element=>element.props.disabled),true);
   resolve({});await new Promise(setImmediate);
   assert.equal(completed,1);
+});
+
+test('connector recheck clears an earlier online confirmation and coalesces duplicate clicks',async()=>{
+  let resolve,reads=0;
+  const harness=onboardingHarness({}, {component:'ConnectorStep',fetch:()=>{
+    reads++;return new Promise(yes=>{resolve=yes;});
+  }});
+  const check=tree=>elements(tree).find(element=>element.type==='button').props.onClick();
+  const hasOnline=tree=>elements(tree).some(element=>React.Children.toArray(element.props.children).includes('Device online'));
+  const first=harness.render();
+  check(first);check(first);
+  assert.equal(reads,1,'One read starts even before React rerenders');
+  resolve({ok:true,json:async()=>[{online:true}]});await new Promise(setImmediate);
+  assert.equal(hasOnline(harness.render()),true);
+  check(harness.render());
+  const pending=harness.render();
+  assert.equal(reads,2);
+  assert.equal(hasOnline(pending),false,'The earlier observation cannot confirm the pending read');
+  assert.equal(elements(pending).find(element=>element.type==='button').props.disabled,true);
+  assert.equal(elements(pending).find(element=>element.props.role==='status').props.children,'Checking your Revit devices…');
+  resolve({ok:false});await new Promise(setImmediate);
+  const failed=harness.render();
+  assert.equal(hasOnline(failed),false);
+  assert.match(elements(failed).find(element=>element.props.role==='status').props.children,/unavailable.*Try again/);
+  assert.equal(elements(failed).find(element=>element.type==='button').props.disabled,false);
+  check(failed);
+  resolve({ok:true,json:async()=>[{online:false}]});await new Promise(setImmediate);
+  assert.match(elements(harness.render()).find(element=>element.props.role==='status').props.children,/No Revit device is online/);
+});
+
+test('connector checks ignore invalid device records before an actual online device',async()=>{
+  const harness=onboardingHarness({}, {component:'ConnectorStep',fetch:async()=>({ok:true,json:async()=>[null,{},'invalid',{online:true}]})});
+  elements(harness.render()).find(element=>element.type==='button').props.onClick();
+  await new Promise(setImmediate);
+  assert.match(elements(harness.render()).find(element=>element.props.role==='status').props.children,/A Revit device is online/);
+});
+
+const content=tree=>React.isValidElement(tree)?React.Children.toArray(tree.props.children).map(content).join(' '):typeof tree==='string'?tree:'';
+
+test('completed profiles open normally; history compatibility offers real setup without inventing completion',async()=>{
+  const completed=onboardingHarness({children:'Actual workspace'},{component:'AccountOnboardingGate',effects:true,fetch:async()=>Response.json({profile:{...valid,completedAt:'2026-11-12T09:00:00Z'}})});
+  completed.render();await new Promise(setImmediate);
+  assert.equal(completed.render(),'Actual workspace');
+  const calls=[];
+  const returning=onboardingHarness({children:'Actual saved workspace'},{component:'AccountOnboardingGate',effects:true,fetch:async(url,init)=>{calls.push([url,init]);return Response.json(url==='/api/account/profile'?{profile:null,name:'Returning architect'}:[{id:'saved-task'}]);}});
+  returning.render();await new Promise(setImmediate);
+  const recovery=returning.render();
+  assert.match(content(recovery),/Account setup is unconfirmed/);
+  assert.match(content(recovery),/Actual saved workspace/);
+  assert.match(content(recovery),/hasn’t been marked complete/);
+  elements(recovery).find(element=>element.type==='button').props.onClick();
+  const setup=returning.render();
+  assert.equal(setup.type.name,'AccountOnboarding');
+  assert.equal(setup.props.initial.name,'Returning architect');
+  assert.equal(setup.props.initial.step,'profile');
+  assert.equal(calls.every(([,init])=>init.method===undefined||init.method==='GET'),true,'Compatibility admission does not save completion');
+});
+
+test('profile failure recovery retains the failure explanation and retries the actual profile gate',async()=>{
+  let reads=0;
+  const gate=onboardingHarness({children:'Authenticated workspace'},{component:'AccountOnboardingGate',effects:true,fetch:async()=>{reads++;if(reads===1)throw Error('Profile connection unavailable.');return Response.json({profile:{...valid,step:'use-cases'}});}});
+  gate.render();await new Promise(setImmediate);
+  const failed=gate.render();
+  elements(failed).find(element=>element.type==='button'&&element.props.children==='Continue to workspace').props.onClick();
+  const admitted=gate.render();
+  assert.match(content(admitted),/Authenticated workspace/);
+  assert.match(content(admitted),/Profile connection unavailable/);
+  assert.match(content(admitted),/hasn’t been marked complete/);
+  elements(admitted).find(element=>element.type==='button').props.onClick();
+  gate.render();await new Promise(setImmediate);
+  const resumed=gate.render();
+  assert.equal(resumed.type.name,'AccountOnboarding');
+  assert.equal(resumed.props.initial.step,'use-cases');
+  assert.equal(reads,2);
+});
+
+test('profile editor keeps unsaved fields after a failed save',async()=>{
+  const editor=onboardingHarness({}, {component:'AccountProfileEditor',effects:true,fetch:async(_url,init)=>{
+    if(init.method==='GET')return Response.json({profile:{...valid,step:'complete'}});
+    return new Response(JSON.stringify({detail:'Save unavailable.'}),{status:503,headers:{'Content-Type':'application/json'}});
+  }});
+  editor.render();await new Promise(setImmediate);
+  let tree=editor.render();
+  elements(tree).find(element=>element.props.id==='datumm-profile-name').props.onChange({target:{value:'Unsaved architect'}});
+  tree=editor.render();submit(tree);await new Promise(setImmediate);
+  tree=editor.render();
+  assert.equal(elements(tree).find(element=>element.props.id==='datumm-profile-name').props.value,'Unsaved architect');
+  assert.match(content(tree),/Save unavailable/);
+  assert.match(content(tree),/Your entries are still here/);
+});
+
+test('history must be an authoritative array before choosing first-visit onboarding',async()=>{
+  for (const history of [new Response('',{status:401}),new Response('',{status:503}),Response.json({runs:[]}),new Response('not json',{status:200})]) {
+    let reads=0;
+    const gate=onboardingHarness({children:'Saved workspace'},{component:'AccountOnboardingGate',effects:true,fetch:async(url)=>{
+      if(url==='/api/account/profile')return Response.json({profile:null,name:'Architect'});
+      reads++;return reads===1?history:Response.json([{id:'saved'}]);
+    }});
+    gate.render();await new Promise(setImmediate);
+    const failed=gate.render();
+    assert.match(content(failed),/saved work could not be checked/i);
+    assert.notEqual(failed.type.name,'AccountOnboarding');
+    elements(failed).find(element=>element.type==='button'&&element.props.children==='Continue to workspace').props.onClick();
+    assert.match(content(gate.render()),/Setup hasn’t been marked complete/);
+    elements(gate.render()).find(element=>element.type==='button').props.onClick();
+    gate.render();await new Promise(setImmediate);
+    assert.match(content(gate.render()),/Account setup is unconfirmed/);
+    assert.equal(reads,2);
+  }
+  const first=onboardingHarness({children:'Workspace'},{component:'AccountOnboardingGate',effects:true,fetch:async(url)=>Response.json(url==='/api/account/profile'?{profile:null,name:'New architect'}:[])});
+  first.render();await new Promise(setImmediate);
+  assert.equal(first.render().type.name,'AccountOnboarding');
+});
+
+test('obsolete account profile and history responses are discarded even when a fetch ignores abort',async()=>{
+  for(const pendingHistory of [false,true]) {
+    let resolve;
+    const gate=onboardingHarness({children:'Must stay closed'},{component:'AccountOnboardingGate',effects:true,fetch:async(url)=>{
+      if(pendingHistory&&url==='/api/account/profile')return Response.json({profile:null});
+      return new Promise(yes=>{resolve=yes;});
+    }});
+    gate.render();await new Promise(setImmediate);
+    gate.unmount();
+    resolve(Response.json(pendingHistory?[{id:'old-account-task'}]:{profile:{...valid,completedAt:'2026-11-12T09:00:00Z'}}));
+    await new Promise(setImmediate);
+    assert.equal(gate.updatesAfterUnmount,0);
+  }
+});
+
+test('Back from a resumed interests step preserves Unicode profile fields and all interests',()=>{
+  const initial={...valid,name:'میرا 李',step:'use-cases'};
+  const harness=onboardingHarness({initial,onComplete(){},saveProfile:async()=>{throw Error('Back must not save');}});
+  const current=harness.render();
+  elements(current).find(element=>element.type==='button'&&content(element).includes('Back')).props.onClick();
+  const previous=elements(harness.render());
+  assert.equal(previous.find(element=>element.props.id==='datumm-profile-name').props.value,initial.name);
+  assert.equal(previous.find(element=>element.props.id==='datumm-profile-domain').props.value,initial.domain);
+});
+
+test('the real interests caller preserves multiple controlled selections, false and error association',()=>{
+  const props={value:{...valid,useCases:[]},error:'Choose at least one interest',onChange(value){props.value=value;}};
+  const harness=onboardingHarness(props,{component:'UseCaseFields'});
+  const options=()=>elements(harness.render()).filter(element=>element.props.variant==='card');
+  assert.equal(options().length>2,true);
+  assert.equal(options().every(element=>element.props.checked===false),true);
+  assert.equal(options().every(element=>element.props['aria-describedby']==='datumm-interests-error'),true);
+  options()[0].props.onChange({target:{checked:true}});
+  options()[1].props.onChange({target:{checked:true}});
+  assert.equal(props.value.useCases.length,2);
+  options()[0].props.onChange({target:{checked:false}});
+  assert.equal(props.value.useCases.length,1);
+});
+
+test('adopted checkbox has one native input and label; pending skeletons have one readable status',()=>{
+  function vendor(file) {
+    const exports={};
+    runInNewContext(ts.transpileModule(readFileSync(new URL('../src/components/vendor/affectui/'+file+'-clean.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText,{exports,require(name){if(name==='react')return React;if(name==='react/jsx-runtime')return jsxRuntime;throw Error(name);}});
+    return exports;
+  }
+  const {Checkbox}=vendor('checkbox');
+  const {Loading,Skeleton}=vendor('skeleton');
+  const input=renderToStaticMarkup(React.createElement(Checkbox,{variant:'card',label:'Drawing review',checked:false,onChange(){}}));
+  assert.equal((input.match(/<input\b/g)??[]).length,1);
+  assert.equal((input.match(/<label\b/g)??[]).length,1);
+  assert.match(input,/type="checkbox"/);
+  assert.doesNotMatch(input,/ checked=""/);
+  const loading=renderToStaticMarkup(React.createElement(Loading,{label:'Opening your workspace…'},React.createElement(Skeleton,{width:180}),React.createElement('p',{},'Opening your workspace…')));
+  assert.equal((loading.match(/role="status"/g)??[]).length,1);
+  assert.match(loading,/aria-hidden="true"/);
+  assert.match(loading,/aria-busy="true"/);
+  assert.match(loading,/>Opening your workspace…<\/p>/);
 });
