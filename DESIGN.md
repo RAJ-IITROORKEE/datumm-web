@@ -109,52 +109,121 @@ components:
 
 # Design System: DATUMM
 
-## Overview
+Design rules, tokens and the screen map for DATUMM Web. The YAML block above holds the machine-read tokens (do not edit it by hand; the Impeccable skill reads it). Status and next steps live in [docs/ux/HANDOFF.md](docs/ux/HANDOFF.md), not here. Product truth is in [PRODUCT.md](PRODUCT.md); agent rules are in [AGENTS.md](AGENTS.md).
 
-The user selected affectUI's complete theme, Inter typography, Assistant Home and Agent Chat hierarchy. M1–M8 migrate actual production owners on the dedicated branch. [Implementation checkpoints](docs/ux/implementation-checkpoints.md) distinguish source completion, browser fidelity and connected acceptance. This records implemented values, not release readiness. Use pinned public MIT components through documented adapters; independently reconstruct Pro compositions. Keep DATUMM identity, architectural content and exact Revit approval boundaries.
+## 1. Direction
 
-## Colors
+- **Foundation:** affectUI's theme, Inter typography, Assistant Home and Agent Chat hierarchy, built on shadcn-style primitives. Public MIT sources are used through documented adapters; Pro previews are rebuilt independently, never from gated source.
+- **Protocol:** AG-UI is the wire for every agent-to-UI interaction. The middle chat migrates first; each later surface needs its own approved plan.
+- **Identity:** DATUMM keeps its architectural content and exact Revit approval boundaries. The interface is quiet: compact operational progress, expandable detail, short answers, well-designed questions.
+- **Reference index:** the component reference map in [PLAN.md](PLAN.md#component-reference-map) lists the exact affectUI links and how far each was inspected.
 
-The trusted map is `src/lib/themes/affectui.json`. Page surrounds the app, panel contains work, tray supports controls. Ink/text/muted/faint and hover/select/chip are distinct measured roles. Normal contrast preserves alpha values; explicit High contrast strengthens text/separators. Status retains its label or icon. Pricing/search/local comments retain the separately measured dark #1c1c1e and white light surface. The composer write layer uses these same local colors above its #161618 / #f5f5f5 tray. Input ink is white/black, placeholder alpha0.36; High contrast strengthens it.
+## 2. Tokens
 
-Appearance version 2 offers Dark/Light/System. Legacy modes migrate with a bounded one-time backup and download; old palette/import choices are retired. Density, reading size, contrast and motion remain preferences. Bootstrap, runtime, portals and Clerk share the new system.
+Source of truth: `src/lib/themes/affectui.json` (values mirrored in the YAML block).
 
-## Typography
+- **Color:** page surrounds the app, panel contains work, tray supports controls. Ink, text, muted and faint are separate measured roles. Status color always carries a label or icon. Appearance has Dark, Light and System; High contrast and reduced motion are separate preferences. Legacy palettes migrate once, with a bounded backup.
+- **Type:** self-hosted Inter Variable only. Interface 13/20, answers 14/22.4, section titles 14/20/500, metadata 12/16, Home 28/34/500 (23/29 narrow), settings and pricing headings 24/32/500. Editable fields on narrow screens use 16px. Mono uses system fallbacks.
+- **Shape:** controls 6px, navigation 8px, cards 10px, panels 12px, composer 16px. Technical drawing paper and ink stay light in either theme and in exports.
+- **Depth:** tonal surfaces and hairlines define hierarchy; only the composer, menus and search carry a measured shadow.
+- **Layout:** Home max width 672px. Settings 205px navigation / 696px content. Onboarding 248px checklist / 600px form. Pricing 1040px max, three columns. Stored defaults are 248px navigation and 380px chat; viewport clamps never overwrite preferences. Split view needs 1180px; below 900px the screen switches between Chat and Work area with a bounded navigation drawer. Each pane, table and dialog contains its own overflow.
 
-Self-hosted Inter Variable is the only interface font. Interface 13/20, answers 14/22.4, Home 28/34/500 (23/29 narrow), settings/pricing headings 24/32/500, sections 14/20/500, metadata 12/16. Pricing amounts 24/32/500. Narrow editable fields use 16px. Mono uses system fallbacks; no Apple fonts are distributed.
+## 3. Component policy
 
-## Layout
+1. Reuse `src/components/ui` (shadcn-style: Radix, `class-variance-authority`, `tailwind-merge`) and the 22 pinned sources in `src/components/vendor/affectui/` before writing anything new.
+2. Vendored files keep their digests; change them only through the patch process in `vendor/affectui/PROVENANCE.md`.
+3. Use semantic roles and the tokens above; never hard-code colors or fonts.
+4. Every component states its empty, loading or streaming, ready, cancelled, failed, disconnected, stale and unavailable or permission-denied behavior where it applies.
+5. Keyboard access, visible focus, returned focus when dialogs close, text status (not color alone) and reduced motion are required, not polish.
+6. No component removes an essential control to imitate a screenshot.
 
-Option A: navigation, stable chat, larger right Design/Activity/Assets/Exports area. Stored defaults are 248px navigation and 380px chat; viewport clamps never overwrite preferences. Split needs 1180px and sufficient remaining space. Below900px, screens switch Chat/Work area with a viewport-bounded navigation drawer. The left structure follows affectUI Agent Chat: one full sidebar, or a52px collapsed icon column, without a separate outer rail. Both side panels use recognizable close/open buttons; right resizing remains at the edge. Home max width is 672px. Web uses the full viewport; native titlebar/window controls appear only in Desktop. The narrow web opener moves focus into navigation and dismissal restores it.
+## 4. Agent chat patterns
 
-One composer and exact-identity drawing remain mounted across sections, outputs and Focus. New planId/version/fingerprint resets incompatible view state. Properties/assumptions/alternatives/comparison belong in Design; exact formats/style in Exports. Assets uses scoped loaded records and separate deliberate alternative selection.
+These are the AG-UI-driven parts of the middle chat.
 
-Settings: 205px navigation / 696px content; narrow Browse sections disclosure. Onboarding: 248px checklist / 600px form; horizontal narrow progress. Pricing: 1040px max, three columns with 12px gap, responsive stack. Each pane/table/dialog contains its own overflow.
+| Pattern | Rule | Source |
+| --- | --- | --- |
+| Composer | One composer, 672×143px: 106px write layer, 37px context tray. Explicit Ask / Plan / Build menu on the left; model, effort, voice and Send on the right. Draft and IME state survive loading. Suggestions appear only as the empty placeholder. | `workspace/composer.tsx` |
+| Process | One collapsed accordion per turn: "Working…" then "Worked for N s · n steps". Named actions first, lifecycle and failures separate. Only agents that actually ran appear. Never private reasoning. | `workspace/turn-process.tsx`, `lib/turn-nesting.mjs` |
+| Tools | Status badge, bounded and escaped input and output, truthful timing. Unknown, stopped and unconfirmed labels stay as they are. | `ai-elements/tool.tsx` |
+| Questions | Docked above the composer, one at a time with progress, option chips, an "Other" input, Back and Next, then review and one submit. | `agent-questions.tsx`, `lib/question-stepper.mjs` |
+| Plan checklist | Pinned "Plan · done of total", derived from the saved plan or native to-dos; collapses when complete. | `workspace/plan-dock.tsx`, `lib/agent-todos.mjs` |
+| Answers | Streamdown inside the affectUI hierarchy; concise by default; tables get CSV, full-screen focus and narrow scrolling. | `workspace/conversation-answer.tsx` |
+| Composition | Agent-chosen layout from a bounded registry: text, stack and grid, disclosures, tables, numeric bars, explicit connections. Validated declarative data, bound to the final answer by hash; any failure falls back to the full literal answer. | `workspace/chat-composition.tsx` |
+| Review | Exact proposal, document, revision and expiry facts. Plan acceptance, native approval, execution and verification stay four separate steps. | `components/review/` |
 
-## Elevation & Depth
+## 5. Interface map
 
-Tonal surfaces and hairlines define hierarchy. Composer radius16 keeps its measured small hairline/lift at rest and focus. Menus/search use bounded scrolling and measured shadows. OS and app reduced motion cancel decorative movement without hiding status.
+Routes, purpose, main features and the data each reads or writes. Client calls go through the same-origin proxy `/api/service/[...path]`, which allow-lists paths and forwards to the hosted task service (`/v2/tasks…`, `/v1/…`).
 
-## Shapes
+### Workspace — `/`
 
-Controls6px, navigation8px, cards10px, panels12px, composer16px; source-specific values stay local. Technical drawing paper/ink/materials remain explicitly light in either app theme and exports.
+Entry order: signed-out sign-in gate → onboarding gate → workspace (`workspace-entry.tsx`). Signed-out visitors never reach an anonymous workspace.
 
-## Components
+- **Left navigation** (`workspace/sidebar.tsx`): new chat, search dialog, pinned and recent chats, project groups, row menu (rename, move, pin, archive, delete), profile menu (settings, activity, scheduled tasks). 224px expanded, 52px collapsed.
+- **Chat** (`workspace/conversation.tsx`, `composer.tsx`): the patterns in section 4. The project overview (`workspace/project-overview.tsx`) lists a project's chats with All, Running and Needs your input filters.
+- **Right work area** (`workspace/inspector.tsx`): four tabs. *Design* shows the 2D and 3D drawing with properties and focus mode; *Activity* shows the checklist, process, scheduler, specialists and usage; *Assets* lists saved previews; *Exports* lists revision-bound downloads. One drawing stays mounted across tabs.
+- **Data:** `POST /api/agui` (send, resume, observe), `/api/service/tasks/{id}/…` (commands, events, questions/answer, cancel, queue, design-review, reports, title, project, share, history), `projects/{id}/brief`, `runs/{id}/…` (exports), `devices`, `config`, `tools`.
 
-- 22 pinned MIT sources and all patches have provenance. Shared adapters preserve native events/refs, Slot and one Radix controller per layer.
-- Sidebar rows 30px/account 34px; three primary rows, workspace menu and one account footer. Search 600px/radius12, query 48px, options 36px, list max360px; Escape restores opener.
-- One 672×143px composer: 106px write layer and 37px context tray. Add and the explicit Ask/Plan/Build menu sit left; compact actual model/effort, voice and Send sit right. Controls are 28px; Send radius is 8px. Admission/loading gates Send; drafts and IME remain intact.
--  Recorded tool timing and unknown/stopped/unconfirmed labels stay truthful. Payload strings are exact. Copy-only answer actions await success and reject obsolete feedback. Change counts never imply application or verification.
--  Reviews retain exact proposal/document/revision/expiry/deletion facts. Acceptance, native approval, execution and measured verification stay distinct.
--  Drawing review/pan/zoom/orbit/measure/local notes; retained2D/3D view state. Display/Properties/Focus own Escape in order. Export style has the same owner as the primary preview.
--  BOQ previews are readonly/bounded; CSV retains validated full rows. Failed refresh retains ready data. Immutable report history awaits its backend contract.
-- Individual Free is current; Pro $20/month and Max $99/month are planned. Paid controls stay disabled; no invented quotas/provider/team entitlement. One detail toggle controls all pricing cards.
--  Existing account/device/admin/share guards stay intact. Task sharing resets by scope+epoch. Preview/export navigation grants no native authority.
+### Onboarding — gate before the workspace
 
-## Do's and Don'ts
+Three steps (`onboarding/account-onboarding.tsx`): profile (name, domain) → use cases → optional Revit connector with Skip. The step is saved so a reload resumes. Data: `GET` and `PUT /api/account/profile`.
 
-Use semantic roles, visible focus, contained scrolling, actual metadata and exact identity-bound actions. Compare rendered dark/light/narrow states. Separate reference evidence, fixtures and real service/native acceptance. Do not invent agents, clocks, quotas, ownership, immutable history or verified outcomes; do not darken construction sheets or substitute a generic design direction.
+### Settings — inside the workspace
 
-## Workspace acceptance refinement — 15 November
+Eight sections (`lib/settings-navigation.mjs`, `desktop-settings.tsx`):
 
-The existing affectUI world is retained. Closed chat process rows prioritize actual named actions, with lifecycle and failures separate; expanded completed rows use quiet status icons with accessible text. Activity's concise turn header, checklist and compact usage precede a dense named-event list; full telemetry and filters remain disclosed. Exports prioritizes saved report/drawing workflows and clearly separates latest-evidence formats. On narrow screens primary actions use 44 px targets and inputs 16 px text; questions scroll internally on short screens to preserve the composer. Desktop navigation preference is separate from the mobile drawer. See [qualified behavior and evidence](docs/ux/workspace-acceptance-upgrade.md); this does not change palette/type tokens or native authority.
+| Group | Section | Notes |
+| --- | --- | --- |
+| Personal | Profile & account | Name, domain, interests, sign-in details; `/api/account/profile` |
+| Personal | Preferences | Send behavior, units, drafts |
+| Personal | Appearance | Theme, density, reading size, contrast, motion; stored in the browser (`lib/appearance.ts`) |
+| Workspace | Models | Models reported by the connected workspace; from service `config` |
+| Workspace | Revit connection | Connected computers and context; `devices` |
+| Workspace | Usage | Resources used by the current task |
+| Workspace | Billing | Embeds the pricing plans; paid plans stay unavailable |
+| Workspace | Capabilities | What works on the web and in Revit |
+
+### Pricing — `/pricing`
+
+Static page of `billing/pricing-plans.tsx`. Free is current; Pro $20/month and Max $99/month are planned with payments disabled. No invented quotas, providers or team entitlements. No API.
+
+### Connector authorization — `/connect?request=…`
+
+Authenticated review of the Revit connector's browser authorization request. Only an explicit Allow approves the computer; this never approves a native model change. Data: `GET` and `POST …/device-authorizations/{code}[/approve]` (`connections/device-authorization.tsx`).
+
+### Shared chat — `/share/[token]`
+
+Public, read-only, no sign-in (`proxy.ts` skips Clerk for `/share`). Fetched server-side from `GET /v2/shared/{token}`; the plan SVG renders only through an `<img>` data URI, with no remote images.
+
+### Admin console — `/admin/*`
+
+Dark-only. `admin/layout.tsx` returns 404 unless the verified primary email is in `ADMIN_EMAILS`; the backend re-checks by Clerk subject. Shell: collapsible sidebar, mobile sheet, breadcrumb, dirty-state leave guard (`admin/admin-shell.tsx`).
+
+| Page | Purpose | Data (`/api/service/admin/…`) |
+| --- | --- | --- |
+| Overview | Workspace status | `overview` |
+| Agent | Runtime agent configuration | `config` (shared document, revision-checked save) |
+| Web search | Search provider settings | `config` |
+| Knowledge | Sources and indexing; polls while indexing | `knowledge/sources`, `…/{id}/reindex` |
+| Skills | Skill configuration | `config` |
+| MCP servers | Stored only, not yet connected to the agent | `config` |
+| Plugin | Connector release | `public/downloads/release.json` |
+| Audit log | Admin change history | `audit` |
+
+### Development fixtures — never in production
+
+`/dev/ux`, `/dev/chat-composition` and `/api/dev/agui-replay` return 404 outside development. They replay saved or controlled output; they do not qualify live behavior.
+
+## 6. Behavior requirements
+
+- Streaming completion changes available actions even when the text stays identical; reloaded answers match their completed streaming version.
+- Selecting a room attaches the correct project, plan version and element identity; stale context is visible.
+- An old schedule never silently adopts a new model's identity. Revit-derived BOQ data is distinguished from conceptual estimates; units and source version travel with every export.
+- Markdown, composition and navigation never confer Revit approval or run model-generated code.
+- Narrow screens: 44px primary targets, 16px inputs, questions that scroll internally so the composer stays visible.
+- Test public shares independently; keep the image restrictions and artifact authorization.
+
+## 7. Do's and Don'ts
+
+Use semantic roles, visible focus, contained scrolling, real metadata and exact identity-bound actions. Compare rendered dark, light and narrow states. Keep reference evidence, fixtures and real service or native acceptance separate. Do not invent agents, clocks, quotas, ownership, immutable history or verified outcomes. Do not darken construction sheets or swap in a generic design direction.
