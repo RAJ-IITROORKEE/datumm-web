@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **proposed** (packet only; no dependency, lockfile or source file changed) |
+| Status | **done 17 Nov (local, not pushed)**: see section 11 |
 | Depends on | Nothing. Must finish before G1 step W1 (Vercel preview) |
-| Approved by / date | Phase approved by the user on 17 Nov (go-live D6); this packet is not yet approved |
+| Approved by / date | User, 17 Nov: phase (go-live D6) and, after the packet, "Approve U1" with every recommended option (U1-a to U1-e: A) |
 | Base commit | Web `3d2e4f2` on local `main` |
 
 Research ran on 17 Nov 2026 (local time; 16 Nov 21:34 UTC) from `datumm-web/`. **Observed** means
@@ -158,17 +158,17 @@ Research commands (17 Nov, read-only; all ran in `datumm-web/`): `npm audit --om
 and with 16.4.5 and 16.4.6 alone; `node node_modules/next/dist/bin/next upgrade --help`;
 `node -v`, `npm -v`; greps over `src/`, `next.config.ts`, lockfile and `node_modules/next/dist`.
 
-## 11. Result (fill at checkpoint)
+## 11. Result
+
+Built 17 Nov on local `main`; nothing pushed. The orchestrator ran the one install itself (option
+U1-c asked for an implementer agent; it was a single reviewed command).
 
 | Item | Outcome |
 | --- | --- |
-| Commit | |
-| Gates run (command, Node version, counts, date) | |
-| Build 5× exit codes | |
-| Browser evidence (tool, URL, scenario, result) | |
-| Not run or not verified | |
-| Limits found | |
-| Next step | |
-
-After filling this: overwrite [HANDOFF.md](HANDOFF.md), update the U1 row in
-[PLAN.md](../../PLAN.md), commit.
+| Change | `next` pinned at exactly 16.4.6 (`npm install next@16.4.6 --save-exact`, Node 24.18.0, dev server stopped). `package-lock.json` changed only `next`, `@next/env` and the eight `@next/swc-*` entries (10 version lines); no other dependency moved. `AGENTS.md:46` and `PROJECT.md:16` say 16.4.6. No file under `src/` changed |
+| Gates (17 Nov, Node 24.18.0) | `npm audit --omit=dev`: 0 vulnerabilities. `npm run typecheck`: clean. `npm test`: 769 / 769. `npx lat check`: passed. Runtime smoke `--production` on a fresh `next start` (port 3100): 18 / 18 |
+| Build 5x | Exit codes 0, 0, 0, 0, 0, with no "known security vulnerability" line in any run (before: 1, 0, 1, 0, 1) |
+| Browser (built-in browser, 1269 px, signed-in real site against the local backend) | `/dev/ux` renders all fixtures; `/dev/chat-composition` renders its fixtures; the workspace loads signed in; `/admin/models` loads behind the admin gate; a "hi" in Ask mode returned the approved greeting, status Completed, with the thumbs and reason list. Not run: 390 px and light mode, a model-backed streaming answer (no provider key locally) |
+| Not run or not verified | Vercel build behavior with 16.4.6 and with the reminder (W1 preview log will show); release notes for 16.4.4 to 16.4.6; the advisory's full text |
+| Limits found | In the pane, the dev server's HMR websocket does not connect (console `ws://localhost:3001/_next/hmr` errors; a test socket timed out). Pages load and work. Not compared against 16.4.3 in this pane, so not attributed to the upgrade. One Clerk line about a redirect loop appeared once at the first request after the restart with an old session cookie; sign-in worked on the next load and did not repeat |
+| Next step | G1 pre-deploy tasks; the W1 preview build log is the second sample for the build behavior |

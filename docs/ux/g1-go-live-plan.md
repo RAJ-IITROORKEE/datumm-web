@@ -255,7 +255,7 @@ Cannot be rolled back: admin config revisions and restores (history and audit ar
 | N4 | Capability reflects the setting at process start | Restart on change |
 | Q1 | Real latency, tokens, USD, Mongo; live provider; fuzz scripts not rerun | L1 baseline window |
 | Q1 | English only; first turn only; device selected forces full path; flag read at run creation | Accept |
-| Q1 | `npm run build` intermittent exit 1 with the 16.4.3 advisory | P12, D6 |
+| Q1 | `npm run build` intermittent exit 1 with the 16.4.3 advisory | Resolved locally by U1 (16.4.6, 5 of 5 builds exit 0); Vercel behavior still to confirm in the W1 log |
 | A3 | (in progress) migration on real data, fail-closed list, test spend caps | B2, H-B3, H-W6 |
 | All | Graph freshness unresolved; backup restore untested | Q-5, D12 |
 

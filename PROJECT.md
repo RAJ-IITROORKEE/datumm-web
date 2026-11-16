@@ -13,7 +13,7 @@ The interface moves to AG-UI with shadcn-style affectUI components across the wh
 ## Working constraints
 
 - Work on branch `codex/ui-ux-foundation-2026-11-12`. Preserve `main`, the backend candidates and unrelated local files. Do not delete files, dependencies or environment files without approval.
-- Read the installed Next.js docs in `node_modules/next/dist/docs/` before application edits (Next 16.4.3, React 19.3). Skills in `.agents/skills/` are instructions only; they do not configure live tools, MCP servers or providers.
+- Read the installed Next.js docs in `node_modules/next/dist/docs/` before application edits (Next 16.4.6, React 19.3). Skills in `.agents/skills/` are instructions only; they do not configure live tools, MCP servers or providers.
 - Use an available browser tool for references and localhost, and name it. Record observed behavior separately from inference and from inaccessible states. Use licensed free source; reconstruct public Pro behavior independently.
 - Keep account, task, turn and source identity, native approval, saved plans, immutable report revisions, exports and draft recovery intact. No navigation or Markdown grants native authority.
 - Native model context needs the right connection and permission; general questions and web concepts do not. Accepting a plan on the web is separate from native Build approval.

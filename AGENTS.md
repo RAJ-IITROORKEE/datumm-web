@@ -43,7 +43,7 @@ The hosted backend (FastAPI/LangGraph orchestrator) is **not** in this repo. Bac
 
 Verify versions in `package.json` and the lockfile, not from memory.
 
-- Next.js 16.4.3 (App Router, built with `--webpack`), React 19.3, TypeScript 5.9, Tailwind CSS 4.3.
+- Next.js 16.4.6 (App Router, built with `--webpack`), React 19.3, TypeScript 5.9, Tailwind CSS 4.3.
 - Auth: Clerk. Chat: AG-UI (`@ag-ui/core`) bridged into AI SDK (`ai`, `@ai-sdk/react`) rendering; answers render with Streamdown.
 - UI: Radix, `class-variance-authority`, `tailwind-merge`, `lucide-react`, Inter Variable. There is no `components.json`; do not run the shadcn CLI without approval.
 - Drawing: Three.js for 3D, Resvg/Sharp for server-side preview export.

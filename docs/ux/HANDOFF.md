@@ -2,7 +2,7 @@
 
 Overwritten at every checkpoint. Read [AGENTS.md](../../AGENTS.md) first, then this file, then the packet named under "Active phase". Older detail is in Git history and [docs/ux/history/](history/handoff-before-agui-progress-review-2026-11-16.md).
 
-Updated 17 November 2026, end of A3.
+Updated 17 November 2026, end of U1.
 
 ## Now
 
@@ -27,7 +27,7 @@ Updated 17 November 2026, end of A3.
 | N4 | Done 16 Nov: [packet and result](n4-evidence-backed-compositions.md) | Turn on `evidence_compositions_enabled` only after the schema bytes are accepted; live-model quality at G1 |
 | Q1 | Done 17 Nov: [packet and result](q1-rules-prerouter-latency.md) | Reply copy approved by the user 17 Nov; enable `entry_rules_enabled` only at G1 after a baseline trace window |
 | A3 | Done 17 Nov: [packet and result](a3-admin-model-registry.md) | Live provider tests, real prices and rollback behavior belong to G1 |
-| U1 | [Packet](u1-nextjs-security-upgrade.md) proposed 17 Nov; phase approved, packet not yet approved | User approves or changes U1-a to U1-e; then an implementer pins `next` at 16.4.6 with the dev server stopped and Node 24.18.0 on PATH |
+| U1 | Done 17 Nov: [packet and result](u1-nextjs-security-upgrade.md) | Vercel build behavior is checked in the W1 preview log |
 | G1 | [Go-live plan](g1-go-live-plan.md) approved 17 Nov (D1 to D12, all recommended options) | Pre-deploy tasks P1 to P13; AWS steps are run by the user and agents prepare commands (D8 A); each push, merge or deploy still needs its own approval. W1, A4 and N5 remain proposed |
 
 Phase table: [PLAN.md](../../PLAN.md#phases). Packet format: [PACKET_TEMPLATE.md](PACKET_TEMPLATE.md).
@@ -36,8 +36,8 @@ Phase table: [PLAN.md](../../PLAN.md#phases). Packet format: [PACKET_TEMPLATE.md
 
 | Check | Result | Date / how |
 | --- | --- | --- |
-| `npm run typecheck`, `npm test` (769), `npm run build`, `lat check` | Passed (build exited 1 once after compiling and 0 on retry; see Q1 limits) | 17 Nov, Node 24.18.0, end of A3 |
-| Runtime smoke `--production` (18 checks; 3 `/api/chat` checks removed in C1) | Passed 18 / 18 | 17 Nov, fresh `next start` on port 3100, end of A3 |
+| `npm run typecheck`, `npm test` (769), `npm run build`, `lat check` | Passed on Next.js 16.4.6; build exit 0 in 5 of 5 runs (on 16.4.3 it stopped on an agent-only advisory reminder, see U1) | 17 Nov, Node 24.18.0, end of U1 |
+| Runtime smoke `--production` (18 checks; 3 `/api/chat` checks removed in C1) | Passed 18 / 18 | 17 Nov, fresh `next start` on port 3100, end of U1 |
 | Recorded source hashes (`artifacts/ux/agui-presentation/qualification.json`) | Superseded for files C1 edited; four web entries reported stale before C1 (see [C1 result](c1-capability-contract-and-config.md#11-result)) | 16 Nov, reviewer; not re-verified |
 | Backend suite (`uv run --frozen pytest`) | 530 + 26 subtests; `lat check` passed | 17 Nov, Python 3.12.10, end of A3 |
 | Browser scenarios | A3: Models page, disable and save, Config history revision, test dialog and "Provider not configured" error passed on the real signed-in localhost site against the local backend (built-in browser). Q1 scenarios 1–4 passed on the `/dev/ux` Admin fixture (built-in browser, 1280 px, and 390 px dark); N4, A2, A1, N2, N3 and N1 passed earlier; C1 scenarios not run | 16 Nov, see [N1 result](n1-durable-completion-proof.md#12-result) |
