@@ -141,6 +141,13 @@ aws codebuild start-build --project-name datumm-opencode-builder-hosted-opencode
 
 The build verifies the manifest, runs the packaged checks and smoke tests against a throwaway Mongo, then pushes `g1-backend-70ce912be324-<n>` and prints the digest used at B3.
 
+### B1 result (17 Nov, approved by the user)
+
+- First build (`bf711564`) failed at `image-verify`: three packaged checks were stale (e8cefa7's `BRIEF_CONTEXT_MISSING` guard, N1's `completion_proof`, N3's `OUTCOMES`/`PUBLIC_EVENT_KEYS`). Product code was not the cause. Repaired in backend `e40c30e`; `make-source.py` now takes `scripts/check-*.py` from HEAD. Nothing was pushed by the failed build.
+- Second build (`cce240cc`) **SUCCEEDED**: image identity (120 API files), 20 packaged checks including the real planner, and 5 real HTTP/Mongo smoke tests against a throwaway Mongo all passed.
+- **Image for B3:** tag `g1-backend-70ce912be324-49`, digest `sha256:bb926402325d1f9df22f1ef6356931e2cfa48fd37a0271de417e760250be5ee8`, in `datumm-opencode-builder-hosted-opencode` (same repository as the live image, so `RepositoryArn` does not change). `SOURCE_COMMIT` `70ce912be3249d0cfe277a1a5fd669ddff18707a`.
+- Not yet done: B2 (rehearsal on a dump copy), B3 change set, B4 cutover. The live service still runs `188ebc0`.
+
 ### Checks at each gate
 
 **H-B, backend after B4** (old web still live):
