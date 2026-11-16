@@ -56,7 +56,7 @@ user approved localhost and then the push/deploy.
 | # | Phase | Size | What it delivers | Borrowed from Panda |
 | --- | --- | --- | --- | --- |
 | 1 | **G1 Go live** (existing plan, simplified) | M | Deploy the done work (C1–Q1, U1; A3 in a second backend release), push `main` to Vercel | Live preview on the go |
-| 2 | **D1 Composer and sidebar** | M | Model picker with groups, provider, price and privacy hint, keyboard nav; **context-window meter** (used / max ring, tooltip with input, output, steps, cost); sidebar: Pinned, Projects, Today / Yesterday / 7 days, Ctrl K palette, resizable, mobile drawer | `model-picker.tsx`, `ai-elements/context*`, `sidebar/` |
+| 2 | **UI1 Composer and sidebar** | M | Model picker with groups, provider, price and privacy hint, keyboard nav; **context-window meter** (used / max ring, tooltip with input, output, steps, cost); sidebar: Pinned, Projects, Today / Yesterday / 7 days, Ctrl K palette, resizable, mobile drawer | `model-picker.tsx`, `ai-elements/context*`, `sidebar/` |
 | 3 | **T1 Tavily web search** | S | Tavily adapter behind the existing search budget and domain allowlist; DATUMM's own key in AWS Secrets Manager; cited sources; admin on/off | `search/tavily.ts` rules (private-address check, citation ids) |
 | 4 | **A4a Tools and skills registry** | M | Admin tool switches per mode (Ask / Plan / Build); SKILL.md skills with versions and restore, loaded on demand, not appended whole | `tool-catalog.ts`, `skill-md.ts`, skills admin |
 | 5 | **A4b MCP registry** | L | Official Python MCP SDK; https only, SSRF block, secrets sealed; enable only after a passing test; per-tool allow / ask / never; results treated as untrusted | MCP admin and its database rule |
@@ -73,6 +73,6 @@ router, and its non-streamed answer handling.
 | # | Decision | Options |
 | --- | --- | --- |
 | H1 | Harness | **A: keep the LangGraph backend and port the features (section 3).** B: hybrid AI SDK loop for Ask now. C: full replacement |
-| H2 | Order | **A: go live first (G1), then D1, T1, A4a, A4b, N5.** B: D1 and T1 before going live |
+| H2 | Order | **A: go live first (G1), then UI1, T1, A4a, A4b, N5.** B: UI1 and T1 before going live |
 | H3 | Tavily account | **A: a separate DATUMM Tavily key stored in AWS Secrets Manager, never in the repo or chat.** B: share Panda's key |
 | H4 | Go-live branches | **A: main only, as the user asked; drop W0 and the preview origin.** B: keep the earlier release-branch plan |
