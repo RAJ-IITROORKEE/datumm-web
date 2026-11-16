@@ -15,6 +15,6 @@ PRODUCT.md
 DESIGN.md
 .impeccable/
 .codex/
-docs/ux/
+docs/
 __pycache__/
 *.py[cod]

@@ -11,9 +11,9 @@ The complete application's colors and typography follow the frozen affectUI ligh
 ## Artifacts
 
 - [Complete architecture and M0–M9 implementation plan](design_draft.md).
-- [Exact work-area interfaces, identities and activation contracts](docs/ux/work-area-contracts.md).
-- [Free-source wrapper/semantic patch and caller matrix](docs/ux/affectui-adapter-contracts.md).
-- [Measured reference contract](docs/ux/affectui-reference-contract.md), [pinned source inventory](docs/ux/affectui-source-inventory.md), [remaining product/acceptance gaps](docs/ux/full-migration-gap-register.md).
+- [Exact work-area interfaces, identities and activation contracts](../ux/work-area-contracts.md).
+- [Free-source wrapper/semantic patch and caller matrix](../ux/affectui-adapter-contracts.md).
+- [Measured reference contract](../ux/affectui-reference-contract.md), [pinned source inventory](../ux/affectui-source-inventory.md), [remaining product/acceptance gaps](../ux/full-migration-gap-register.md).
 - [Raw finding → resolution ledger](goldfish_review_report.md).
 
 ## Formal reviewer execution

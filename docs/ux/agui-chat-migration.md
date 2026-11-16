@@ -1,6 +1,6 @@
 # AG-UI chat migration — implementation packet
 
-16 November 2026. Latest user approves Option B through A for the middle chat. [Roadmap addendum](../../AGUI_MIGRATION_PLAN.md#approved-chat-only-scope-and-phase-order) governs; right work area and floor-plan state migration are deferred. Earlier alternative-count repair remains paused and undeployed.
+16 November 2026. Latest user approves Option B through A for the middle chat. [Roadmap addendum](../agui/AGUI_MIGRATION_PLAN.md#approved-chat-only-scope-and-phase-order) governs; right work area and floor-plan state migration are deferred. Earlier alternative-count repair remains paused and undeployed.
 
 ## Intended outcome
 

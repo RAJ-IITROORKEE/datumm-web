@@ -1,6 +1,6 @@
 # DATUMM — current agent/UI architecture audit
 
-Research date: 16 November 2026. Status: observation and planning only; no migration approved or implemented. Read with [research](AGUI_FEATURE_RESEARCH.md), [gaps](AGUI_GAP_ANALYSIS.md), [target](AGUI_TARGET_ARCHITECTURE.md), [roadmap](AGUI_MIGRATION_PLAN.md) and [paused-work handoff](docs/ux/HANDOFF.md).
+Research date: 16 November 2026. Status: observation and planning only; no migration approved or implemented. Read with [research](AGUI_FEATURE_RESEARCH.md), [gaps](AGUI_GAP_ANALYSIS.md), [target](AGUI_TARGET_ARCHITECTURE.md), [roadmap](AGUI_MIGRATION_PLAN.md) and [paused-work handoff](../ux/HANDOFF.md).
 
 ## Scope and evidence
 
@@ -33,7 +33,7 @@ The hosted application is not simply a browser around the desktop OpenCode runti
 
 ## Frontend inventory and hierarchy
 
-Versions from [package.json](package.json): Next 16.4.3, React/React DOM 19.3.0, AI SDK 7.0.114, `@ai-sdk/react` 4.0.117, Streamdown 2.6.0, Three 0.186.1, Radix 1.6.7, Lucide 1.48.0, Tailwind 4.3.3, TypeScript 5.9.3, Clerk 7.9.7. Local Node is 24.18.0. Installed transitive Zod is 4.6.7; it is not a direct declared dependency. No AG-UI, CopilotKit or A2UI dependency is declared.
+Versions from [package.json](../../package.json): Next 16.4.3, React/React DOM 19.3.0, AI SDK 7.0.114, `@ai-sdk/react` 4.0.117, Streamdown 2.6.0, Three 0.186.1, Radix 1.6.7, Lucide 1.48.0, Tailwind 4.3.3, TypeScript 5.9.3, Clerk 7.9.7. Local Node is 24.18.0. Installed transitive Zod is 4.6.7; it is not a direct declared dependency. No AG-UI, CopilotKit or A2UI dependency is declared.
 
 | Responsibility | Actual source and inspected lines | Observation |
 | --- | --- | --- |
@@ -114,7 +114,7 @@ Common delivery **D** for imported run events: producer → run storage/outbox �
 
 ## AffectUI adoption: actual versus planned
 
-[Vendor provenance](src/components/vendor/affectui/PROVENANCE.md) records 22 copied MIT component files pinned to upstream `7d0f0984b856d56c362c7bc5ed67b023e776aa2f`, with compatibility patches. Current static import inspection finds **21 distinct referenced vendor modules**, including style-only adapters; segmented-control-clean currently has no external reference. The historical inventory's “22 imported” wording is not current runtime evidence. NumberInput and ProgressTracker were reference-only. Pro screens were independently reconstructed from public previews, not copied from gated source.
+[Vendor provenance](../../src/components/vendor/affectui/PROVENANCE.md) records 22 copied MIT component files pinned to upstream `7d0f0984b856d56c362c7bc5ed67b023e776aa2f`, with compatibility patches. Current static import inspection finds **21 distinct referenced vendor modules**, including style-only adapters; segmented-control-clean currently has no external reference. The historical inventory's “22 imported” wording is not current runtime evidence. NumberInput and ProgressTracker were reference-only. Pro screens were independently reconstructed from public previews, not copied from gated source.
 
 Tokens: `src/lib/themes/affectui.json`, `src/lib/appearance.ts:63+`, Inter dependency and application CSS. Dark page/panel/tray `#0e0e10` / `#141416` / `#1d1d20`; primary `#ededed`, accent `#4fb0fe`; light roles also present. Preserve current 224px navigation choice even though upstream token metadata retains 272px. No second theme is needed. Existing Radix focus behavior and Lucide/custom icons should remain behind the current adapters. Inspect actual icon shape/size per reference rather than installing an icon package merely for parity.
 

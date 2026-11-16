@@ -43,7 +43,7 @@ Priorities are migration/product risk, not claims of ten reproduced production b
 
 ## Proposed UI behavior, grounded in AffectUI
 
-The reference map in [PLAN.md](PLAN.md#component-reference-map) remains the visual baseline. Preserve the compact single left sidebar, shared composer and four right tabs. Do not introduce separate Tasks/Memory top-level screens merely because a demo has them.
+The reference map in [PLAN.md](../../PLAN.md#component-reference-map) remains the visual baseline. Preserve the compact single left sidebar, shared composer and four right tabs. Do not introduce separate Tasks/Memory top-level screens merely because a demo has them.
 
 | Surface | Reference | Proposed DATUMM behavior |
 | --- | --- | --- |

@@ -6,7 +6,7 @@ Updated 16 November 2026 (Asia/Calcutta).
 
 The user requested this progress/plan update and will review before continuing. **Stop application development here. Do not automatically start another phase, renew AWS login, deploy, merge or release.** Resume only when the user returns with instructions. The earlier approval of chat-only Option B through A remains the scope; this hold overrides earlier automatic progression.
 
-Read this file, [PLAN.md](../../PLAN.md), [AG-UI phase status](../../AGUI_MIGRATION_PLAN.md#review-checkpoint--16-november-2026), and [the latest producer packet](agui-composition-producer.md). The entire previous handoff is preserved in [the review archive](history/handoff-before-agui-progress-review-2026-11-16.md). Older “next” instructions are historical.
+Read this file, [PLAN.md](../../PLAN.md), [AG-UI phase status](../agui/AGUI_MIGRATION_PLAN.md#review-checkpoint--16-november-2026), and [the latest producer packet](agui-composition-producer.md). The entire previous handoff is preserved in [the review archive](history/handoff-before-agui-progress-review-2026-11-16.md). Older “next” instructions are historical.
 
 ## Product and scope
 
@@ -18,7 +18,7 @@ Latest migration scope is **middle chat only**: AG-UI transport, public process/
 
 | Work | Current result | Evidence and limits |
 | --- | --- | --- |
-| Planning/research and design setup | Approved EGM direction, component reference map, AG-UI architecture audit/research/gap/target/roadmap documents and repository design toolkit recorded | [Plan](../../PLAN.md), [audit](../../AGUI_CURRENT_ARCHITECTURE_AUDIT.md), [research](../../AGUI_FEATURE_RESEARCH.md), [gap analysis](../../AGUI_GAP_ANALYSIS.md), [target](../../AGUI_TARGET_ARCHITECTURE.md), [toolkit](../../.agents/SKILLS.md). Installed guidance does not itself grant runtime capabilities |
+| Planning/research and design setup | Approved EGM direction, component reference map, AG-UI architecture audit/research/gap/target/roadmap documents and repository design toolkit recorded | [Plan](../../PLAN.md), [audit](../agui/AGUI_CURRENT_ARCHITECTURE_AUDIT.md), [research](../agui/AGUI_FEATURE_RESEARCH.md), [gap analysis](../agui/AGUI_GAP_ANALYSIS.md), [target](../agui/AGUI_TARGET_ARCHITECTURE.md), [toolkit](../../.agents/SKILLS.md). Installed guidance does not itself grant runtime capabilities |
 | Existing workspace modernization | affectUI theme/navigation, chat/composer, scoped Design/Activity/Assets/Exports, responsive behavior and dark drafting/white sheets implemented | [Acceptance](workspace-acceptance-upgrade.md), [follow-through](workflow-followthrough.md), [drafting](phase-3-drafting.md). Earlier scoped evidence; not whole-catalog parity or complete Revit drafting |
 | Saved concepts/reports and Project Brief | Generate/revise/reload lineage, proposed schedule history, owner-scoped output/export behavior and cross-chat Brief persistence implemented within their packets | [Revision confidence](saved-revision-confidence.md), [Brief](project-brief-persistence.md), [report history](report-revision-history.md). Native BOQ/RVT import and broad write/read-back remain separate |
 | AG-UI chat transport | Send/observe uses durable v2 commands/snapshots; actual Ask/follow-up/interrupt/reload verified | [Transport packet](agui-chat-migration.md). Existing harness and AI SDK rendering retained; final answer delivered after validation, not true provider token streaming |
@@ -93,6 +93,6 @@ Preserve owner/task/turn/execution identity, native approval bound to exact docu
 
 ## Resuming after review
 
-Confirm the user's chosen priority, check relevant source hashes/dirty state and available localhost/backend state, then follow the [updated roadmap](../../AGUI_MIGRATION_PLAN.md). Reuse current checkouts, do not combine paused repairs implicitly, and run checks appropriate to changed source/unresolved concerns. Update this handoff with actual outcomes, distinguishing controlled, local and hosted evidence.
+Confirm the user's chosen priority, check relevant source hashes/dirty state and available localhost/backend state, then follow the [updated roadmap](../agui/AGUI_MIGRATION_PLAN.md). Reuse current checkouts, do not combine paused repairs implicitly, and run checks appropriate to changed source/unresolved concerns. Update this handoff with actual outcomes, distinguishing controlled, local and hosted evidence.
 
 Full predecessor: [review archive](history/handoff-before-agui-progress-review-2026-11-16.md). Earlier chronology: [workspace archive](history/handoff-before-workspace-acceptance-2026-11-15.md) and linked packets. Superseded “active” instructions do not override this review hold.

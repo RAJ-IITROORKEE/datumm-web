@@ -4,7 +4,7 @@ Updated 16 November 2026. Current status only; [the archived register](history/f
 
 ## Active UI acceptance work
 
-Latest user direction pauses implementation for [AG-UI audit/planning](../../AGUI_MIGRATION_PLAN.md). The count candidate below is locally committed/reviewed but not deployed; its exact-source/container/live gates remain open. Current authorization is research and documentation only, as recorded in [HANDOFF](HANDOFF.md).
+Latest user direction pauses implementation for [AG-UI audit/planning](../agui/AGUI_MIGRATION_PLAN.md). The count candidate below is locally committed/reviewed but not deployed; its exact-source/container/live gates remain open. Current authorization is research and documentation only, as recorded in [HANDOFF](HANDOFF.md).
 
 [Workspace acceptance upgrade](workspace-acceptance-upgrade.md) passed the inspected combined journeys: useful compact process, grouped questions and retained drafts, checklist/process/usage Activity, supported Assets previews, saved-output-first Exports, phone targets and navigation continuity. Actual 320/390/768/1135/1440 px checks, 535 tests, TypeScript, production build and 13 runtime checks passed. No claim of whole-catalog or pixel-perfect parity is made.
 
