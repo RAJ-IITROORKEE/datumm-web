@@ -9,6 +9,7 @@ export const TRACE_FEEDBACK = ['up', 'down', 'none'];
 export const TRACE_SIGNALS = [
   'retried', 'model_fallback', 'output_limit', 'content_filter', 'refusal', 'invalid_tool_call',
   'usage_unknown', 'call_unsettled', 'specialist_partial', 'budget_exhausted',
+  'quick_reply',
 ];
 export const TRACE_REASONS = [
   'inaccurate', 'incomplete', 'ignored_instructions', 'too_long', 'other',
@@ -25,6 +26,7 @@ const LABELS = {
     content_filter: 'Content filter', refusal: 'Refusal', invalid_tool_call: 'Invalid tool call',
     usage_unknown: 'Usage unknown', call_unsettled: 'Call unsettled',
     specialist_partial: 'Specialist partial', budget_exhausted: 'Budget exhausted',
+    quick_reply: 'Answered directly',
   },
   reason: {
     inaccurate: 'Inaccurate', incomplete: 'Incomplete',
@@ -58,6 +60,15 @@ const list = (value, max, map) => (Array.isArray(value)
   ? value.slice(0, max).map(map).filter(Boolean) : []);
 const iso = value => (typeof value === 'string' && value.length <= 40
   && !Number.isNaN(Date.parse(value)) ? value : null);
+const PHASE_MS = [
+  'admitMs', 'startMs', 'firstCallMs', 'answerMs', 'modelMs', 'toolMs', 'stepMs', 'unattributedMs',
+];
+const PHASE_BYTES = ['maxPacketBytes', 'maxToolSchemaBytes'];
+const ROUTE_LANES = ['short', 'full'];
+const ROUTE_TOKEN = /^[a-z][a-z0-9_]{0,40}$/;
+// Phases are exact integers. A float, a string or an out-of-range value is not a measurement.
+const phaseValue = (value, max) => (Number.isInteger(value) && value >= 0 && value <= max
+  ? value : null);
 
 function parseCall(call) {
   if (!isObject(call)) return null;
@@ -83,6 +94,20 @@ const parseSpecialist = item => (isObject(item) && pick(item.role, TOKEN)
   ? { role: item.role, outcome: pick(item.outcome, TOKEN), durationMs: ms(item.durationMs) }
   : null);
 const parseSignal = signal => oneOf(signal, TRACE_SIGNALS);
+// An absent object stays null: a missing phase is unknown, never 0 ms.
+function parsePhases(value) {
+  if (!isObject(value)) return null;
+  return Object.fromEntries([
+    ...PHASE_MS.map(key => [key, phaseValue(value[key], 2147483647)]),
+    ...PHASE_BYTES.map(key => [key, phaseValue(value[key], 2147483647)]),
+  ]);
+}
+function parseRoute(value) {
+  const lane = isObject(value) ? oneOf(value.lane, ROUTE_LANES) : null;
+  return lane
+    ? { lane, rule: pick(value.rule, ROUTE_TOKEN), floor: pick(value.floor, ROUTE_TOKEN) }
+    : null;
+}
 
 function parseRow(row) {
   if (!isObject(row)) return null;
@@ -108,6 +133,7 @@ function parseRow(row) {
     },
     usd: usd(row.usd), signals: list(row.signals, TRACE_SIGNALS.length, parseSignal),
     feedback: parseFeedback(row.feedback),
+    phases: parsePhases(row.phases), route: parseRoute(row.route),
   };
 }
 
@@ -158,7 +184,11 @@ export function formatDuration(value) {
   const tenths = Math.round(value / 100);
   if (tenths < 600) return `${(tenths / 10).toFixed(1)} s`;
   const seconds = Math.round(value / 1000);
-  return `${Math.floor(seconds / 60)} min ${seconds % 60} s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ${seconds % 60} s`;
+  const minutes = Math.round(value / 60000);
+  if (minutes < 1440) return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+  const hours = Math.round(value / 3600000);
+  return `${Math.floor(hours / 24)} d ${hours % 24} h`;
 }
 export function formatUsd(value) {
   if (value === null || value === undefined) return '—';
@@ -180,3 +210,21 @@ export function stepsSummary(steps) {
   }
   return parts.join(' · ');
 }
+export function formatBytes(value) {
+  if (value === null || value === undefined) return '—';
+  return `${number(value)} bytes`;
+}
+const TIME_ITEMS = [
+  ['admitMs', 'Admission'], ['startMs', 'Start'], ['firstCallMs', 'First call'],
+  ['answerMs', 'First answer'], ['modelMs', 'Model'], ['toolMs', 'Tools'],
+  ['unattributedMs', 'Unattributed'],
+];
+const PACKET_ITEMS = [
+  ['maxPacketBytes', 'Largest packet'], ['maxToolSchemaBytes', 'Largest tool schemas'],
+];
+// Only present values become items: a null phase is never shown as 0 ms.
+const phaseItems = (phases, table, format) => table
+  .filter(([key]) => typeof phases?.[key] === 'number')
+  .map(([key, label]) => ({ label, value: format(phases[key]) }));
+export const phaseTimeItems = phases => phaseItems(phases, TIME_ITEMS, formatDuration);
+export const phasePacketItems = phases => phaseItems(phases, PACKET_ITEMS, formatBytes);

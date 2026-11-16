@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  feedbackLabel, formatDuration, formatTokens, formatUsd, parseTraces, stepsSummary, traceQuery,
+  feedbackLabel, formatBytes, formatDuration, formatTokens, formatUsd, parseTraces,
+  phasePacketItems, phaseTimeItems, signalLabel, stepsSummary, TRACE_SIGNALS, traceQuery,
 } from '../src/lib/admin-traces.mjs';
 
 const TURN = '3f2b8c1e-9a4d-4e6f-8b2a-1c3d5e7f9a0b';
@@ -148,4 +149,104 @@ test('durations round to whole seconds before splitting minutes', () => {
   assert.equal(formatDuration(60000), '1 min 0 s');
   assert.equal(formatDuration(59960), '1 min 0 s');
   assert.equal(formatDuration(59940), '59.9 s');
+});
+
+const PHASE_KEYS = ['admitMs', 'answerMs', 'firstCallMs', 'maxPacketBytes', 'maxToolSchemaBytes',
+  'modelMs', 'startMs', 'stepMs', 'toolMs', 'unattributedMs'];
+const phasesOf = phases => parseTraces(doc([row({ phases })])).rows[0].phases;
+
+test('phases keep exact integers in range and drop every unknown key', () => {
+  const parsed = phasesOf({ admitMs: 35, startMs: 0, firstCallMs: 480, answerMs: 86400000,
+    modelMs: 3100, toolMs: 700, stepMs: 3900, unattributedMs: 400, maxPacketBytes: 2147483647,
+    maxToolSchemaBytes: 9120, prompt: 'CANARY-7f3' });
+  assert.deepEqual(Object.keys(parsed).sort(), PHASE_KEYS);
+  assert.equal(parsed.answerMs, 86400000);
+  assert.equal(parsed.maxPacketBytes, 2147483647);
+  assert.equal(parsed.startMs, 0, 'zero is a measurement');
+  assert.ok(!JSON.stringify(parsed).includes('CANARY'), 'no unknown value survives');
+});
+
+test('absent or unusable phases and route are null, never zero', () => {
+  const [absent] = parseTraces(doc([row()])).rows;
+  assert.equal(absent.phases, null);
+  assert.equal(absent.route, null);
+  assert.equal(phasesOf(null), null);
+  assert.equal(phasesOf([1, 2]), null);
+  assert.equal(phasesOf('fast'), null);
+  const partial = phasesOf({ admitMs: 5 });
+  assert.equal(partial.admitMs, 5);
+  assert.equal(partial.startMs, null, 'an unreported phase stays null');
+  const routeOf = route => parseTraces(doc([row({ route })])).rows[0].route;
+  assert.equal(routeOf(null), null);
+  assert.equal(routeOf('short'), null);
+  assert.equal(routeOf({ lane: 'medium', rule: 'greeting' }), null);
+  assert.equal(routeOf({ lane: 'SHORT' }), null);
+});
+
+test('out-of-range and wrong-type phase values become null', () => {
+  const valueOf = (key, value) => phasesOf({ [key]: value })[key];
+  for (const value of [-1, 2147483648, 1.5, '5', true, NaN, Infinity, null, [5], {}]) {
+    assert.equal(valueOf('admitMs', value), null, String(value));
+  }
+  for (const value of [-1, 2147483648, 0.5, '100', false, {}]) {
+    assert.equal(valueOf('maxPacketBytes', value), null, String(value));
+  }
+  assert.equal(valueOf('maxPacketBytes', 0), 0, 'zero bytes is a measurement');
+  assert.equal(valueOf('admitMs', 86400001), 86400001, 'a wait past one day is kept');
+  assert.equal(valueOf('unattributedMs', 2147483647), 2147483647, '2^31-1 ms is the ceiling');
+  assert.equal(valueOf('unattributedMs', 2147483648), null);
+});
+
+test('a run that waited more than a day still shows its unattributed time', () => {
+  const items = phaseTimeItems(phasesOf({ unattributedMs: 183600000 }));
+  assert.deepEqual(items, [{ label: 'Unattributed', value: '2 d 3 h' }]);
+});
+
+test('long durations step up to hours and days without rounding artifacts', () => {
+  assert.equal(formatDuration(3599400), '59 min 59 s');
+  assert.equal(formatDuration(3599600), '1 h 0 min');
+  assert.equal(formatDuration(5400000), '1 h 30 min');
+  assert.equal(formatDuration(86369000), '23 h 59 min');
+  assert.equal(formatDuration(86399999), '1 d 0 h');
+  assert.equal(formatDuration(183600000), '2 d 3 h');
+  assert.equal(formatDuration(2147483647), '24 d 21 h');
+});
+
+test('route keeps only its three keys, and rule and floor must be lowercase tokens', () => {
+  const routeOf = route => parseTraces(doc([row({ route })])).rows[0].route;
+  const short = routeOf({ lane: 'short', rule: 'greeting', floor: null, prompt: 'CANARY-7f3' });
+  assert.deepEqual(short, { lane: 'short', rule: 'greeting', floor: null });
+  assert.ok(!JSON.stringify(short).includes('CANARY'));
+  assert.deepEqual(routeOf({ lane: 'full', rule: null, floor: 'previous_turn_short' }),
+    { lane: 'full', rule: null, floor: 'previous_turn_short' });
+  const bad = ['Greeting', '1x', '_x', 'two words', 'a-b', 'a'.repeat(42), 7, ''];
+  for (const token of bad) {
+    assert.equal(routeOf({ lane: 'short', rule: token, floor: token }).rule, null, String(token));
+    assert.equal(routeOf({ lane: 'short', rule: token, floor: token }).floor, null, String(token));
+  }
+  assert.equal(routeOf({ lane: 'short', rule: 'a'.repeat(41) }).rule, 'a'.repeat(41));
+});
+
+test('quick_reply is an accepted signal with a label and a filter option', () => {
+  assert.ok(TRACE_SIGNALS.includes('quick_reply'));
+  assert.equal(signalLabel('quick_reply'), 'Answered directly');
+  const [parsed] = parseTraces(doc([row({ signals: ['quick_reply', 'made_up'] })])).rows;
+  assert.deepEqual(parsed.signals, ['quick_reply']);
+  assert.equal(traceQuery({ signal: 'quick_reply' }), '?period=7d&signal=quick_reply');
+});
+
+test('time and packet items show only the values that are present', () => {
+  assert.deepEqual(phaseTimeItems(null), []);
+  assert.deepEqual(phasePacketItems(undefined), []);
+  assert.deepEqual(phaseTimeItems(parseTraces(doc([row()])).rows[0].phases), []);
+  const phases = phasesOf({ admitMs: 0, firstCallMs: 480, answerMs: 4100, modelMs: 3100,
+    unattributedMs: 119600, maxPacketBytes: 48213 });
+  assert.deepEqual(phaseTimeItems(phases), [
+    { label: 'Admission', value: '0 ms' }, { label: 'First call', value: '480 ms' },
+    { label: 'First answer', value: '4.1 s' }, { label: 'Model', value: '3.1 s' },
+    { label: 'Unattributed', value: '2 min 0 s' },
+  ]);
+  assert.deepEqual(phasePacketItems(phases), [{ label: 'Largest packet', value: '48,213 bytes' }]);
+  assert.equal(formatBytes(null), '—');
+  assert.equal(formatBytes(9120), '9,120 bytes');
 });

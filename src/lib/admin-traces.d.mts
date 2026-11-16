@@ -4,9 +4,18 @@ export type TraceOutcome =
 export type TraceFeedbackFilter = 'up' | 'down' | 'none';
 export type TraceSignal = 'retried' | 'model_fallback' | 'output_limit' | 'content_filter'
   | 'refusal' | 'invalid_tool_call' | 'usage_unknown' | 'call_unsettled' | 'specialist_partial'
-  | 'budget_exhausted';
+  | 'budget_exhausted' | 'quick_reply';
 export type TraceReason =
   'inaccurate' | 'incomplete' | 'ignored_instructions' | 'too_long' | 'other';
+
+/** Null per field when unreported; the whole object is null when the backend sent none. */
+export interface TracePhases {
+  admitMs: number | null; startMs: number | null; firstCallMs: number | null;
+  answerMs: number | null; modelMs: number | null; toolMs: number | null; stepMs: number | null;
+  unattributedMs: number | null; maxPacketBytes: number | null; maxToolSchemaBytes: number | null;
+}
+export interface TraceRoute { lane: 'short' | 'full'; rule: string | null; floor: string | null }
+export interface PhaseItem { label: string; value: string }
 
 export interface TraceCall {
   role: string | null; modelId: string | null; status: string | null; finishReason: string | null;
@@ -30,6 +39,7 @@ export interface TraceRow {
   tokens: { input: number; output: number; reasoning: number };
   usd: string | null; signals: TraceSignal[];
   feedback: { rating: 'up' | 'down'; reason: TraceReason | null; at: string | null } | null;
+  phases: TracePhases | null; route: TraceRoute | null;
 }
 export interface TraceStats {
   turns: number; scanned: number; truncated: boolean; failed: number;
@@ -66,3 +76,7 @@ export function formatUsd(value: string | null | undefined): string;
 export function formatTokens(tokens: { input: number | null; output: number | null }): string;
 export function feedbackLabel(feedback: TraceRow['feedback']): string;
 export function stepsSummary(steps: TraceRow['steps']): string;
+export function formatBytes(value: number | null | undefined): string;
+/** Only the phases that are present, in display order. */
+export function phaseTimeItems(phases: TracePhases | null | undefined): PhaseItem[];
+export function phasePacketItems(phases: TracePhases | null | undefined): PhaseItem[];

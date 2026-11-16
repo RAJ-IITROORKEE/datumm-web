@@ -119,6 +119,16 @@
   margin: 0;
   padding-left: 18px;
 }
+.phases {
+  display: grid;
+  grid-template-columns: max-content auto;
+  gap: 4px 18px;
+  margin: 0;
+}
+.phases dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
 .inner {
   width: 100%;
   min-width: 560px;

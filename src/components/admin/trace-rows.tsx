@@ -2,8 +2,8 @@
 import { Fragment } from 'react';
 import { Badge } from '@/components/ui/badge';
 import {
-  feedbackLabel, formatCount, formatDuration, formatTokens, formatUsd, outcomeLabel, signalLabel,
-  stepsSummary, type TraceRow,
+  feedbackLabel, formatCount, formatDuration, formatTokens, formatUsd, outcomeLabel,
+  phasePacketItems, phaseTimeItems, signalLabel, stepsSummary, type PhaseItem, type TraceRow,
 } from '@/lib/admin-traces.mjs';
 import styles from './traces-section.module.css';
 
@@ -32,12 +32,32 @@ function PickButton({ kind, value, label, onPick }: {
   );
 }
 
+function PhaseList({ title, items, note }: {
+  title: string; items: PhaseItem[]; note?: string;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div>
+      <h3>{title}</h3>
+      <dl className={styles.phases}>
+        {items.map(item => (
+          <Fragment key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd></Fragment>
+        ))}
+      </dl>
+      {note && <p className={styles.note}>{note}</p>}
+    </div>
+  );
+}
+
 function Details({ row }: { row: TraceRow }) {
   const { calls, tools, specialists } = row;
+  const time = phaseTimeItems(row.phases);
+  const packet = phasePacketItems(row.phases);
   return (
     <details className={styles.detail}>
       <summary>
-        Steps, calls and tools · {formatCount(calls.length)} {calls.length === 1 ? 'call' : 'calls'}
+        Steps, calls and tools · {formatCount(calls.length)}
+        {' '}{calls.length === 1 ? 'call' : 'calls'}
         {' '}· {formatCount(tools.length)} {tools.length === 1 ? 'tool' : 'tools'}
       </summary>
       <div className={styles.detailBody}>
@@ -46,6 +66,10 @@ function Details({ row }: { row: TraceRow }) {
           {row.tokens.reasoning > 0 && ` · ${formatCount(row.tokens.reasoning)} reasoning tokens`}
           {row.recoveryAction && ` · recovery ${row.recoveryAction}`}
         </p>
+        {row.route?.lane === 'short' && <p className={styles.note}>Answered directly</p>}
+        <PhaseList title="Time" items={time}
+          note="Parts can overlap, so they may add up to more than the total." />
+        <PhaseList title="Packet" items={packet} />
         {calls.length > 0 && (
           <div className={styles.innerScroll}>
             <table className={styles.inner}>

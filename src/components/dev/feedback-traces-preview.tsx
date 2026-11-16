@@ -37,18 +37,34 @@ const base = (traceId: string, ageHours: number, extra: Record<string, unknown>)
   callsTruncated: false, tokens: { input: 1200, output: 300, reasoning: 0 }, usd: '0.0123',
   signals: [] as string[], feedback: null, ...extra,
 });
+// Rows 1 and 2 carry phases; rows 3 and 4 omit them (older backend); row 5 is a short-path turn.
 const FIXTURE_ROWS = [
-  base(EXECUTION, 1, { taskId: TASK, turnId: TURN, ownerHash: 'a1b2c3d4e5f60718' }),
+  base(EXECUTION, 1, { taskId: TASK, turnId: TURN, ownerHash: 'a1b2c3d4e5f60718',
+    route: { lane: 'full', rule: null, floor: null },
+    phases: { admitMs: 35, startMs: 120, firstCallMs: 480, answerMs: 4100, modelMs: 3100,
+      toolMs: 700, stepMs: 3900, unattributedMs: 400, maxPacketBytes: 48213,
+      maxToolSchemaBytes: 9120 } }),
   base('trace-fixture-2', 5, { mode: 'plan', requestedModel: 'openai/gpt-6.1-sol',
     outcome: 'failed', status: 'failed', failureCode: 'provider_timeout', recoveryAction: 'retry',
     durationMs: 12800, signals: ['retried', 'call_unsettled'],
     steps: { total: 6, succeeded: 3, failed: 2, skipped: 0, stopped: 0, retried: 1,
-      unconfirmed: 0 } }),
+      unconfirmed: 0 },
+    route: { lane: 'full', rule: null, floor: null },
+    phases: { admitMs: 22, startMs: 60, firstCallMs: 310, answerMs: null, modelMs: 3100,
+      toolMs: 1200, stepMs: null, unattributedMs: 8500, maxPacketBytes: 61002,
+      maxToolSchemaBytes: null } }),
   base('trace-fixture-3', 30, { mode: 'plan',
     servedModels: ['openai/gpt-6-luna', 'openai/gpt-6-mini'], signals: ['model_fallback'],
     durationMs: 61000 }),
   base('trace-fixture-4', 200, { outcome: 'cancelled', status: 'cancelled', ownerHash: null,
     durationMs: 900 }),
+  base('trace-fixture-5', 2, { mode: 'plan', durationMs: 60, modelMs: 0, calls: [], tools: [],
+    steps: { total: 0, succeeded: 0, failed: 0, skipped: 0, stopped: 0, retried: 0,
+      unconfirmed: 0 },
+    tokens: { input: 0, output: 0, reasoning: 0 }, usd: '0', signals: ['quick_reply'],
+    route: { lane: 'short', rule: 'greeting', floor: null },
+    phases: { admitMs: 14, startMs: 9, firstCallMs: null, answerMs: 52, modelMs: 0, toolMs: 0,
+      stepMs: null, unattributedMs: 60, maxPacketBytes: null, maxToolSchemaBytes: null } }),
 ];
 
 const percentile = (values: number[], share: number) => {
