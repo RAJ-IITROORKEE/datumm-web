@@ -350,3 +350,12 @@ Cannot be rolled back: admin config revisions and restores (history and audit ar
 9. **Q-9 `e8cefa7`** (composition producer, general Plan admission) ships with this release though it predates the phased plan; its packets say "controlled local only".
 10. **Q-10 Preview sign-in:** a Vercel preview origin is not authorized by the backend (`ClerkAuthorizedParties`). **Closed 17 Nov by H4 (main only): no preview deployment, so no preview origin is needed.**
 10. **Q-10 Template drift:** deploys use `--use-previous-template`; whether the live template matches `stack.json` (for example `AdminSubjects`) is unverified.
+
+## 11. Web go-live result (17 Nov, user: "update the localhost verified workspace in the main of datumm-web.vercel.app")
+
+- Pushed `main` to GitHub `RAJ-IITROORKEE/datumm-web`: `7495879..017bd0d` (68 commits, U1 included). Vercel's GitHub integration built production: status `success`, "Deployment has completed".
+- Runtime smoke `--production` against `https://datumm-web.vercel.app`: 18 / 18.
+- Signed in (built-in browser): the workspace shows the new design; `GET /api/service/config` 200; `admin/config/history` 200 (`schemaVersion, current, rows, nextBefore`); `admin/traces?period=24h` 200 (0 rows: no turns since 15 Nov). `/admin/traces` page renders real production data for the last 7 days: 143 turns, 6 failed, median 39.0 s, slowest 2 min 24 s, 1,331,344 tokens in, 351,689 out, reported cost $0.6009, no question or answer text. Admin nav shows Traces and Config history; Models is hidden because the live backend does not report `adminModels` (A3 not live), and `admin/models` returns the backend's 404 as designed.
+- **G1 status: backend (`70ce912`) and web (`017bd0d`) are live.** Remaining: A3 as the second backend release; a live Ask/Plan turn on the new stack (model credit; not yet run); Q1 and N4 flags stay off (L1).
+- Standing user instruction from now on: after each phase is verified on localhost, push `main` and redeploy (memory `main-only-then-live`).
+
