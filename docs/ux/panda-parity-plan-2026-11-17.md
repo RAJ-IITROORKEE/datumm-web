@@ -19,6 +19,12 @@ differs. Section 3 of the harness decision explains why A is recommended: Panda'
 hand-written (no Vercel AI SDK) and does not stream either, and 85% of DATUMM's backend is domain
 code a new loop would still have to call.
 
+## Design rules for every step (user, 17 Nov)
+
+- **Keep DATUMM's current theme and typography exactly.** No colour token, light/dark value or font change; reviewers treat one as a defect.
+- **Layout and behaviour reference:** Panda-agent (screen layout, frontend style, optimized UX behaviour).
+- **Component reference:** affectui.com for the design and behaviour of every block, section, screen layout and component, built from the vendored `src/components/vendor/affectui` and `src/components/ui` first (AGENTS.md section 4).
+
 ## 2. Feature parity list
 
 Status in DATUMM: **have** (done), **part** (exists, needs Panda's version), **new** (absent).
