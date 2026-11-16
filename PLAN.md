@@ -21,7 +21,7 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | A1 | Admin: traces and feedback | Done 16 Nov (local, not pushed) | [Packet](docs/ux/a1-admin-traces-feedback.md) |
 | A2 | Admin: versioned config and audit | Done 16 Nov (local, not pushed) | [Packet](docs/ux/a2-admin-versioned-config-audit.md) |
 | N4 | Evidence-backed compositions | Packet proposed, awaiting approval | [Packet](docs/ux/n4-evidence-backed-compositions.md) |
-| Q1 | Rules pre-router and latency measurement (model router deferred) | Proposed | Roadmap |
+| Q1 | Rules pre-router and latency measurement (model router deferred) | Packet proposed, awaiting approval | [Packet](docs/ux/q1-rules-prerouter-latency.md) |
 | A3 | Admin: model registry | Proposed | Roadmap |
 | W1 | Right work area on AG-UI state | Proposed; separate go or no-go | Roadmap |
 | A4 | Admin: MCP and skills registry | Proposed | Roadmap |
