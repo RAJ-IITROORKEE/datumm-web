@@ -23,11 +23,16 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | N4 | Evidence-backed compositions | Done 16 Nov (local, not pushed) | [Packet](docs/ux/n4-evidence-backed-compositions.md) |
 | Q1 | Rules pre-router and latency measurement (model router deferred) | Done 17 Nov (local, not pushed; flag off by default) | [Packet](docs/ux/q1-rules-prerouter-latency.md) |
 | A3 | Admin: model registry | Done 17 Nov (local, not pushed) | [Packet](docs/ux/a3-admin-model-registry.md) |
-| W1 | Right work area on AG-UI state | Proposed; separate go or no-go | Roadmap |
-| A4 | Admin: MCP and skills registry | Proposed | Roadmap |
-| N5 | Provider streaming and measured performance | Proposed | Roadmap |
 | U1 | Next.js security upgrade (16.4.3 to 16.4.6) | Done 17 Nov (local, not pushed); `next` pinned at 16.4.6, 5 of 5 builds exit 0 | [Packet](docs/ux/u1-nextjs-security-upgrade.md) |
 | G1 | Go-live: backend on AWS, web on Vercel | Plan approved 17 Nov with all recommended options (D1 to D12); nothing pushed or deployed. Each push, merge, deploy and AWS step needs its own approval; AWS steps are run by the user (D8 option A). [AWS checks runbook](docs/ux/g1-aws-checks.md) prepared, not yet run | [Go-live plan](docs/ux/g1-go-live-plan.md) |
+| H0 | Harness decision: keep the LangGraph backend, port Panda-agent features | Proposed 17 Nov, awaiting approval (H1 to H4) | [Decision](docs/ux/harness-decision-2026-11-17.md) |
+| D1 | Composer and sidebar: model picker, context-window meter, sidebar groups and Ctrl K | Proposed (after H0) | Decision §5 |
+| T1 | Tavily web search with DATUMM's own key | Proposed (after H0) | Decision §5 |
+| A4a | Admin: tools and skills registry | Proposed (after H0) | Decision §5 |
+| A4b | Admin: MCP registry (official Python MCP SDK) | Proposed (after H0) | Decision §5 |
+| N5 | Provider streaming and measured performance | Proposed | Roadmap |
+| W1 | Right work area on AG-UI state | Proposed; separate go or no-go | Roadmap |
+| R1 | Knowledge for NBC compliance (research first) | Proposed | Decision §5 |
 
 ## Confirmed decisions
 
@@ -56,7 +61,7 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | D21 | Compact project-centered navigation | Confirmed13 November. Keep Design / Activity / Assets / Exports; add Running / Needs your input filters to the project task/chat overview and place Brief & decisions under Project context. No separate top-level Tasks/Memory screens in this direction. Preserve the approved compact structure; current implementation/evidence is indexed in the handoff. |
 | D22 | AG-UI with shadcn-style affectUI components across the whole app | Confirmed 16 November. Every agent-facing surface moves to AG-UI and the affectUI component set, in phases: the middle chat first, then the right work area, settings and admin, each with its own approved plan. This lifts the earlier "chat only" narrowing; native writes, direct drafting and billing stay out of scope until separately approved. |
 | D23 | Connect the UI to the existing harness first, then expand admin capability | Confirmed 16 November. First update the UI/UX so the harness's current features work well; then add admin capability to the harness. Panda-agent (`Pandabyte/Panda-agent`, local and live) is a read-only design reference; nothing there is changed. No Panda-agent orchestration idea, such as a model router, is adopted until P4 evaluates it and the user approves. |
-| D24 | Work lives on `main`; target is the live site | Confirmed 17 November. The finished phases run on the real `main` localhost site against a local backend first (local merge, no push). Then the same code goes live: backend on AWS, web on Vercel. Every push, merge to a remote, deploy and AWS action still needs separate approval; the plan is [g1-go-live-plan.md](docs/ux/g1-go-live-plan.md). |
+| D24 | Work lives on `main`; target is the live site (17 Nov update: no feature or release branches at all; after localhost approval, push `main` and deploy live) | Confirmed 17 November. The finished phases run on the real `main` localhost site against a local backend first (local merge, no push). Then the same code goes live: backend on AWS, web on Vercel. Every push, merge to a remote, deploy and AWS action still needs separate approval; the plan is [g1-go-live-plan.md](docs/ux/g1-go-live-plan.md). |
 
 Product framing from the user: **a Cursor for Revit**. The web workspace supports architectural reasoning and review; native modifications still require exact approval and verified execution.
 

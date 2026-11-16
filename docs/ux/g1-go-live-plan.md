@@ -233,7 +233,7 @@ Cannot be rolled back: admin config revisions and restores (history and audit ar
 | --- | --- | --- |
 | D1 | Canary or direct cutover | **A: rehearsal on a dump copy in CodeBuild (B2), then in-place cutover.** B: temporary staging stack from the same template with a restored copy and its own CloudFront (true parallel test and parity script; costs a host for a day and broad IAM). C: direct cutover without rehearsal |
 | D2 | Same day for backend and web | **A: backend day 1, web day 2 after a day of traces with the old web.** B: same window (one outage, harder to tell which side broke) |
-| D3 | Publish method | **A: release branches + PRs + merge commit + tags; Vercel promotes the reviewed preview.** B: direct push to `main` |
+| D3 | Publish method (**17 Nov: superseded by the user's main-only rule; see [harness decision](harness-decision-2026-11-17.md) H4**) | **A: release branches + PRs + merge commit + tags; Vercel promotes the reviewed preview.** B: direct push to `main` |
 | D4 | Clerk production keys | **A: keep the current instance and keys for G1; production-instance switch is its own phase** (it changes `CLERK_ISSUER` and signs everyone out). B: switch now |
 | D5 | Phases to hold back | **A: ship all code; Q1 and N4 settings stay off; A3 in a second backend release after the first is stable** (its fail-closed picker is the riskiest change; the web hides Models until the backend reports `adminModels`). B: wait for A3 and ship one release. C: also hold N2 (no runtime switch except revert) |
 | D6 | Next.js before go-live | **A: investigate per P12, ship on 16.4.3 if the build is reliable on Vercel and the advisory does not affect used features; upgrade as a separate phase.** B: upgrade first (new phase, full retest) |
