@@ -23,7 +23,7 @@ Updated 16 November 2026, end of A2.
 | N2 | Done 16 Nov: [packet and result](n2-frontend-capabilities-reversible-actions.md) | Live-model and hosted checks belong to G1 |
 | A1 | Done 16 Nov: [packet and result](a1-admin-traces-feedback.md) | Provision `TRACE_OWNER_HASH_SECRET` and check index behavior at G1 |
 | A2 | Done 16 Nov: [packet and result](a2-admin-versioned-config-audit.md) | Index and duplicate-key behavior on real Mongo belong to G1 |
-| N4 | Not started; packet not written | Write the N4 packet (evidence-backed compositions) and get approval |
+| N4 | [Packet](n4-evidence-backed-compositions.md) written, awaiting approval | User approves the packet and its ten decisions; then build |
 
 Phase table: [PLAN.md](../../PLAN.md#phases). Packet format: [PACKET_TEMPLATE.md](PACKET_TEMPLATE.md).
 
