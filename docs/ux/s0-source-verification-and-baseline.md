@@ -66,7 +66,7 @@ Delete the `datumm-orchestrator` folder; revert the web documentation commit.
 
 | Item | Outcome |
 | --- | --- |
-| Backend checkout | `E:\Web development\PROJECTS-FULL STACK\datumm-orchestrator`, branch `codex/web-ui-harness-20261116`, commit `e8cefa7` on `188ebc0` (13 files, +806 −15). Its `origin` is a local path (the candidate folder), not GitHub. Not pushed |
+| Backend checkout | `E:/Web development/PROJECTS-FULL STACK/Datumm/datumm-orchestrator`, branch `codex/web-ui-harness-20261116`, commit `e8cefa7` on `188ebc0` (13 files, +806 −15). Its `origin` is a local path (the candidate folder), not GitHub. Not pushed |
 | Gates run | Backend `pytest` baseline and patched (above), `lat check` passed (16 Nov, Python 3.12.10, Node 24.18.0 for `lat`). No web test rerun |
 | Not run or not verified | Web tests this phase; browser; whether production fills manifest tool timing, `controlOutcome` or the full `answer` text; whether any backend serves `goal` or `history/done`; hosted behavior |
 | Limits found | See section 2 and the assignments below |

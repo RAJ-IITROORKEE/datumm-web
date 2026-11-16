@@ -16,13 +16,13 @@ The frontend Activity tests, frontend TypeScript check, isolated native helper t
 
 Earlier desktop/source worktree files (the targeted deployed hosted files and commit are recorded in the repair packet):
 
-- `E:/Web development/PROJECTS-FULL STACK/_wt-orch-build/apps/desktop/src/main/native-usage.ts`
-- `E:/Web development/PROJECTS-FULL STACK/_wt-orch-build/apps/desktop/src/main/orchestration.ts`
-- `E:/Web development/PROJECTS-FULL STACK/_wt-orch-build/apps/domain-api/local/live_runtime.py`
-- `E:/Web development/PROJECTS-FULL STACK/_wt-orch-build/apps/domain-api/usage_projection.py`
-- `E:/Web development/PROJECTS-FULL STACK/_wt-orch-build/apps/domain-api/task_controller.py`
-- `E:/Web development/PROJECTS-FULL STACK/_wt-orch-build/apps/domain-api/budget.py`
-- `E:/Web development/PROJECTS-FULL STACK/_wt-orch-build/scripts/check-native-usage.cjs`
-- `E:/Web development/PROJECTS-FULL STACK/_wt-orch-build/scripts/check-hosted-usage-projection.py`
-- `E:/Web development/PROJECTS-FULL STACK/_wt-orch-build/scripts/check-native-usage-persistence.py`
-- `E:/Web development/PROJECTS-FULL STACK/_wt-orch-build/lat.md/runtime.md`
+- `E:/Web development/PROJECTS-FULL STACK/Datumm/_wt-orch-build/apps/desktop/src/main/native-usage.ts`
+- `E:/Web development/PROJECTS-FULL STACK/Datumm/_wt-orch-build/apps/desktop/src/main/orchestration.ts`
+- `E:/Web development/PROJECTS-FULL STACK/Datumm/_wt-orch-build/apps/domain-api/local/live_runtime.py`
+- `E:/Web development/PROJECTS-FULL STACK/Datumm/_wt-orch-build/apps/domain-api/usage_projection.py`
+- `E:/Web development/PROJECTS-FULL STACK/Datumm/_wt-orch-build/apps/domain-api/task_controller.py`
+- `E:/Web development/PROJECTS-FULL STACK/Datumm/_wt-orch-build/apps/domain-api/budget.py`
+- `E:/Web development/PROJECTS-FULL STACK/Datumm/_wt-orch-build/scripts/check-native-usage.cjs`
+- `E:/Web development/PROJECTS-FULL STACK/Datumm/_wt-orch-build/scripts/check-hosted-usage-projection.py`
+- `E:/Web development/PROJECTS-FULL STACK/Datumm/_wt-orch-build/scripts/check-native-usage-persistence.py`
+- `E:/Web development/PROJECTS-FULL STACK/Datumm/_wt-orch-build/lat.md/runtime.md`

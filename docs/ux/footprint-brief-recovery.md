@@ -14,7 +14,7 @@ Evidence: `artifacts/ux/progress-usage-{initial-task,followup-task}.json`, `prod
 
 ## Ownership and gates
 
-Terra6.1 High backend worker isolates exact baseline in `../_brief-candidate-d300ea5b`; frontend worker owns source-sensitive wording/provenance; independent Terra reviewer challenges semantic and scope assumptions. Parent integrates, qualifies the exact image on existing AWS, applies a narrowly scoped rollout if needed, tests real browser prompts and records results.
+Terra6.1 High backend worker isolates exact baseline in `../_archive/snapshots/_brief-candidate-d300ea5b`; frontend worker owns source-sensitive wording/provenance; independent Terra reviewer challenges semantic and scope assumptions. Parent integrates, qualifies the exact image on existing AWS, applies a narrowly scoped rollout if needed, tests real browser prompts and records results.
 
 Required cases: explicit footprint without parcel/compliance requirements; separate parcel and footprint dimensions; ambiguous/negated roles; metric/imperial conversion; confirmed grouped questions without repetition; unchanged/read-only followup versus actual amendment; source-bound model facts and fail-closed ambiguity; no native approval/write. Controlled fixtures do not establish current provider behavior; actual prompts must qualify the supported journey. No result is claimed until observed.
 

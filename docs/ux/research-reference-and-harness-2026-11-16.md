@@ -53,7 +53,7 @@ Whether AWS serves `188ebc0` today; deployed values of `ADMIN_SUBJECTS`, special
 
 ## B. Panda-agent (reference only)
 
-Current code: git worktree `E:\Web development\PROJECTS-FULL STACK\panda-agent-ui` (path `Panda-agent\src\…` inside it), branch `claude/agent-ui-migrations`. The folder `Pandabyte\Panda-agent` is an older OpenCode-and-RAG build. Stack: Next 16.4.3, React 19.3, assistant-ui, Streamdown, Clerk, Postgres RPCs. **Not** the Vercel AI SDK: its own TypeScript loop calls OpenRouter with `fetch`. LangGraph only in the admin RAG workflow.
+Current code: git worktree `E:/Web development/PROJECTS-FULL STACK/panda-agent-ui` (path `Panda-agent\src\…` inside it), branch `claude/agent-ui-migrations`. The folder `Pandabyte\Panda-agent` is an older OpenCode-and-RAG build. Stack: Next 16.4.3, React 19.3, assistant-ui, Streamdown, Clerk, Postgres RPCs. **Not** the Vercel AI SDK: its own TypeScript loop calls OpenRouter with `fetch`. LangGraph only in the admin RAG workflow.
 
 ### Screens
 

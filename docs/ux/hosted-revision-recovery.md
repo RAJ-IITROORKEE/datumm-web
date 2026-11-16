@@ -8,7 +8,7 @@ Pre-rollout baseline (historical): health reported source `2aace05d66e4789eab403
 
 The revision planner stamps all generated graphs with brief version2. The first candidate revises an existing plan; later candidates are new plans and must independently start at plan version1. The targeted correction must preserve selected-plan lineage, reset new-alternative lineage, recompute fingerprints/renderings and validate all outputs before persisting the brief. It must preserve earlier plan/artifact records and reject stale or mismatched identities.
 
-The managed-worktree tool did not return or create a checkout; its waiting cell was terminated after checking inventory. Instead, an isolated source archive was extracted from the exact live Git commit to `../_revision-candidate-2aace05`. Existing dirty backend worktrees and the older broad rollout candidate are untouched. The deployable source must include only the reviewed fix/test/documentation changes over this baseline, with real source provenance and a Docker-input manifest; never build from the dirty checkout or mislabel modified source as the old base commit.
+The managed-worktree tool did not return or create a checkout; its waiting cell was terminated after checking inventory. Instead, an isolated source archive was extracted from the exact live Git commit to `../_archive/snapshots/_revision-candidate-2aace05`. Existing dirty backend worktrees and the older broad rollout candidate are untouched. The deployable source must include only the reviewed fix/test/documentation changes over this baseline, with real source provenance and a Docker-input manifest; never build from the dirty checkout or mislabel modified source as the old base commit.
 
 ## Parallel ownership and frontend behavior
 

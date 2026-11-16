@@ -15,7 +15,7 @@ repository tools; no external analysis runtime was needed.
 - `../revit-datumm-plugin`: branch `main`, HEAD
   `f00f3b121e27f3324b27676bf84743703e7a4d89`. This named repository was
   inventoried first; the AWS worktree supplies the relevant connector source.
-- `../Datumm-codex-deploy-c6`: legacy source snapshot. Its `.git` points at
+- `../_archive/Datumm-codex-deploy-c6`: legacy source snapshot. Its `.git` points at
   missing `../Datumm-codex/.git/worktrees/Datumm-codex-deploy-c6`, so Git
   cannot resolve its current branch or commit. Its AGENTS.md, handoff.md,
   plan.md and affected package READMEs were read. It is historical source

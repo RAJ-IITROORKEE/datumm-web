@@ -4,7 +4,7 @@ Current hosted result, 13 November2026: [targeted repair](progress-usage-recover
 
 Historical source inspection, 13 November 2026. The original proposal below predates the hosted implementation above. The web UI continues to show conservative unknown/unconfirmed states when provenance is absent.
 
-Inspected backend checkout: `E:/Web development/PROJECTS-FULL STACK/_wt-orch-build`. Its OpenCode desktop transport and hosted task-plan workflow are distinct paths.
+Inspected backend checkout: `E:/Web development/PROJECTS-FULL STACK/Datumm/_wt-orch-build`. Its OpenCode desktop transport and hosted task-plan workflow are distinct paths.
 
 ## Observed OpenCode path
 
