@@ -19,7 +19,7 @@ Updated 16 November 2026, end of N1.
 | S0 | Done: [packet](s0-source-verification-and-baseline.md) | none |
 | C1 | Done 16 Nov: [packet and result](c1-capability-contract-and-config.md) | Decide `history/done` and the unused `organizeDone`; browser scenarios were not run |
 | N1 | Done 16 Nov: [packet and result](n1-durable-completion-proof.md) | Real-Mongo plan and index build checks belong to G1 |
-| N3 | Not started; packet not written | Write the N3 packet (tool, task and sub-agent lifecycle) and get approval |
+| N3 | [Packet](n3-tool-task-subagent-lifecycle.md) written, awaiting approval | User approves the packet and its eight decisions; then build |
 
 Phase table: [PLAN.md](../../PLAN.md#phases). Packet format: [PACKET_TEMPLATE.md](PACKET_TEMPLATE.md).
 
