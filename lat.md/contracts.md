@@ -97,3 +97,9 @@ Dirty state compares configs independent of key order, and domain chips are norm
 ## Admin proxy routes
 
 The service proxy opens only the admin config, audit, overview and knowledge source routes, mapped to backend v1 admin paths, and rejects every other admin path.
+
+## Capability parsing
+
+The backend config's `capabilities` object is read as a tri-state per feature; anything missing or malformed is unknown, never off, so older backends keep working.
+
+Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. See `src/lib/capabilities.mjs`.

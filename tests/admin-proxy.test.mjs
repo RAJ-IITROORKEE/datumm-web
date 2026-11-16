@@ -21,5 +21,9 @@ test('admin routes reach /v1/admin and nothing else under admin is open',async()
     assert.equal((await call(path,method)).status,200,path);
     assert.deepEqual(calls,[{path:`/v1/${path}`,method}]);
   }
-  for(const path of ['admin','admin/other','admin/config/x','admin/knowledge/sources/a/b/c'])assert.equal((await call(path,'GET')).status,404,path);
+  for(const path of ['admin','admin/other','admin/config/x','admin/knowledge/sources/a/b/c']){
+    const blocked=await call(path,'GET');
+    assert.equal(blocked.status,404,path);
+    assert.equal((await blocked.json()).code,'DATUMM_PROXY_NOT_ALLOWED',path);
+  }
 });

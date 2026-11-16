@@ -6,6 +6,7 @@ import * as React from 'react';
 import * as jsx from 'react/jsx-runtime';
 import ts from 'typescript';
 import { deriveTodos, todoSummary } from '../src/lib/agent-todos.mjs';
+import * as capabilities from '../src/lib/capabilities.mjs';
 import { conversationResult, failedTurnRecovery } from '../src/lib/conversation-result.mjs';
 import { drawingTitle } from '../src/lib/drawing-presentation.mjs';
 import { stageSpans } from '../src/lib/turn-nesting.mjs';
@@ -20,6 +21,7 @@ runInNewContext(ts.transpileModule(readFileSync(new URL('../src/components/works
   if (name === 'react') return { useRef: value => ({current: value}) };
   if (name === '@/lib/utils') return { cn: (...values) => values.filter(Boolean).join(' ') };
   if (name === '@/lib/agent-todos.mjs') return { deriveTodos, todoSummary };
+  if (name === '@/lib/capabilities.mjs') return capabilities;
   if (name === '@/lib/conversation-result.mjs') return { conversationResult, failedTurnRecovery };
   if (name === '@/lib/drawing-presentation.mjs') return { drawingTitle };
   if (name === '@/lib/conversation-turns.mjs') return conversationHelpers;

@@ -194,7 +194,7 @@ test('Switch preserves Radix false/name/value/ref/callback and native form parti
 
 test('actual AgentSection/ConfigPage/ChipList production owners render the adopted native fields, form and false switch', () => {
   const draft = config.emptyConfig(); draft.runUsdLimit = 0; draft.defaultModel = ''; draft.webSearch.enabled = false;
-  const callerLoad = modules({ overrides: { '@/lib/admin-config.mjs': config, 'next/navigation': { usePathname: () => '/admin/agent', useRouter: () => ({ push() {}, refresh() {} }) }, './use-admin': { useAdminClient:()=>async()=>({ok:true,data:null}), useAdminConfig: () => ({ draft, base: { revision: 2, effective: {} }, errors: {}, result: null, dirty: true, saving: false, reload() {}, update() {}, save() {} }), ResultState: () => null } } });
+  const callerLoad = modules({ overrides: { '@/lib/admin-config.mjs': config, 'next/navigation': { usePathname: () => '/admin/agent', useRouter: () => ({ push() {}, refresh() {} }) }, './use-admin': { useAdminClient:()=>async()=>({ok:true,data:null}), useAdminConfig: () => ({ draft, base: { revision: 2, effective: {} }, errors: {}, result: null, dirty: true, saving: false, reload() {}, update() {}, save() {} }), ResultState: () => null, useAdminResource: () => ({ data: null }) } } });
   const { AgentSection, WebSearchSection } = callerLoad('src/components/admin/config-sections.tsx');
   const { AdminShell } = callerLoad('src/components/admin/admin-shell.tsx');
   const html = markup(AdminShell, { email: 'preview@example.invalid', children: h(AgentSection) });

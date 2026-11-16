@@ -1,18 +1,22 @@
+import {admissionMessage, serviceErrorMessage} from './chat-start';
+
 /** Shared chat/inspector projection. A gap waits for replay or a full snapshot. */
-export type TaskEvent = {schemaVersion?:2;eventId?:string;sequence?:number;taskId?:string;turnId?:string;executionId?:string;activityId?:string;sessionId?:string;callId?:string;toolCallId?:string;index:number;stage:string;detail:string;note?:string;at:string;agent?:{id:string;role?:string;name?:string};parentStepId?:string};
+export type TaskEvent = {schemaVersion?:2;eventId?:string;sequence?:number;taskId?:string;turnId?:string;executionId?:string;activityId?:string;sessionId?:string;callId?:string;toolCallId?:string;index:number;stage:string;detail:string;note?:string;failureCode?:string;at:string;agent?:{id:string;role?:string;name?:string};parentStepId?:string};
 export type TaskSnapshot = {id:string;taskVersion?:number;eventCursor?:number;events:TaskEvent[]};
 export type Projection<T extends TaskSnapshot> = {snapshot:T|null;events:TaskEvent[];cursor:number;pending:TaskEvent[]};
+// Live and reloaded failed details can carry upstream HTML; show the safe copy, keep the source event.
+export const displayEvent=(event:TaskEvent):TaskEvent=>event.stage==='failed'?{...event,detail:admissionMessage(serviceErrorMessage(event.detail),event.failureCode)}:event;
 export function emptyProjection<T extends TaskSnapshot>():Projection<T>{return {snapshot:null,events:[],cursor:0,pending:[]};}
 export function reduceProjection<T extends TaskSnapshot>(state:Projection<T>, action:{snapshot:T}|{event:TaskEvent}):Projection<T>{
  if('snapshot' in action){
   const snapshot=action.snapshot;
   if(state.snapshot?.id!==snapshot.id)state=emptyProjection<T>();
   if((snapshot.taskVersion??0)<(state.snapshot?.taskVersion??0)||(snapshot.eventCursor??0)<state.cursor)return state;
-  const events=snapshot.events.slice().sort((a,b)=>a.index-b.index);
+  const events=snapshot.events.map(displayEvent).sort((a,b)=>a.index-b.index);
   const cursor=snapshot.eventCursor??(events.at(-1)?.index??-1)+1;
   return {snapshot,events,cursor,pending:state.pending.filter(e=>(e.sequence??e.index+1)>cursor)};
  }
- const event=action.event,sequence=event.sequence??event.index+1;
+ const event=displayEvent(action.event),sequence=event.sequence??event.index+1;
  if(event.taskId&&state.snapshot&&event.taskId!==state.snapshot.id)return state;
  if(sequence<=state.cursor)return state;
  const pending=[...state.pending.filter(e=>(e.sequence??e.index+1)!==sequence),event].sort((a,b)=>a.index-b.index);

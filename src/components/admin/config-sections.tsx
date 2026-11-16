@@ -34,7 +34,7 @@ export function AgentSection() {
                 {p => <Input {...p} type="number" inputMode="numeric" min={1} max={5} step={1} value={draft.parallelChats} onChange={e => update({ parallelChats: num(e.target.value) })} />}
               </Field>
           </SettingsGroup>
-          <SettingsGroup title="Per-run limits" description="Whole numbers from 0 to 100. Leave empty for the server default.">
+          <SettingsGroup title="Per-run limits" description="Whole numbers from 0 to 100. 0 or empty uses the server default.">
               {LIMIT_KEYS.map(k => (
                 <Field layout="row" key={k} label={k.replaceAll('_', ' ')} error={errors[`limits.${k}`]} hint={k in draft.limits ? undefined : `Effective: ${effectiveText((effective.limits as Record<string, unknown> | undefined)?.[k]) || 'default'}`}>
                   {p => <Input {...p} type="number" inputMode="numeric" min={0} max={100} step={1} value={draft.limits[k] ?? ''} onChange={e => { const { [k]: _, ...rest } = draft.limits; update({ limits: e.target.value === '' ? rest : { ...rest, [k]: num(e.target.value) } }); }} />}

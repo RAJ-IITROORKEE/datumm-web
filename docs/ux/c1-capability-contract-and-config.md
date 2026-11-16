@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **approved, build in progress** |
+| Status | **done 16 Nov 2026** (local; not pushed or deployed) |
 | Depends on | S0 (done) |
 | Approved by / date | Four design decisions approved 16 Nov (section 3); packet approved by the user 16 Nov ("move with the plan phased from beginning … proceed with the implementation") |
 | Base commits | Web `8c4385f`; backend `e8cefa7` on `188ebc0` |
@@ -144,4 +144,52 @@ Revert the web and backend commits. The `capabilities` key is additive, the conf
 
 ## 11. Result
 
-Filled at the checkpoint.
+### Route inventory (build step 1, read-only, backend `e8cefa7`)
+
+Observed in source. Production = `main.py`/`task_api.py`/`admin_api.py`/`knowledge.py`/`variable_api.py`/`share_api.py`; local = `local/entry.py` (desktop and hosted canary).
+
+| Finding | Evidence | Effect on C1 |
+| --- | --- | --- |
+| Production `/v1/config` has no `runtime` key, so `liveRuntime` is false and queue, design review, planning goal and native context are already hidden in production | `main.py:290-295`; `use-workspace-state.ts:152` | `taskQueue`, `designReviewRoute`, `nativeQuestions`, `toolsCatalog` dropped from v1: they would hide nothing new |
+| `tasks/{id}/goal` is called (`conversation.tsx:707`) and served only by the local app (`local/entry.py:663`, 501 without engine); the hosted gateway allows it (`hosted/entry.py:121`) | as cited | Allow-listed; gated by `planningGoals` |
+| `tasks/{id}/history/done`: `organizeDone` (`use-workspace-state.ts:1128`) has **no caller**; hosted gateway blocks the route | grep of `src` and `tests` | **Not** allow-listed; `taskDoneMarking` dropped; dead code left for a user decision |
+| Allow-listed but unserved by production: `tools` (never called), `devices/{id}/context`, `tasks/{id}/cancel`, `questions/answer`, `design-review`, `queue*` | route table | All already behind `liveRuntime` or data that production never writes; unchanged |
+| `/v1/config` consumers | web `use-workspace-state.ts:663`; desktop readiness probe `apps/desktop/src/main/web.ts:63` (`res.ok` only); local-only scripts | Additive key safe. `scripts/check-orchestrator-parity.mjs` will report a key-set difference until both hosted deployments run the new image |
+
+**Final v1 flags:** `adminConfig`, `adminAudit`, `adminOverview`, `adminKnowledge` (production true, local false) and `planningGoals` (production false, local `bool(engine)`). `local/entry.py` also reports them, which the original change list missed; without it the goal panel would vanish where it works today. `planningGoals` `unknown` keeps today's gate (`liveRuntime || desktopPreview`) instead of "off", so no backend without `capabilities` loses the panel.
+
+### Changes
+
+| Repo | Change |
+| --- | --- |
+| Backend | `main.py` `/v1/config` reads `models`, `defaultModel`, `defaultReasoningEffort` from `await app_config.current()` and adds `CAPABILITIES`; `task_controller.py:383` effort default from admin config; `local/entry.py` reports capabilities; `test_config_capabilities.py` (2 tests, cache invalidated in teardown); `lat.md/hosted-opencode.md` "Config capabilities" |
+| Web | `src/lib/capabilities.mjs` (+ `.d.mts`, `tests/capabilities.test.mjs`); hook exposes `capabilities`; planning-goal gate uses `planningGoalsVisible`; proxy allows `tasks/{id}/goal` and returns JSON 404 `DATUMM_PROXY_NOT_ALLOWED`; admin distinguishes proxy 404 ("not exposed by this web build") from backend 404 ("not provided by this backend"); admin shell hides `off` sections and shows the missing state on their URL (test added); per-run limit hint; `lat.md/contracts.md` "Capability parsing" |
+| Web, `/api/chat` removal | Route, its test and the `vercel.json` function entry deleted (the stale entry was found in review; Vercel rejects unmatched function patterns). Smoke checks 21 → 18. The XML-prolog HTML case was ported to `chat-usage-errors.test.mjs` |
+| Web, review fix | The deleted route was the only code that cleaned **failed** event details (HTML stripping, `BUDGET_EXHAUSTED` → usage-limit text). The AG-UI path showed them raw on live, reloaded and inspector views. `displayEvent` in `src/lib/task-projection.ts` now applies the same cleanup inside `reduceProjection`, and the inspector maps non-current task events through it (`use-workspace-state.ts:1191`). `tests/task-projection.test.mjs` covers HTML, provenance, no mutation, budget, ordinary detail and byte-exact markup answers |
+
+### Gates (16 Nov, Node 24.18.0, Python 3.12.10, run by the orchestrator after all changes)
+
+| Gate | Result |
+| --- | --- |
+| Backend `uv run --frozen pytest` | 182 passed + 26 subtests (baseline 180 + 26) |
+| Backend `lat check` | Passed |
+| Web `npm run typecheck`, `npm test`, `npm run build` | Passed; 607 / 607 tests (baseline 603) |
+| Web `lat check` | Passed |
+| Runtime smoke, `--production` | 18 / 18 against a fresh `next start` on port 3100 (port 3000 was held by an earlier server) |
+| Independent review (separate agent) | 9 findings; fixed: `vercel.json`, failed-detail cleanup, admin gating test, test cache teardown, doc anchors. Accepted as recorded below: render race, Mongo dependency, hashes, line endings |
+
+### Not run or not verified
+
+- Browser scenarios 1–5 (section 8) were **not run**. Admin gating and the planning-goal rule are covered by unit and harness tests only; the dev admin fixture answers `config` as missing, so scenario 2 cannot be shown through it.
+- Local app capabilities (`local/entry.py`) are untested: no harness calls `create_app`.
+- Backend graphify update not run (S0: refresh refuses semantic-node loss).
+- Hosted behavior, Vercel build and deployment: not run.
+
+### Limits and recorded consequences
+
+- A direct visit to an admin section reported `off` briefly mounts the section and sends its request before the config response swaps in the "not provided" state.
+- `/v1/config` now reads Mongo (cached 30 s); if Mongo is down it fails instead of returning environment values. Task submission already depends on Mongo.
+- Recorded source hashes superseded by C1: backend `task_controller.py` in `artifacts/ux/agui-presentation/qualification.json`; `main.py` and `local/entry.py` in the archived checklist-completion and report-revision manifests. The reviewer also found that the qualification file's hashes for `conversation.tsx`, `use-workspace-state.ts`, `tests/activity-integration.test.mjs` and `tests/runtime-smoke.mjs` did not match the HEAD blobs before C1, contradicting the handoff's "all matched" (not re-verified by the orchestrator; possibly working-tree versus LF blob hashing).
+- `history/done` and the unused `organizeDone`: user decision pending.
+
+**Next step:** write the N1 packet (durable completion proof) for approval.

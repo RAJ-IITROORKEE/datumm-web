@@ -12,15 +12,12 @@ const checks=[
  ['profile-auth-gate',origin+'/api/account/profile',{},[401,503]],
  ['connect-invalid',origin+'/connect?request=invalid',{},200],
  ['connector-auth-gate',origin+'/api/service/device-authorizations/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',{},[401,503]],
- ['cross-origin-write',origin+'/api/chat',{method:'POST',headers:{Origin:'https://example.invalid','Content-Type':'application/json'},body:JSON.stringify({messages:[]})},403],
- ['missing-origin-write',origin+'/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[]})},403],
  ['agui-cross-origin-write',origin+'/api/agui',{method:'POST',headers:{Origin:'https://example.invalid','Content-Type':'application/json'},body:'{}'},403],
  ['agui-missing-origin-write',origin+'/api/agui',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'},403],
  ['agui-replay-cross-origin-write',origin+'/api/dev/agui-replay',{method:'POST',headers:{Origin:'https://example.invalid','Content-Type':'application/json'},body:'{}'},403],
  ['agui-replay-missing-origin-write',origin+'/api/dev/agui-replay',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'},403],
  ['agui-auth-gate',origin+'/api/agui',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({threadId:'runtime-thread',runId:'runtime-run',messages:[{id:'message',role:'user',content:'Runtime authentication boundary check'}],tools:[],context:[],forwardedProps:{idempotencyKey:'runtime-auth-check',expectedTaskVersion:0,expectedPlanVersion:0,mode:'ask'}})},[401,503]],
- ['agui-resume-auth-gate',origin+'/api/agui',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({threadId:'runtime-task',runId:'runtime-resume',messages:[],tools:[],context:[],resume:[{interruptId:'question:1',status:'resolved',payload:{questionId:'question',questionVersion:1,answer:'Metric'}}],forwardedProps:{taskId:'runtime-task',idempotencyKey:'runtime-resume-auth',expectedTaskVersion:1,expectedPlanVersion:0}})},[401,503]],
- ['unsupported-attachment',origin+'/api/chat',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({messages:[],attachmentIds:['source-1']})},422]
+ ['agui-resume-auth-gate',origin+'/api/agui',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({threadId:'runtime-task',runId:'runtime-resume',messages:[],tools:[],context:[],resume:[{interruptId:'question:1',status:'resolved',payload:{questionId:'question',questionVersion:1,answer:'Metric'}}],forwardedProps:{taskId:'runtime-task',idempotencyKey:'runtime-resume-auth',expectedTaskVersion:1,expectedPlanVersion:0}})},[401,503]]
 ];
 if(process.argv.includes('--production'))checks.push(['development-fixture-blocked',origin+'/dev/ux',{},404],['chat-composition-fixture-blocked',origin+'/dev/chat-composition',{},404],['agui-replay-production-blocked',origin+'/api/dev/agui-replay',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:'{}'},404]);
 for(const [name,url,init,expected] of checks){

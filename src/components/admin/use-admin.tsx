@@ -5,17 +5,18 @@ import { Button } from '@/components/ui/button';
 import { emptyConfig, sameConfig, validateConfig, type AdminConfig } from '@/lib/admin-config.mjs';
 import styles from './admin-form.module.css';
 
-export type Fail = 'missing' | 'forbidden' | 'stale' | 'error';
+export type Fail = 'blocked' | 'missing' | 'forbidden' | 'stale' | 'error';
 export type Result<T> = { ok: true; data: T } | { ok: false; reason: Fail; message: string };
 export type AdminClient = <T>(path: string, init?: { method?: string; body?: unknown }) => Promise<Result<T>>;
 
-/** Admin call through the same-origin service proxy; 404, 403 and 409 get their own friendly states. */
+/** Admin call through the same-origin service proxy; 404 (proxy or backend), 403 and 409 get their own friendly states. */
 export async function adminCall<T>(path: string, init?: { method?: string; body?: unknown }): Promise<Result<T>> {
   try {
     const response = await fetch(`/api/service/${path}`, { method: init?.method ?? 'GET', cache: 'no-store', headers: init?.body === undefined ? undefined : { 'Content-Type': 'application/json' }, body: init?.body === undefined ? undefined : JSON.stringify(init.body) });
     if (response.ok) return { ok: true, data: (response.status === 204 ? null : await response.json().catch(() => null)) as T };
-    const detail = await response.json().then(b => (typeof b?.detail === 'string' ? b.detail : ''), () => '');
-    const reason: Fail = response.status === 404 ? 'missing' : response.status === 403 ? 'forbidden' : response.status === 409 ? 'stale' : 'error';
+    const body = await response.json().catch(() => null);
+    const detail = typeof body?.detail === 'string' ? body.detail : '';
+    const reason: Fail = response.status === 404 ? (body?.code === 'DATUMM_PROXY_NOT_ALLOWED' ? 'blocked' : 'missing') : response.status === 403 ? 'forbidden' : response.status === 409 ? 'stale' : 'error';
     return { ok: false, reason, message: detail || `Request failed (${response.status}).` };
   } catch {
     return { ok: false, reason: 'error', message: 'Could not reach the service. Check your connection.' };
@@ -67,7 +68,8 @@ export function ResultState({ result, onRetry }: { result: Result<unknown> | nul
   if (!result) return <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" aria-hidden /> Loading…</p>;
   if (result.ok) return null;
   const copy = {
-    missing: ['Backend not deployed yet', 'The admin API is not available on the backend yet. Nothing here can be saved until it is deployed.'],
+    blocked: ['Not exposed by this web build', 'This web build does not expose this admin route.'],
+    missing: ['Not provided by this backend', 'This backend does not provide this admin feature.'],
     forbidden: ['Backend admin access not configured', 'The backend rejected this account. Add your Clerk user id to ADMIN_SUBJECTS on the backend.'],
     stale: ['Changed elsewhere', 'Someone else saved a newer version. Reload to continue from it.'],
     error: ['Something went wrong', result.message],

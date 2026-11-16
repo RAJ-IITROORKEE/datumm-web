@@ -112,7 +112,7 @@ test('proxy rejects cross-origin writes first, preserves public share and skips 
     let calls=0;
     const proxy=load('src/proxy.ts',{'@/lib/web-configuration':{getWebConfiguration:()=>getWebConfiguration(env)},'@clerk/nextjs/server':{clerkMiddleware:()=>async()=>{calls++;return new Response();}},'next/server':{NextResponse:{json:Response.json,next:()=>new Response(null,{status:200})}}}).default;
     const request=(path,method='GET',origin)=>({method,nextUrl:new URL('https://web.example'+path),url:'https://web.example'+path,headers:new Headers({host:'web.example',...(origin?{origin}:{})})});
-    assert.equal((await proxy(request('/api/chat','POST','https://other.example'),{})).status,403);
+    assert.equal((await proxy(request('/api/agui','POST','https://other.example'),{})).status,403);
     assert.equal(calls,0);
     assert.equal((await proxy(request('/share/token'),{})).status,200);
     assert.equal(calls,0);

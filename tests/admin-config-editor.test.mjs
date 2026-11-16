@@ -6,6 +6,7 @@ import * as React from 'react';
 import * as jsxRuntime from 'react/jsx-runtime';
 import ts from 'typescript';
 import * as config from '../src/lib/admin-config.mjs';
+import * as capabilities from '../src/lib/capabilities.mjs';
 
 // Run the real hooks with persistent state and effect dependencies, without network access.
 function harness(client) {
@@ -331,6 +332,8 @@ test('admin shell retains one config owner and offers stay or leave with focus r
       if(name==='./form')return {AdminConfigProvider:'AdminConfigProvider',useOptionalAdminConfig:()=>null,useSharedAdminConfig:()=>configState};
       if(name==='@/lib/utils')return {cn:(...parts)=>parts.filter(Boolean).join(' ')};
       if(name==='next/link')return {default:'Link'};
+      if(name==='./use-admin')return {useAdminResource:()=>({data:null}),ResultState:'ResultState'};
+      if(name==='@/lib/capabilities.mjs')return capabilities;
       return new Proxy({}, {get:(_target,key)=>key});
     }});
   const shell=exports.AdminShell({email:'a@example.test',children:'section'});
@@ -375,6 +378,67 @@ test('admin shell retains one config owner and offers stay or leave with focus r
   const denied=gated.type(gated.props);
   assert.equal(denied.type,'p');assert.equal(denied.props.role,'status');
   assert.notEqual(denied.props.children,'private','A different subject cannot retain the old config owner');
+});
+
+// The real ResultState copy is needed to prove the missing-backend text, not just the reason code.
+function loadResultState() {
+  const exports = {};
+  const source = readFileSync(new URL('../src/components/admin/use-admin.tsx', import.meta.url), 'utf8');
+  runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText, {
+    exports, fetch() { throw Error('Tests must use the injected client'); }, document: { hidden: false },
+    require(name) {
+      if (name === 'react') return React;
+      if (name === 'react/jsx-runtime') return jsxRuntime;
+      if (name === '@/lib/admin-config.mjs') return config;
+      if (name.endsWith('.module.css')) return { default: {} };
+      return new Proxy({}, { get: () => () => null });
+    },
+  });
+  return exports.ResultState;
+}
+
+test('admin shell hides nav items the backend reports off and shows the missing state on their route', () => {
+  const ResultState = loadResultState();
+  const calls = [], slots = [], configState = { dirty: false, saving: false, knowledge: { url: '', title: '', corpus: 'other' } };
+  let cursor = 0, resourceData = null;
+  const hooks = { ...React,
+    useState(initial) { const i = cursor++; if (!(i in slots)) slots[i] = initial; return [slots[i], value => { slots[i] = typeof value === 'function' ? value(slots[i]) : value; }]; },
+    useRef(value) { const i = cursor++; return slots[i] ??= { current: value }; }, useEffect: () => {}, useContext: () => configState };
+  const exports = {};
+  const source = readFileSync(new URL('../src/components/admin/admin-shell.tsx', import.meta.url), 'utf8');
+  runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText, {
+    exports, require(name) {
+      if (name === 'react') return hooks;
+      if (name === 'react/jsx-runtime') return jsxRuntime;
+      if (name === 'next/navigation') return { usePathname: () => '/admin', useRouter: () => ({ refresh() {}, push: href => calls.push(['push', href]) }) };
+      if (name === '@clerk/nextjs') return { useAuth: () => ({ isLoaded: true, userId: 'account-a' }) };
+      if (name === './form') return { AdminConfigProvider: 'AdminConfigProvider', useOptionalAdminConfig: () => null, useSharedAdminConfig: () => configState };
+      if (name === '@/lib/utils') return { cn: (...parts) => parts.filter(Boolean).join(' ') };
+      if (name === 'next/link') return { default: 'Link' };
+      if (name === './use-admin') return { useAdminResource: () => ({ data: resourceData }), ResultState };
+      if (name === '@/lib/capabilities.mjs') return capabilities;
+      return new Proxy({}, { get: (_target, key) => key });
+    }});
+  const render = activePath => {
+    const shell = exports.AdminShell({ email: 'a@example.test', children: 'section', activePath });
+    cursor = 0;
+    return elements(shell.props.children.type(shell.props.children.props));
+  };
+  const navLinks = nodes => {
+    const nav = nodes.find(node => typeof node.type === 'function' && node.type.name === 'Nav');
+    return elements(nav.type(nav.props)).filter(node => node.type === 'Link').map(node => node.props.href);
+  };
+  const text = node => typeof node === 'string' ? [node] : React.isValidElement(node) ? text(node.props.children) : Array.isArray(node) ? node.flatMap(text) : [];
+
+  resourceData = { capabilities: { version: 1, features: { adminConfig: true, adminAudit: false, adminOverview: true, adminKnowledge: true, planningGoals: false } } };
+  assert.ok(navLinks(render('/admin')).includes('/admin'), 'Overview stays visible when adminOverview is on');
+  assert.ok(!navLinks(render('/admin')).includes('/admin/audit'), 'Audit nav is hidden when adminAudit is off');
+  const missing = render('/admin/audit').find(node => node.type === ResultState);
+  assert.ok(missing, 'Audit route renders the missing-backend state');
+  assert.equal(missing.props.result.reason, 'missing');
+  assert.match(text(missing.type(missing.props)).join(''), /Not provided by this backend/);
+  resourceData = null;
+  assert.ok(navLinks(render('/admin')).includes('/admin/audit'), 'Without capabilities every nav item stays visible');
 });
 
 test('unadded chip text is registered until added, cleared or the section unmounts', () => {

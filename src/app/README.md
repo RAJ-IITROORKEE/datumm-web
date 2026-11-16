@@ -18,7 +18,6 @@ Next.js App Router: pages, layouts and API route handlers. Read the installed do
 | Route | Purpose |
 | --- | --- |
 | `api/agui` | AG-UI chat endpoint: send, resume, observe (`lib/agui/adapter.mjs`) |
-| `api/chat` | AI SDK stream route, kept for the compatibility bridge |
 | `api/service/[...path]` | Same-origin proxy to the hosted task service. Paths are allow-listed by regex; anything else is 404 |
 | `api/account/profile` | `GET` and `PUT` the signed-in user's onboarding profile |
 | `api/dev/agui-replay` | Replays saved AG-UI output; 404 in production |

@@ -9,23 +9,27 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { featureState, parseCapabilities, type Capabilities, type CapabilityFeature } from '@/lib/capabilities.mjs';
 import { AdminConfigProvider, useOptionalAdminConfig, useSharedAdminConfig } from './form';
+import { ResultState, useAdminResource } from './use-admin';
 
-const groups = [
-  { label: 'Workspace', items: [{ href: '/admin', label: 'Overview', icon: LayoutDashboard }] },
+type Item = { href: string; label: string; icon: typeof Bot; feature?: CapabilityFeature };
+const groups: { label: string; items: Item[] }[] = [
+  { label: 'Workspace', items: [{ href: '/admin', label: 'Overview', icon: LayoutDashboard, feature: 'adminOverview' }] },
   { label: 'Agent', items: [
-    { href: '/admin/agent', label: 'Agent', icon: Bot }, { href: '/admin/web-search', label: 'Web search', icon: Globe },
-    { href: '/admin/knowledge', label: 'Knowledge', icon: BookOpen }, { href: '/admin/skills', label: 'Skills', icon: Puzzle },
-    { href: '/admin/mcp', label: 'MCP servers', icon: Server },
+    { href: '/admin/agent', label: 'Agent', icon: Bot, feature: 'adminConfig' }, { href: '/admin/web-search', label: 'Web search', icon: Globe, feature: 'adminConfig' },
+    { href: '/admin/knowledge', label: 'Knowledge', icon: BookOpen, feature: 'adminKnowledge' }, { href: '/admin/skills', label: 'Skills', icon: Puzzle, feature: 'adminConfig' },
+    { href: '/admin/mcp', label: 'MCP servers', icon: Server, feature: 'adminConfig' },
   ] },
   { label: 'Release', items: [{ href: '/admin/plugin', label: 'Plugin', icon: Plug }] },
-  { label: 'System', items: [{ href: '/admin/audit', label: 'Audit log', icon: ScrollText }] },
+  { label: 'System', items: [{ href: '/admin/audit', label: 'Audit log', icon: ScrollText, feature: 'adminAudit' }] },
 ];
+const hiddenByBackend = (caps: Capabilities, item?: Item) => Boolean(item?.feature && featureState(caps, item.feature) === 'off');
 
-function Nav({ collapsed, path, onNavigate }: { collapsed: boolean; path: string; onNavigate: (event: MouseEvent<HTMLAnchorElement>, href: string) => void }) {
+function Nav({ collapsed, path, caps, onNavigate }: { collapsed: boolean; path: string; caps: Capabilities; onNavigate: (event: MouseEvent<HTMLAnchorElement>, href: string) => void }) {
   return (
     <nav aria-label="Admin sections" className="admin-nav">
-      {groups.map(group => (
+      {groups.map(group => ({ ...group, items: group.items.filter(item => !hiddenByBackend(caps, item)) })).filter(group => group.items.length).map(group => (
         <div key={group.label} className="admin-nav-group">
           <p className={cn('admin-nav-label', collapsed && 'sr-only')}>{group.label}</p>
           <ul className="admin-nav-list">
@@ -101,6 +105,7 @@ function AdminShellContent({ email, children, activePath, onNavigate }: ShellPro
   const path = activePath ?? pathname;
   const current = groups.flatMap(group => group.items).find(item => item.href === path);
   const config = useSharedAdminConfig();
+  const caps = parseCapabilities(useAdminResource<unknown>('config').data);
   const navigate = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const leaving = href === '/';
@@ -124,7 +129,7 @@ function AdminShellContent({ email, children, activePath, onNavigate }: ShellPro
       <a href="#admin-main" className="admin-skip-link">Skip to admin content</a>
       <aside id="admin-sidebar" aria-label="Administration navigation" className="admin-sidebar">
         <Brand collapsed={collapsed} />
-        <Nav collapsed={collapsed} path={path} onNavigate={navigate} />
+        <Nav collapsed={collapsed} path={path} caps={caps} onNavigate={navigate} />
         <SidebarFooter collapsed={collapsed} email={email} onNavigate={navigate} />
       </aside>
       <Sheet open={sheet} onOpenChange={setSheet}>
@@ -132,7 +137,7 @@ function AdminShellContent({ email, children, activePath, onNavigate }: ShellPro
           <SheetTitle className="sr-only">Admin navigation</SheetTitle>
           <SheetDescription className="sr-only">Navigate DATUMM administration or return to your workspace.</SheetDescription>
           <div className="admin-drawer-heading"><Brand /><SheetClose asChild><Button variant="ghost" size="icon" className="admin-shell-button" aria-label="Close navigation"><X /></Button></SheetClose></div>
-          <Nav collapsed={false} path={path} onNavigate={navigate} />
+          <Nav collapsed={false} path={path} caps={caps} onNavigate={navigate} />
           <SidebarFooter email={email} onNavigate={navigate} />
         </SheetContent>
       </Sheet>
@@ -153,7 +158,7 @@ function AdminShellContent({ email, children, activePath, onNavigate }: ShellPro
             </ol>
           </nav>
         </header>
-        <main id="admin-main" tabIndex={-1} className="admin-main"><div className="admin-content">{children}</div></main>
+        <main id="admin-main" tabIndex={-1} className="admin-main"><div className="admin-content">{hiddenByBackend(caps, current) ? <ResultState result={{ ok: false, reason: 'missing', message: '' }} /> : children}</div></main>
       </div>
     </div>
   );

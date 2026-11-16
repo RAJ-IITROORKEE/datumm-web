@@ -10,6 +10,7 @@ import * as geometry from '../src/lib/plan-geometry.mjs';
 import * as settingsNavigation from '../src/lib/settings-navigation.mjs';
 import * as chatSeen from '../src/lib/chat-seen.mjs';
 import {stopRequested} from '../src/lib/stop-requested.mjs';
+import {parseCapabilities} from '../src/lib/capabilities.mjs';
 import * as selectionMarker from '../src/lib/selection-uncertainty.mjs';
 import * as conversationResult from '../src/lib/conversation-result.mjs';
 
@@ -117,7 +118,8 @@ test('A to B to A, changed brief and removed candidates at either GET boundary p
 function fakeLocks(){const tails=new Map();return {request(name,options,callback){assert.equal(options.mode,'exclusive');let result;try{result=tails.has(name)?tails.get(name).then(callback):Promise.resolve(callback());}catch(error){result=Promise.reject(error);}const tail=result.then(()=>{},()=>{});tails.set(name,tail);void tail.then(()=>{if(tails.get(name)===tail)tails.delete(name);});return result;}};}
 function workspaceHarness(sharedStorage,sharedLocks){
  const effects=[],requests=[],chat={messages:[],status:'ready',options:null,sent:[]};
- const projection={};runInNewContext(compile(source('src/lib/task-projection.ts')).outputText,{exports:projection});
+ const chatStart={};runInNewContext(compile(source('src/lib/chat-start.ts')).outputText,{exports:chatStart,Response,Error});
+ const projection={};runInNewContext(compile(source('src/lib/task-projection.ts')).outputText,{exports:projection,require:()=>chatStart});
  const workflow={};runInNewContext(compile(source('src/lib/workflow-state.ts')).outputText,{exports:workflow});
  const promptContent={};runInNewContext(compile(source('src/components/prompt-content.tsx')).outputText,{exports:promptContent,require:name=>name==='react/jsx-runtime'?jsx:{}});
  const draft={get:()=>'',status:()=> 'memory',revision:()=> 'rev',set:()=> 'memory',move(){},confirm:()=> 'memory'};
@@ -127,6 +129,7 @@ function workspaceHarness(sharedStorage,sharedLocks){
   '@/lib/settings-navigation.mjs':settingsNavigation,
   '@/lib/chat-seen.mjs':chatSeen,
   '@/lib/stop-requested.mjs':{stopRequested},
+  '@/lib/capabilities.mjs':{parseCapabilities},
   '@/lib/task-command':{replaceTerminalCommand:(type,state)=>state==='applied'||state==='rejected'||(state==='interrupted'&&['compare_result','inspect_result'].includes(type))},
   '@/lib/chat-start':{chatStartFailure:()=>null,savedTaskConnectionNotice:()=>'',admissionMessage:message=>message},
   '@/lib/prompt-drafts.mjs':{createPromptDraftStore:()=>draft},

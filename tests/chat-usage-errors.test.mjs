@@ -45,6 +45,7 @@ test('upstream HTML is not shown in chat failures or saved task notices',async()
  assert.equal(body.message,'DATUMM service is temporarily unavailable. Check your saved task before trying again.');
  assert.doesNotMatch(exports.savedTaskConnectionNotice({status:'failed',data:{error:html}}),/CloudFront|<!DOCTYPE/);
  assert.equal(exports.serviceErrorMessage(html,401,'text/plain'),'Your session could not be verified. Sign in again and retry.');
+ assert.equal(exports.serviceErrorMessage('<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><body>Gateway</body></html>',502,'text/plain'),'DATUMM service is temporarily unavailable. Check your saved task before trying again.');
  assert.match(exports.serviceErrorMessage(html,403,'text/plain'),/permission/);
  assert.equal(exports.serviceErrorMessage('Please reconnect your account.',401,'application/json'),'Please reconnect your account.');
  assert.equal(exports.serviceErrorMessage('Permission denied for this project.',403),'Permission denied for this project.');
