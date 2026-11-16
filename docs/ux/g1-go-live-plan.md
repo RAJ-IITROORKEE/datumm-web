@@ -170,7 +170,12 @@ Change set `g1-backend-70ce912` on stack `datumm-orchestrator`: `--use-previous-
 - Executed change set `g1-backend-70ce912` at 23:07:53 UTC. `/health` showed `188ebc0` at 23:08:06, down at 23:08:18, `70ce912` at 23:09:07: **about one minute of downtime**. Stack `UPDATE_COMPLETE`; ECS rollout `COMPLETED` at 23:10:53; desired 1, running 1; task image `sha256:bb926402…`.
 - **Live backend is now `70ce912be3249d0cfe277a1a5fd669ddff18707a`** (C1, N1, N3, N2, A1, A2, N4, Q1; A3 not yet).
 - Anonymous `/v1/config`, `/v2/tasks`, `/v1/admin/config`, `/v1/admin/traces` return 401 (traces existed only as 404 before). No `Traceback` in the API log in the 20 minutes after the switch.
-- Not yet run: the signed-in checks H-B3 to H-B5 (capabilities, old-web smoke, read-only admin), which need the user's session; the old web (`7495879`) is still live and is expected to keep working (section 2.4).
+- **Signed-in checks (17 Nov, built-in browser, the user signed in on the live site; read-only):**
+  - Workspace loads on `datumm-web.vercel.app` (old web `7495879`), sidebar lists the pinned chat, three projects and their chats from the new backend.
+  - Existing chat "Dental clinic 12x9" opens with its 2D plan (room areas), saved answer, 3 alternatives card, Plan v1 and pipeline: **old web works on the new backend** (H-B4, read part).
+  - `GET /api/service/config`: 200, `capabilities.version` 1; `adminConfig`, `adminAudit`, `adminOverview`, `adminKnowledge`, `adminTraces`, `adminHistory`, `feedback`, `frontendContext`, `displayActions` true; `planningGoals`, `evidenceCompositions` false; models = the six built-ins; default `openai/gpt-6-luna`, effort `high` (H-B3, matches P3: picker unchanged).
+  - Admin as the user: `admin/config` 200 (`config, effective, revision, updatedAt, updatedBy`), `admin/audit` 200 (array of 2), `admin/overview` 200. `admin/traces` and `admin/config/history` return a plain `Not found` from the **old web's proxy**, which does not allow those routes; the backend has them (anonymous direct call gives 401). They appear when the new web goes live.
+  - Not run: a new Ask or Plan chat (spends model credit; needs the user's go-ahead).
 - Rollback, if needed: same update with `ImageUri` = `sha256:6af54c87…` (still in ECR); backup above.
 
 ### Checks at each gate
