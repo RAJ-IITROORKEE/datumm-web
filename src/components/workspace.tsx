@@ -4,7 +4,7 @@ import './studio-workspace.css';
 import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {OutputWorkspaceProvider, OutputPanel, useOutputWorkspace} from './workspace/output-workspace';
 import {ReviewReportPanel} from './workspace/review-report';
-import type { AlternativeSelection, AssetRow, Bound, SavedDrawingInput, WorkAreaActions, WorkAreaPreview, WorkScope } from '@/lib/work-area-contract';
+import type { AlternativeSelection, AssetRow, Bound, SavedDrawingInput, SavedReportRevision, WorkAreaActions, WorkAreaPreview, WorkScope } from '@/lib/work-area-contract';
 import type { ReviewReport } from '@/lib/review-report.mjs';
 import {projectWorkspaceAssets} from '@/lib/workspace-assets.mjs';
 import {drawingTitle} from '@/lib/drawing-presentation.mjs';
@@ -80,23 +80,31 @@ export function Workspace({
   return <WorkspaceContent w={w} />;
 }
 
-type ReportSelection = {scope: WorkScope; openId: number};
+type ReportSelection = {scope: WorkScope; openId: number; revision?: SavedReportRevision};
 function WorkspaceContent({w}: {w: WorkspaceState}) {
   const [reportSelection, setReportSelection] = useState<ReportSelection | null>(null);
   const [outputOpenId, setOutputOpenId] = useState(0);
   const reportTrigger = useRef<HTMLElement | null>(null), nextReportOpenId = useRef(0);
+  // Filled by WorkspacePanels, which owns the work-area actions; answers reach it through the provider.
+  const reportOpener = useRef<((revision: SavedReportRevision, opener: HTMLElement | null) => void) | null>(null);
   // A failed rating is announced in the composer's status line; the bar never claims more than it knows.
   const answerFeedback = useAnswerFeedback(featureEnabled(w.capabilities, 'feedback'), w.workspaceScopeInput.taskId, w.setConnectionNotice);
-  return <OutputWorkspaceProvider scopeKey={w.workspaceScopeInput.key} scopeInput={w.workspaceScopeInput} answerFeedback={answerFeedback} onOpen={() => {
+  // Stable callbacks keep the provider's memoized context value from changing on every render.
+  const liveW = useRef(w); liveW.current = w;
+  const onOpenReport = useCallback((revision: SavedReportRevision, opener: HTMLElement | null) => reportOpener.current?.(revision, opener), []);
+  const onOpen = useCallback(() => {
+    const w = liveW.current;
     setOutputOpenId(value => value + 1);
     setReportSelection(null); w.closeProperties(); w.setCanvasOpen(false); w.selectWorkAreaSection(w.workAreaSection === 'exports' ? 'exports' : 'assets');
-  }}><WorkspacePanels w={w} reportSelection={reportSelection} setReportSelection={setReportSelection} reportTrigger={reportTrigger} nextReportOpenId={nextReportOpenId} outputOpenId={outputOpenId}/></OutputWorkspaceProvider>;
+  }, []);
+  return <OutputWorkspaceProvider scopeKey={w.workspaceScopeInput.key} scopeInput={w.workspaceScopeInput} answerFeedback={answerFeedback} onOpenReport={onOpenReport} onOpen={onOpen}><WorkspacePanels w={w} reportSelection={reportSelection} setReportSelection={setReportSelection} reportTrigger={reportTrigger} nextReportOpenId={nextReportOpenId} reportOpener={reportOpener} outputOpenId={outputOpenId}/></OutputWorkspaceProvider>;
 }
 
-function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger, nextReportOpenId, outputOpenId}: {
+function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger, nextReportOpenId, reportOpener, outputOpenId}: {
   w: WorkspaceState; reportSelection: ReportSelection | null;
   setReportSelection: (value: ReportSelection | null) => void;
   reportTrigger: React.MutableRefObject<HTMLElement | null>; nextReportOpenId: React.MutableRefObject<number>;
+  reportOpener: React.MutableRefObject<((revision: SavedReportRevision, opener: HTMLElement | null) => void) | null>;
   outputOpenId: number;
 }) {
   const outputWorkspace = useOutputWorkspace();
@@ -162,7 +170,7 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
   });
   const liveAssets = useRef({scope, rows: assetRows}); liveAssets.current = {scope, rows: assetRows};
   const reportOpen = Boolean(report);
-  const preview: WorkAreaPreview = activeOutput ? {kind:'answer-output',scope,outputId:activeOutput.id} : report && scope.taskId ? {kind:'saved-report',scope,taskId:scope.taskId,openId:report.openId} : {kind:'drawing',scope};
+  const preview: WorkAreaPreview = activeOutput ? {kind:'answer-output',scope,outputId:activeOutput.id} : report && scope.taskId ? {kind:'saved-report',scope,taskId:scope.taskId,openId:report.openId,...report.revision} : {kind:'drawing',scope};
   const restoreFocus = (token: WorkScope, opener: HTMLElement | null) => requestAnimationFrame(() => {
     if (!matches(token)) return;
     if (opener?.isConnected && opener.getClientRects().length && getComputedStyle(opener).visibility !== 'hidden') opener.focus();
@@ -186,12 +194,12 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
     closeProperties() { if (!matches(scope)) return; const focused=document.activeElement; if(focused instanceof HTMLElement&&focused.closest('[aria-label="Drawing properties"]')) document.querySelector<HTMLElement>('[data-output-focus-fallback]')?.focus(); w.closeProperties(); },
     openDrawing() { if (!matches(scope)) return; showWorkArea(); dismissOutput(); setReportSelection(null); w.selectWorkAreaSection('design'); },
     openAnswerOutput(id, opener) { if (!matches(scope)) return; showWorkArea(); outputWorkspace.openOutput(id, opener); },
-    openSavedReport(opener) {
+    openSavedReport(opener, revision) {
       if (!matches(scope) || !scope.taskId || !w.run || w.runtimeConfig?.supportedExports && !w.runtimeConfig.supportedExports.includes('report-json')) return;
       showWorkArea(); reportTrigger.current=opener??(document.activeElement instanceof HTMLElement?document.activeElement:null);
       dismissOutput(); w.closeProperties(); w.selectWorkAreaSection(w.workAreaSection === 'exports' ? 'exports' : 'assets');
       w.setCanvasOpen(false); setReportRecord(null);
-      setReportSelection({scope,openId:++nextReportOpenId.current});
+      setReportSelection({scope,openId:++nextReportOpenId.current,revision});
     },
     closePreview() { if (!matches(scope)) return; if(activeOutput)closeOutput(); else if(report)closeReport(); },
     returnToDrawing() { if (!matches(scope)) return; showWorkArea(); if(activeOutput)closeOutput(); else if(report)closeReport(); w.selectWorkAreaSection('design'); },
@@ -206,12 +214,13 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
     if (destination.kind === 'drawing') actions.openDrawing(opener);
     else if (destination.kind === 'saved-source') { w.setSelectedSourceId(destination.sourceId); actions.openDrawing(opener); }
     else if (destination.kind === 'answer-output') actions.openAnswerOutput(destination.outputId, opener);
-    else if (destination.kind === 'saved-report') actions.openSavedReport(opener);
+    else if (destination.kind === 'saved-report') actions.openSavedReport(opener, destination.revisionId && destination.contentHash ? {revisionId: destination.revisionId, contentHash: destination.contentHash} : undefined);
     else if (destination.kind === 'specialist-download') {
       if (destination.taskId !== scope.taskId || !/^[a-f0-9]{64}$/.test(destination.sha256)) return;
       const anchor=document.createElement('a'); anchor.href=`/api/service/tasks/${encodeURIComponent(destination.taskId)}/specialist-artifacts/${destination.sha256}`; anchor.download='evidence-report.json'; anchor.click();
     } else setAssetNotice({scope, text: destination.reason});
   };
+  reportOpener.current = (revision, opener) => actions.openSavedReport(opener, revision);
   const taskRetry = useRef<WorkScope | null>(null);
   const [taskRetryScope, setTaskRetryScope] = useState<WorkScope | null>(null);
   const retrySelectedTask = async () => {
@@ -1056,7 +1065,7 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
             </>,
             assetPreview: <>
               <div className="studio-preview-output" hidden={!activeOutput} inert={!activeOutput}><OutputPanel/></div>
-              <div className="studio-preview-output" hidden={!report} inert={!report}>{report&&scope.taskId&&<ReviewReportPanel key={JSON.stringify([scope.key,scope.epoch,report.openId])} scope={scope} taskId={scope.taskId} openId={report.openId} taskVersion={run?.taskVersion} taskStatus={run?.status} currentPlan={run?.currentPlanRef} onReport={onReport} onClose={closeReport}/>}</div>
+              <div className="studio-preview-output" hidden={!report} inert={!report}>{report&&scope.taskId&&<ReviewReportPanel key={JSON.stringify([scope.key,scope.epoch,report.openId])} scope={scope} taskId={scope.taskId} openId={report.openId} cited={report.revision} taskVersion={run?.taskVersion} taskStatus={run?.status} currentPlan={run?.currentPlanRef} onReport={onReport} onClose={closeReport}/>}</div>
             </>,
             properties: <><BriefChips run={run}/>{activeDrawing?<StudioProperties drawing={activeDrawing} selected={selectedDesignElement} onSelect={setSelectedDesignElement} onRequest={askFromCanvas} onReview={!hasRenderablePlan||(run?.mode??mode)==='ask'?undefined:()=>actions.focusReview('[aria-label="Validated design preview"]')}/>:<div className="inspector-body"><h3>{w.contextTitle}</h3><p>{w.contextView}</p>{!selectedDevice?.online&&<Button variant="secondary" onClick={()=>setDeviceDialog(true)}>Connect Revit</Button>}</div>}<PlanDetails {...w} scope={scope} surface="design" onSelectAlternative={onSelectAlternative}/></>,
             activity: <>{studioView === 'activity' ? (

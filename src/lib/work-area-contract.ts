@@ -9,14 +9,16 @@ export interface PlanIdentity { planId: string; version: number; fingerprint: st
 export type WorkAreaPreview =
   | { kind: 'drawing'; scope: WorkScope }
   | { kind: 'answer-output'; scope: WorkScope; outputId: string }
-  | { kind: 'saved-report'; scope: WorkScope; taskId: string; openId: number };
+  | { kind: 'saved-report'; scope: WorkScope; taskId: string; openId: number; revisionId?: string; contentHash?: string };
+/** A report revision an answer cited by exact id and hash; opening it is a display change only. */
+export interface SavedReportRevision { revisionId: string; contentHash: string }
 export interface WorkAreaActions {
   selectSection(section: WorkAreaSection, opener?: HTMLElement | null): void;
   openProperties(opener?: HTMLElement | null): void;
   closeProperties(): void;
   openDrawing(opener?: HTMLElement | null): void;
   openAnswerOutput(outputId: string, opener?: HTMLElement | null): void;
-  openSavedReport(opener?: HTMLElement | null): void;
+  openSavedReport(opener?: HTMLElement | null, revision?: SavedReportRevision): void;
   closePreview(): void;
   returnToDrawing(): void;
   focusReview(selector: string): void;
@@ -42,6 +44,7 @@ export interface AnswerFeedback {
 export interface OutputWorkspaceProps {
   scopeKey: string; scopeInput: Omit<WorkScope, 'epoch'>; children: ReactNode;
   onOpen?: () => void; onClose?: () => void; answerFeedback?: AnswerFeedback;
+  onOpenReport?: (revision: SavedReportRevision, opener: HTMLElement | null) => void;
 }
 export interface OutputWorkspaceValue {
   scope: WorkScope; outputs: AnswerOutput[]; activeOutput: AnswerOutput | null;
@@ -49,6 +52,8 @@ export interface OutputWorkspaceValue {
   openOutput(output: AnswerOutput | string, opener?: HTMLElement | null): void;
   closeOutput(): void; dismissOutput(): void;
   answerFeedback?: AnswerFeedback;
+  /** Present only where the host can show a saved report; guarded by the current scope and epoch. */
+  openSavedReport?: (revision: SavedReportRevision, opener?: HTMLElement | null) => void;
 }
 
 export interface Bound<T> { value: T; accountKey: string; taskId: string | null; sourceKey: string }
@@ -66,7 +71,7 @@ export type AssetKind = 'saved-drawing' | 'answer-output' | 'saved-report' | 'sa
 export type AssetDestination =
   | { kind: 'drawing'; plan: PlanIdentity }
   | { kind: 'answer-output'; outputId: string }
-  | { kind: 'saved-report'; taskId: string }
+  | { kind: 'saved-report'; taskId: string; revisionId?: string; contentHash?: string }
   | { kind: 'saved-source'; sourceId: string; plan: PlanIdentity }
   | { kind: 'specialist-download'; taskId: string; sha256: string }
   | { kind: 'unavailable'; reason: string };

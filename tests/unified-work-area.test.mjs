@@ -830,3 +830,24 @@ test('a chat_followup sends the envelope; the live submission is keyed by its co
   assert.equal(w.liveSubmission.current,null,failure);
  }
 });
+
+test('N4 workspace keeps provider inputs and the context value stable across re-renders',()=>{
+ // Memoizing hooks, one slot list per component, so useCallback/useMemo identity is observable.
+ const memoHooks=()=>{const slots=[];let cursor=0;const same=(a,b)=>a&&b&&a.length===b.length&&a.every((v,i)=>Object.is(v,b[i]));
+  const memo=(make,deps)=>{const i=cursor++;if(slots[i]&&same(slots[i].deps,deps))return slots[i].value;slots[i]={deps,value:make()};return slots[i].value;};
+  return {reset(){cursor=0;},hooks:{...React,useState(initial){const i=cursor++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return [slots[i],next=>{slots[i]=typeof next==='function'?next(slots[i]):next;}];},useRef(initial){const i=cursor++;return slots[i]??={current:initial};},useMemo:memo,useCallback:(fn,deps)=>memo(()=>fn,deps),useEffect(){},useLayoutEffect(){}}};};
+ const text=source('src/components/workspace.tsx'),ast=ts.createSourceFile('workspace.tsx',text,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
+ const fn=ast.statements.find(node=>ts.isFunctionDeclaration(node)&&node.name?.text==='WorkspaceContent');
+ const content=memoHooks(),feedback={votes:null},exports={};
+ runInNewContext(compile(fn.getText(ast)+'\nexports.WorkspaceContent=WorkspaceContent;').outputText,{exports,...content.hooks,useAnswerFeedback:()=>feedback,featureEnabled:()=>true,OutputWorkspaceProvider:'provider',WorkspacePanels:'panels',require:name=>name==='react/jsx-runtime'?jsx:{}});
+ const input=scope('a');delete input.epoch;const calls=[];
+ const workspace=n=>({workspaceScopeInput:input,capabilities:{},setConnectionNotice(){},closeProperties(){calls.push(n);},setCanvasOpen(){},selectWorkAreaSection(){},workAreaSection:'assets'});
+ const props=n=>{content.reset();return exports.WorkspaceContent({w:workspace(n)}).props;};
+ const first=props(1),second=props(2);
+ assert.equal(second.onOpenReport,first.onOpenReport);assert.equal(second.onOpen,first.onOpen);
+ second.onOpen();assert.deepEqual(calls,[2],'the stable callback still reads the latest workspace state');
+ const provider=memoHooks(),api={};
+ runInNewContext(compile(source('src/components/workspace/output-workspace.tsx')).outputText,{exports:api,document:{activeElement:null},HTMLElement:class{},require(name){if(name==='react')return provider.hooks;if(name==='react/jsx-runtime')return jsx;if(name.endsWith('.module.css'))return {default:{}};return {};}});
+ const value=p=>{provider.reset();const {children:_children,...rest}=p;return api.OutputWorkspaceProvider(rest).props.value;};
+ const before=value(first);props(3);assert.equal(value(props(4)),before);
+});

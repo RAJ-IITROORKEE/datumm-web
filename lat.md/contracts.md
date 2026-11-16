@@ -124,6 +124,18 @@ Actions arrive as `presentation.actions`, an object with `schemaVersion` 1, `kin
 
 The vectors in `tests/fixtures/display-action-vectors.json` are shared with the backend validator.
 
+## Evidence-backed composition
+
+An answer may show a card for a saved report revision, and a card is evidence only when the server proved it. Any failure drops the whole composed view and the full answer renders.
+
+The projection carries `schemaVersion` 2, `kind` `evidence-backed-explanation`, and at most four `evidence` leaves inside the usual 24-node and depth limits. Each leaf holds `ref` `{kind:'report-revision', revisionId, contentHash}` (two 64-hex strings) and a server-built `display` `{revisionNumber, createdAt, planTitle, planVersion, rowCount, proposedRoomCount, proposedAreaM2}`; unknown keys, out-of-bounds or non-finite values and a repeated `revisionId` reject. Version 1 stays unchanged and rejects an evidence leaf, so an older browser falls back to the full answer. The task, turn and answer-hash checks are the same as for version 1. See `src/lib/chat-composition.mjs`.
+
+The model only picks which listed revision to cite; ids, hashes and every displayed number come from the saved revision, never from the model. The card shows fixed labels and the line "Proposed concept geometry · not measured Revit quantities", renders every value as React text with no link or markup, and never claims Revit measurements. `src/components/workspace/evidence-card.tsx` imports no command, API or draft setter, so a card cannot send a command or change a draft.
+
+"Open revision" is a display change only. It asks the work area to open that exact revision through the existing scope-and-epoch checked open path, and nothing opens by itself. `src/components/workspace/review-report.tsx` starts on the cited revision only when its saved `contentHash` still equals the cited hash; otherwise it says "This saved report no longer matches the cited revision" and keeps the current selection. Evidence can never approve, build, revise or send anything.
+
+The vectors in `tests/fixtures/chat-composition-vectors.json` are shared with the backend validator and include the version 2 cases.
+
 ## Admin traces parsing
 
 The traces page shows one text-free row per hosted turn, and the browser keeps only the allowlisted keys, so no later backend change can put a question, answer, note or owner id on screen.

@@ -7,7 +7,7 @@ import type { WorkScope } from '@/lib/work-area-contract';
 import { ChangeSummary } from '../vendor/affectui/change-summary-clean';
 import styles from './review-report.module.css';
 
-export type ReviewReportPanelProps = { scope: WorkScope; taskId: string; taskVersion?: number; taskStatus?: string; currentPlan?: {planId: string; version: number; fingerprint: string} | null; openId: number; onClose: () => void; onReport: (scope: WorkScope, report: ReviewReport | null) => void; fetcher?: typeof fetch };
+export type ReviewReportPanelProps = { scope: WorkScope; taskId: string; taskVersion?: number; taskStatus?: string; currentPlan?: {planId: string; version: number; fingerprint: string} | null; openId: number; cited?: {revisionId: string; contentHash: string}; onClose: () => void; onReport: (scope: WorkScope, report: ReviewReport | null) => void; fetcher?: typeof fetch };
 type ReportState =
   | { kind: 'loading' }
   | { kind: 'ready'; report: ReviewReport; refreshing?: boolean; notice?: string }
@@ -32,6 +32,10 @@ function savedDate(value: string) {
   return Number.isNaN(date.getTime()) ? 'Date unavailable' : new Intl.DateTimeFormat(undefined, {dateStyle:'medium', timeStyle:'short'}).format(date);
 }
 const PREVIEW_ROWS = 200;
+// The service keeps at most 256 revisions, so 13 pages of 20 cover any cited one.
+const CITE_PAGES = 13;
+const CITE_MISMATCH = 'This saved report no longer matches the cited revision';
+const CITE_NOT_FOUND = 'The cited revision was not found in the loaded report history';
 const sourceLabels: Record<ReviewReport['sourceKind'], string> = {
   proposed: 'Proposed design', measured: 'Measured source', verified: 'Verified source', unavailable: 'Source unavailable',
 };
@@ -70,12 +74,15 @@ export function ReviewReportPanel(props: ReviewReportPanelProps) {
   return <LoadedReport key={JSON.stringify([props.scope.accountKey,props.scope.key,props.scope.epoch,props.taskId,props.openId])} {...props} />;
 }
 
-function LoadedReport({ scope, taskId, taskVersion, taskStatus, currentPlan, openId, onClose, onReport, fetcher = fetch }: ReviewReportPanelProps) {
+function LoadedReport({ scope, taskId, taskVersion, taskStatus, currentPlan, openId, cited, onClose, onReport, fetcher = fetch }: ReviewReportPanelProps) {
   const [attempt, setAttempt] = useState(0);
   const [selection, setSelection] = useState<string | null>(null);
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [viewed, setViewed] = useState<string | null>(null);
   const [legacy, setLegacy] = useState(false);
+  // An answer's cited revision is shown only while the server still reports the cited hash for it.
+  const citedRef = useRef(cited);
+  const [citeNotice, setCiteNotice] = useState('');
   const [pageStatus, setPageStatus] = useState('');
   const [pending, setPending] = useState(false);
   const pendingRetries = useRef(0);
@@ -118,13 +125,31 @@ function LoadedReport({ scope, taskId, taskVersion, taskStatus, currentPlan, ope
           if (manifestRef.current) { const ids = new Set(history.revisions.map(item => item.revisionId)); history = {...history, revisions:[...history.revisions, ...manifestRef.current.revisions.filter(item => !ids.has(item.revisionId))], nextCursor:loadedOlder.current ? manifestRef.current.nextCursor : history.nextCursor}; }
         }
         if (!current()) return;
+        const cite = citedRef.current, cited = (item: Revision) => item.revisionId === cite?.revisionId;
+        let paged = false;
+        // A citation older than the first page is looked up through the cursor before any verdict.
+        try {
+          for (let pages = 0; cite && history?.nextCursor && !history.revisions.some(cited) && pages < CITE_PAGES; pages++) {
+            const before: string = history.nextCursor;
+            const older = await fetcher(`${base}?limit=20&before=${encodeURIComponent(before)}`, {signal:controller.signal, cache:'no-store', headers:{Accept:'application/json'}});
+            if (!current()) return;
+            if (!older.ok) { await older.body?.cancel(); break; }
+            const page = manifestFrom(JSON.parse(await readReportResponse(older)), true);
+            if (!current()) return;
+            const ids = new Set(history.revisions.map(item => item.revisionId));
+            if (page.nextCursor === before || page.revisions.some(item => ids.has(item.revisionId))) break;
+            history = {...history, revisions:[...history.revisions, ...page.revisions], nextCursor:page.nextCursor};
+            paged = true;
+          }
+        } catch { if (!current()) return; }
         setPending(history?.historyState === 'pending');
         if (history && !history.currentRevisionId && history.historyState === 'pending') throw new Error('The report is still being saved. Try again shortly.');
         if (history && !history.currentRevisionId && history.historyState === 'unavailable') throw new Error('The report could not be saved. Retry after the task completes.');
         const isLegacy = !history || (!history.currentRevisionId && history.revisions.length === 0 && history.historyState === null);
         if (history && !isLegacy && !history.currentRevisionId) throw new Error('The report history has no current revision.');
         // A reader who chose an older revision stays there as the current pointer changes.
-        const target = isLegacy ? null : (selection && selection !== viewedRef.current ? selection : viewedRef.current && manifestRef.current && viewedRef.current !== manifestRef.current.currentRevisionId ? viewedRef.current : history!.currentRevisionId);
+        const citeMeta = cite && history?.revisions.find(cited), citeOk = !!(cite && citeMeta && citeMeta.contentHash === cite.contentHash);
+        const target = isLegacy ? null : citeOk ? cite!.revisionId : (selection && selection !== viewedRef.current ? selection : viewedRef.current && manifestRef.current && viewedRef.current !== manifestRef.current.currentRevisionId ? viewedRef.current : history!.currentRevisionId);
         if (target && !history!.revisions.some(item => item.revisionId === target)) throw new Error('The selected report revision is no longer in the loaded history.');
         const url = target ? `${base}/${encodeURIComponent(target)}` : `/api/service/runs/${encodeURIComponent(taskId)}/export/report-json`;
         const response = await fetcher(url, {signal:controller.signal, cache:'no-store', headers:{Accept:'application/json'}});
@@ -144,6 +169,8 @@ function LoadedReport({ scope, taskId, taskVersion, taskStatus, currentPlan, ope
           report.savedRevision = {revisionId:meta.revisionId, reportId:meta.reportId, revisionNumber:meta.revisionNumber ?? null, createdAt:meta.createdAt, contentHash:meta.contentHash, sourcePlan:meta.sourcePlan};
         }
         if (!current()) return;
+        if (cite) { citedRef.current = undefined; setCiteNotice(citeOk ? '' : citeMeta ? CITE_MISMATCH : CITE_NOT_FOUND); }
+        if (paged) loadedOlder.current = true;
         retained.current = report; viewedRef.current = target; manifestRef.current = history;
         setManifest(history); setViewed(target); setLegacy(isLegacy); setState({kind:'ready',report, notice:history?.historyState === 'pending' ? 'A new report is being saved. The last saved report remains available.' : history?.historyState === 'unavailable' ? 'The latest report could not be saved. The last saved report remains available.' : undefined}); callback.current(scope,report);
       } catch (error) {
@@ -176,16 +203,18 @@ function LoadedReport({ scope, taskId, taskVersion, taskStatus, currentPlan, ope
       manifestRef.current = combined; setManifest(combined); setPageStatus('Older revisions loaded.');
     } catch { if (!controller.signal.aborted && liveToken.current === token && generation === requestId.current) setPageStatus('Older revisions could not be loaded. Try again.'); }
   };
+  const choose = (revisionId: string | null) => { setCiteNotice(''); setSelection(revisionId); };
   const revision = manifest?.revisions.find(item => item.revisionId === viewed);
   const historical = !!viewed && viewed !== manifest?.currentRevisionId;
   const sourcePlan = revision?.sourcePlan;
   const differentPlan = !!(sourcePlan && currentPlan && (sourcePlan.planId !== currentPlan.planId || sourcePlan.version !== currentPlan.version || sourcePlan.fingerprint !== currentPlan.fingerprint));
   if (state.kind === 'ready') return <ReportFrame onClose={onClose}>
+    {citeNotice && <div className={styles.refresh}><span role="status">{citeNotice}</span></div>}
     <div className={styles.refresh}><span role={state.notice ? 'alert' : 'status'}>{state.refreshing ? 'Refreshing saved report… Last ready report retained.' : state.notice ?? (legacy ? 'Legacy task evidence; no saved report revision.' : historical ? 'You are viewing a historical report. A newer saved report is current.' : 'Current saved report loaded.')}{pending && pendingRetries.current >= 20 ? ' Automatic checks have stopped; refresh to check again.' : ''}</span><button type="button" className={styles.button} disabled={state.refreshing} onClick={() => setAttempt(value => value + 1)}><RotateCw size={14} aria-hidden="true"/>Refresh report</button></div>
     {!legacy && revision && manifest && <div className={styles.history}>
       <label htmlFor="report-revision">Report revision</label>
-      <select id="report-revision" value={viewed ?? ''} disabled={state.refreshing} onChange={event => setSelection(event.target.value)}>{manifest.revisions.map(item => <option value={item.revisionId} key={item.revisionId}>{item.revisionNumber != null ? `Revision ${item.revisionNumber}` : item.revisionId} {item.revisionId === manifest.currentRevisionId ? '· Current' : '· Historical'}</option>)}</select>
-      {historical && <button type="button" className={styles.button} disabled={state.refreshing} onClick={() => setSelection(manifest.currentRevisionId)}>View current report</button>}
+      <select id="report-revision" value={viewed ?? ''} disabled={state.refreshing} onChange={event => choose(event.target.value)}>{manifest.revisions.map(item => <option value={item.revisionId} key={item.revisionId}>{item.revisionNumber != null ? `Revision ${item.revisionNumber}` : item.revisionId} {item.revisionId === manifest.currentRevisionId ? '· Current' : '· Historical'}</option>)}</select>
+      {historical && <button type="button" className={styles.button} disabled={state.refreshing} onClick={() => choose(manifest.currentRevisionId)}>View current report</button>}
       {differentPlan && <p role="status">This saved report describes a different drawing or version from the selected view.</p>}
       <p>Saved {savedDate(revision.createdAt)}</p>
       <details className={styles.changeSummary}><summary>Change summary</summary><ChangeSummary title="Saved report changes" changes={[

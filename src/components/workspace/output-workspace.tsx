@@ -17,7 +17,7 @@ const Context = createContext<OutputWorkspaceValue | null>(null);
 const icons = { report: FileText, table: Table2, diagram: GitBranch };
 type OutputRecord = {scope: WorkScope; sources: Record<string, AnswerOutput[]>; activeId: string | null};
 
-export function OutputWorkspaceProvider({ children, scopeKey, scopeInput, onOpen, onClose, answerFeedback }: OutputWorkspaceProps) {
+export function OutputWorkspaceProvider({ children, scopeKey, scopeInput, onOpen, onClose, onOpenReport, answerFeedback }: OutputWorkspaceProps) {
   if (scopeKey !== scopeInput.key) throw new Error('Output workspace scope keys must agree.');
   const [stored, setRecord] = useState<OutputRecord>(() => ({scope: {...scopeInput, epoch: 1}, sources: {}, activeId: null}));
   let record = stored;
@@ -66,7 +66,8 @@ export function OutputWorkspaceProvider({ children, scopeKey, scopeInput, onOpen
       else document.querySelector<HTMLElement>('[data-output-focus-fallback]')?.focus();
     });
   }, [current, scope, dismissOutput]);
-  const value = useMemo<OutputWorkspaceValue>(() => ({scope, outputs, activeOutput, openOutput, closeOutput, dismissOutput, register, answerFeedback}), [scope, outputs, activeOutput, openOutput, closeOutput, dismissOutput, register, answerFeedback]);
+  const openSavedReport = useMemo<OutputWorkspaceValue['openSavedReport']>(() => onOpenReport ? (revision, opener) => { if (current()) onOpenReport(revision, opener ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null)); } : undefined, [onOpenReport, current]);
+  const value = useMemo<OutputWorkspaceValue>(() => ({scope, outputs, activeOutput, openOutput, closeOutput, dismissOutput, register, answerFeedback, openSavedReport}), [scope, outputs, activeOutput, openOutput, closeOutput, dismissOutput, register, answerFeedback, openSavedReport]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 

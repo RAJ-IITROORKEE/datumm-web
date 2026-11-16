@@ -299,5 +299,780 @@
       }
     },
     "valid": false
+  },
+  {
+    "name": "evidence-single-card",
+    "answer": "😀 Saved concept\n\nThe plan compares two layouts.",
+    "composition": {
+      "schemaVersion": 2,
+      "kind": "evidence-backed-explanation",
+      "answerHash": "c7a10faa939a76e72d5cc7e80b7d0257130b4f9a952cd1e7867481c5fdfbc101",
+      "root": {
+        "type": "evidence",
+        "ref": {
+          "kind": "report-revision",
+          "revisionId": "0000000000000000000000000000000000000000000000000000000000000001",
+          "contentHash": "00000000000000000000000000000000000000000000000000000000000003e9"
+        },
+        "display": {
+          "revisionNumber": 1,
+          "createdAt": "2026-11-01T10:00:00+00:00",
+          "planTitle": "Concept 1",
+          "planVersion": 1,
+          "rowCount": 6,
+          "proposedRoomCount": 6,
+          "proposedAreaM2": 101.5
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "evidence-card-in-stack-with-text",
+    "answer": "😀 Saved concept\n\nThe plan compares two layouts.",
+    "composition": {
+      "schemaVersion": 2,
+      "kind": "evidence-backed-explanation",
+      "answerHash": "c7a10faa939a76e72d5cc7e80b7d0257130b4f9a952cd1e7867481c5fdfbc101",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 48
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000002",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003ea"
+            },
+            "display": {
+              "revisionNumber": 2,
+              "createdAt": "2026-11-02T10:00:00+00:00",
+              "planTitle": "Concept 2",
+              "planVersion": 2,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 102.5
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000003",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003eb"
+            },
+            "display": {
+              "revisionNumber": 3,
+              "createdAt": "2026-11-03T10:00:00+00:00",
+              "planTitle": "Concept 3",
+              "planVersion": 3,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 103.5
+            }
+          }
+        ]
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "evidence-node-in-v1",
+    "answer": "😀 Saved concept\n\nThe plan compares two layouts.",
+    "composition": {
+      "schemaVersion": 1,
+      "kind": "illustrative-explanation",
+      "answerHash": "c7a10faa939a76e72d5cc7e80b7d0257130b4f9a952cd1e7867481c5fdfbc101",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 48
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000002",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003ea"
+            },
+            "display": {
+              "revisionNumber": 2,
+              "createdAt": "2026-11-02T10:00:00+00:00",
+              "planTitle": "Concept 2",
+              "planVersion": 2,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 102.5
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000003",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003eb"
+            },
+            "display": {
+              "revisionNumber": 3,
+              "createdAt": "2026-11-03T10:00:00+00:00",
+              "planTitle": "Concept 3",
+              "planVersion": 3,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 103.5
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "v2-without-evidence",
+    "answer": "😀 Saved concept\n\nThe plan compares two layouts.",
+    "composition": {
+      "schemaVersion": 2,
+      "kind": "evidence-backed-explanation",
+      "answerHash": "c7a10faa939a76e72d5cc7e80b7d0257130b4f9a952cd1e7867481c5fdfbc101",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 48
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "evidence-bad-hash-format",
+    "answer": "😀 Saved concept\n\nThe plan compares two layouts.",
+    "composition": {
+      "schemaVersion": 2,
+      "kind": "evidence-backed-explanation",
+      "answerHash": "c7a10faa939a76e72d5cc7e80b7d0257130b4f9a952cd1e7867481c5fdfbc101",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 48
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000002",
+              "contentHash": "ABC"
+            },
+            "display": {
+              "revisionNumber": 2,
+              "createdAt": "2026-11-02T10:00:00+00:00",
+              "planTitle": "Concept 2",
+              "planVersion": 2,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 102.5
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000003",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003eb"
+            },
+            "display": {
+              "revisionNumber": 3,
+              "createdAt": "2026-11-03T10:00:00+00:00",
+              "planTitle": "Concept 3",
+              "planVersion": 3,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 103.5
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "evidence-uppercase-revision-id",
+    "answer": "😀 Saved concept\n\nThe plan compares two layouts.",
+    "composition": {
+      "schemaVersion": 2,
+      "kind": "evidence-backed-explanation",
+      "answerHash": "c7a10faa939a76e72d5cc7e80b7d0257130b4f9a952cd1e7867481c5fdfbc101",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 48
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA2",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003ea"
+            },
+            "display": {
+              "revisionNumber": 2,
+              "createdAt": "2026-11-02T10:00:00+00:00",
+              "planTitle": "Concept 2",
+              "planVersion": 2,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 102.5
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000003",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003eb"
+            },
+            "display": {
+              "revisionNumber": 3,
+              "createdAt": "2026-11-03T10:00:00+00:00",
+              "planTitle": "Concept 3",
+              "planVersion": 3,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 103.5
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "evidence-extra-key-in-ref",
+    "answer": "😀 Saved concept\n\nThe plan compares two layouts.",
+    "composition": {
+      "schemaVersion": 2,
+      "kind": "evidence-backed-explanation",
+      "answerHash": "c7a10faa939a76e72d5cc7e80b7d0257130b4f9a952cd1e7867481c5fdfbc101",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 48
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000002",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003ea",
+              "url": "https://example.com"
+            },
+            "display": {
+              "revisionNumber": 2,
+              "createdAt": "2026-11-02T10:00:00+00:00",
+              "planTitle": "Concept 2",
+              "planVersion": 2,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 102.5
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000003",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003eb"
+            },
+            "display": {
+              "revisionNumber": 3,
+              "createdAt": "2026-11-03T10:00:00+00:00",
+              "planTitle": "Concept 3",
+              "planVersion": 3,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 103.5
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "evidence-extra-key-in-display",
+    "answer": "😀 Saved concept\n\nThe plan compares two layouts.",
+    "composition": {
+      "schemaVersion": 2,
+      "kind": "evidence-backed-explanation",
+      "answerHash": "c7a10faa939a76e72d5cc7e80b7d0257130b4f9a952cd1e7867481c5fdfbc101",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 48
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000002",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003ea"
+            },
+            "display": {
+              "revisionNumber": 2,
+              "createdAt": "2026-11-02T10:00:00+00:00",
+              "planTitle": "Concept 2",
+              "planVersion": 2,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 102.5,
+              "html": "<b>x</b>"
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000003",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003eb"
+            },
+            "display": {
+              "revisionNumber": 3,
+              "createdAt": "2026-11-03T10:00:00+00:00",
+              "planTitle": "Concept 3",
+              "planVersion": 3,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 103.5
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "evidence-negative-area",
+    "answer": "😀 Saved concept\n\nThe plan compares two layouts.",
+    "composition": {
+      "schemaVersion": 2,
+      "kind": "evidence-backed-explanation",
+      "answerHash": "c7a10faa939a76e72d5cc7e80b7d0257130b4f9a952cd1e7867481c5fdfbc101",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 48
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000002",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003ea"
+            },
+            "display": {
+              "revisionNumber": 2,
+              "createdAt": "2026-11-02T10:00:00+00:00",
+              "planTitle": "Concept 2",
+              "planVersion": 2,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": -1
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000003",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003eb"
+            },
+            "display": {
+              "revisionNumber": 3,
+              "createdAt": "2026-11-03T10:00:00+00:00",
+              "planTitle": "Concept 3",
+              "planVersion": 3,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 103.5
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "evidence-unknown-ref-kind",
+    "answer": "😀 Saved concept\n\nThe plan compares two layouts.",
+    "composition": {
+      "schemaVersion": 2,
+      "kind": "evidence-backed-explanation",
+      "answerHash": "c7a10faa939a76e72d5cc7e80b7d0257130b4f9a952cd1e7867481c5fdfbc101",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 48
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "plan-version",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000002",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003ea"
+            },
+            "display": {
+              "revisionNumber": 2,
+              "createdAt": "2026-11-02T10:00:00+00:00",
+              "planTitle": "Concept 2",
+              "planVersion": 2,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 102.5
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000003",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003eb"
+            },
+            "display": {
+              "revisionNumber": 3,
+              "createdAt": "2026-11-03T10:00:00+00:00",
+              "planTitle": "Concept 3",
+              "planVersion": 3,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 103.5
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "evidence-five-nodes",
+    "answer": "😀 Saved concept\n\nThe plan compares two layouts.",
+    "composition": {
+      "schemaVersion": 2,
+      "kind": "evidence-backed-explanation",
+      "answerHash": "c7a10faa939a76e72d5cc7e80b7d0257130b4f9a952cd1e7867481c5fdfbc101",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 48
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000002",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003ea"
+            },
+            "display": {
+              "revisionNumber": 2,
+              "createdAt": "2026-11-02T10:00:00+00:00",
+              "planTitle": "Concept 2",
+              "planVersion": 2,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 102.5
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000003",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003eb"
+            },
+            "display": {
+              "revisionNumber": 3,
+              "createdAt": "2026-11-03T10:00:00+00:00",
+              "planTitle": "Concept 3",
+              "planVersion": 3,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 103.5
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000004",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003ec"
+            },
+            "display": {
+              "revisionNumber": 4,
+              "createdAt": "2026-11-04T10:00:00+00:00",
+              "planTitle": "Concept 4",
+              "planVersion": 4,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 104.5
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000005",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003ed"
+            },
+            "display": {
+              "revisionNumber": 5,
+              "createdAt": "2026-11-05T10:00:00+00:00",
+              "planTitle": "Concept 5",
+              "planVersion": 5,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 105.5
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000006",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003ee"
+            },
+            "display": {
+              "revisionNumber": 6,
+              "createdAt": "2026-11-06T10:00:00+00:00",
+              "planTitle": "Concept 6",
+              "planVersion": 6,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 106.5
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "evidence-non-finite-area",
+    "answer": "😀 Saved concept\n\nThe plan compares two layouts.",
+    "composition": {
+      "schemaVersion": 2,
+      "kind": "evidence-backed-explanation",
+      "answerHash": "c7a10faa939a76e72d5cc7e80b7d0257130b4f9a952cd1e7867481c5fdfbc101",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 48
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000002",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003ea"
+            },
+            "display": {
+              "revisionNumber": 2,
+              "createdAt": "2026-11-02T10:00:00+00:00",
+              "planTitle": "Concept 2",
+              "planVersion": 2,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": null
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000003",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003eb"
+            },
+            "display": {
+              "revisionNumber": 3,
+              "createdAt": "2026-11-03T10:00:00+00:00",
+              "planTitle": "Concept 3",
+              "planVersion": 3,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 103.5
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "evidence-changed-answer",
+    "answer": "Disclosure. 😀 Saved concept\n\nThe plan compares two layouts.",
+    "composition": {
+      "schemaVersion": 2,
+      "kind": "evidence-backed-explanation",
+      "answerHash": "c7a10faa939a76e72d5cc7e80b7d0257130b4f9a952cd1e7867481c5fdfbc101",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 48
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000002",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003ea"
+            },
+            "display": {
+              "revisionNumber": 2,
+              "createdAt": "2026-11-02T10:00:00+00:00",
+              "planTitle": "Concept 2",
+              "planVersion": 2,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 102.5
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000003",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003eb"
+            },
+            "display": {
+              "revisionNumber": 3,
+              "createdAt": "2026-11-03T10:00:00+00:00",
+              "planTitle": "Concept 3",
+              "planVersion": 3,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 103.5
+            }
+          }
+        ]
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "evidence-hash-differs-from-saved-row",
+    "answer": "😀 Saved concept\n\nThe plan compares two layouts.",
+    "composition": {
+      "schemaVersion": 2,
+      "kind": "evidence-backed-explanation",
+      "answerHash": "c7a10faa939a76e72d5cc7e80b7d0257130b4f9a952cd1e7867481c5fdfbc101",
+      "root": {
+        "type": "stack",
+        "children": [
+          {
+            "type": "text",
+            "text": {
+              "start": 0,
+              "end": 48
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000002",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003ea"
+            },
+            "display": {
+              "revisionNumber": 2,
+              "createdAt": "2026-11-02T10:00:00+00:00",
+              "planTitle": "Concept 2",
+              "planVersion": 2,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 102.5
+            }
+          },
+          {
+            "type": "evidence",
+            "ref": {
+              "kind": "report-revision",
+              "revisionId": "0000000000000000000000000000000000000000000000000000000000000003",
+              "contentHash": "00000000000000000000000000000000000000000000000000000000000003eb"
+            },
+            "display": {
+              "revisionNumber": 3,
+              "createdAt": "2026-11-03T10:00:00+00:00",
+              "planTitle": "Concept 3",
+              "planVersion": 3,
+              "rowCount": 6,
+              "proposedRoomCount": 6,
+              "proposedAreaM2": 103.5
+            }
+          }
+        ]
+      }
+    },
+    "valid": false,
+    "serverOnly": true
   }
 ]

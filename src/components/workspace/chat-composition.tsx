@@ -5,9 +5,11 @@ import {ArrowRight} from 'lucide-react';
 import {validateChatComposition,type ChatComposition,type CompositionNode} from '@/lib/chat-composition.mjs';
 import type {AnswerSource} from '@/lib/answer-outputs.mjs';
 import {useOutputWorkspace} from './output-workspace';
+import {EvidenceCard} from './evidence-card';
 import styles from './chat-composition.module.css';
 
 function Node({node}:{node:CompositionNode}) {
+  if(node.type==='evidence')return <EvidenceCard node={node}/>;
   if(node.type==='text')return <p className={styles.text}>{node.text}</p>;
   if(node.type==='stack'||node.type==='grid')return <div className={node.type==='grid'?styles.grid:styles.stack}>{node.children.map((child,i)=><Node key={i} node={child}/>)}</div>;
   if(node.type==='details')return <details className={styles.details}><summary>{node.label}</summary><div className={styles.stack}>{node.children.map((child,i)=><Node key={i} node={child}/>)}</div></details>;
@@ -29,5 +31,6 @@ export function ChatCompositionView({value,text,source,turnId,children}:{value:u
     return ()=>{current=false;};
   },[value,text,source.taskId,source.state,turnId,scope.key,scope.epoch]);
   if(source.state!=='saved'||scope.taskId!==source.taskId||!validated||validated.value!==value||validated.text!==text||validated.taskId!==source.taskId||validated.turnId!==turnId||validated.scopeKey!==scope.key||validated.epoch!==scope.epoch)return children??null;
-  return <section className={styles.root} aria-label="Illustrative answer view"><p className={styles.notice}>Illustrative explanation · not model measurements or execution evidence</p><Node node={validated.result.root}/>{children&&<details className={styles.details}><summary>Answer preview and actions</summary>{children}</details>}</section>;
+  const evidence=validated.result.schemaVersion===2;
+  return <section className={styles.root} aria-label={evidence?'Answer view with saved report evidence':'Illustrative answer view'}><p className={styles.notice}>{evidence?'Answer view with saved report evidence · concept geometry, not Revit measurements':'Illustrative explanation · not model measurements or execution evidence'}</p><Node node={validated.result.root}/>{children&&<details className={styles.details}><summary>Answer preview and actions</summary>{children}</details>}</section>;
 }

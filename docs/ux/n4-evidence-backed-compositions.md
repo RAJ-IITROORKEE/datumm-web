@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **approved, build in progress** |
+| Status | **done 16 Nov 2026** (local; not pushed or deployed) |
 | Depends on | N1 (done 16 Nov), N2 (done 16 Nov) |
 | Approved by / date | User, 16 Nov (chose "N4 first"): every decision takes its recommended option (A) |
 | Base commits | Web `codex/ui-ux-foundation-2026-11-12` working tree at the end of A2; backend `70395b3` on `codex/web-ui-harness-20261116` |
@@ -247,13 +247,17 @@ A real open of a hosted revision from a live answer needs G1.
 8. **Opening by revision:** the work area cannot open a given revision today; it opens the current report (`work-area-contract.ts:12,63`). N4 adds this.
 9. **Roadmap size S–M:** the backend part is about S–M as estimated. The web open-by-revision path adds a small, separate change to `review-report.tsx`.
 
-## 9. Result (fill at checkpoint)
+## 9. Result
 
 | Item | Outcome |
 | --- | --- |
-| Commit | |
-| Gates run (command, Node version, counts, date) | |
-| Browser evidence (tool, URL, scenario, result) | |
-| Not run or not verified | |
-| Limits found | |
-| Next step | |
+| Commit | Backend and web N4 commits on their branches (see `git log`); not pushed |
+| Backend change | `chat_composition.py`: `evidence` leaf, `SCHEMA_WITH_EVIDENCE` variant (+174 compact bytes over the 1,474-byte base, test-pinned under 400), `validate(…, refs)` returns v2 only when a card is present (v1 output byte-identical), `validate_stored(…, resolved)` re-checks owner/task scoped rows and the exact `contentHash` and attaches server-built `display`; any failure drops the whole composition; `createdAt` must match the web's pattern and carry an offset; `report_history.py`: `evidence_refs` (chain walk, max 8, orphans never listed) and `resolve_refs` (one owner- and task-scoped `$in` query up to 256 ids, no dataset re-hash); `agent_workflow.py`: `evidenceRefs` in the packet only when the setting is on and the chain is non-empty (listed once per run, key/number/date/title only, never a hash, note that titles are user text); `task_controller.py` projection prefetch; `evidence_compositions_enabled` (default off) and capability `evidenceCompositions`; `test_evidence_composition.py`; 26 shared vectors (13 new v2, one `serverOnly`) |
+| Web change | Strict version union in `chat-composition.mjs` (v2 needs at least one evidence node, at most 4, no duplicate revision, strict `ref` and `display`); `evidence-card.tsx` (a `<figure>` of plain text, fixed labels, "Proposed concept geometry · not measured Revit quantities", an "Open revision N" button); the v2 notice; open-by-revision through the existing display-only path with the scope and epoch guard; `review-report.tsx` follows the history cursor to find an older cited revision and says "not found" (never a false hash mismatch) when it cannot; stable provider inputs; dev fixture "Evidence card" with a "Tamper revision hash" toggle |
+| Gates run (16 Nov, Node 24.18.0, Python 3.12.10, orchestrator after all changes) | Backend `uv run --frozen pytest`: 408 passed + 26 subtests (baseline 349 + 26); `lat check` passed. Web `npm run typecheck`, `npm run build`, `npm test` 741 / 741 (baseline 710; the 26-entry vector file adds one test per vector), `lat check` passed; runtime smoke `--production` 18 / 18 on a fresh `next start` (port 3100) |
+| Failing-first evidence | All 38 first backend tests failed on `70395b3`; every review fix on both sides had a test that failed first. The first web conformance run found one vector the browser cannot judge (a hash differing from the saved row is a server-side check) and it is now flagged `serverOnly` and skipped on the web |
+| Browser evidence | Built-in browser, local dev server, `/dev/chat-composition` "Evidence card". 1 (1280 px): the card showed revision 3, date, source plan and version, rows, proposed rooms, proposed area 104.5 m², the concept-geometry label and the v2 notice; no links. 3: focus and Enter on "Open revision 3" announced "Fixture only, no request sent: would open cited revision ab12ab12ab12…" with no network request. 2 and 4: "Tamper revision hash", "Tamper answer hash" and "Different task" each removed the card and left the full answer; clearing them restored it. 390 px dark: the card fit (20–370 px), no page or card overflow, notice present. Not run in a browser: the report-panel notices for an older or missing cited revision (unit-tested only) |
+| Independent review | 8 findings, none in binding, isolation or model-text leakage. Fixed: a false "no longer matches" notice for revisions older than the first 20 history entries (now paged, or "not found"), the web accepting a v2 composition with no evidence while Python rejected it (now rejected on both, pinned by a shared vector), Python and web disagreeing on date forms, older answers silently losing cards past 32 cited revisions (cap now 256), evidence refs re-read on every decide step (now once per run), plan titles as a prompt-injection channel (note added), a possible "-0 m²" display, an inline lambda rebuilding the context value, long lines |
+| Not run or not verified | Real Mongo or Cosmos `$in` and field projection, a live model citing revisions, hosted behavior (G1); screen-reader reading; the report-panel notices in a browser |
+| Limits found | Cards cite saved report revisions only, which hold concept geometry, not measured Revit quantities (measurements have no durable id, so they cannot be cited). A turn cannot cite its own new report (published after the answer). The capability `evidenceCompositions` reflects the setting at process start. Python is slightly stricter than the web on dates (`T24:00`, `2026-02-30`), which drops the card, the safe direction. Cited revisions beyond 13 history pages (256) are reported as not found |
+| Next step | Q1 (packet written, awaiting approval), then A3 (model registry), W1 (needs a separate go or no-go), A4, N5, G1 |

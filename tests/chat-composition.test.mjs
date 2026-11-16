@@ -86,3 +86,18 @@ test('UTF-16 span boundaries cannot cut a source character',async()=>{
  spec.root.text={start:0,end:raw.length};
  assert.equal((await validateChatComposition(spec,{...scope,text:raw},webcrypto.subtle)).root.text,raw);
 });
+
+const evidence=(id='a')=>({type:'evidence',ref:{kind:'report-revision',revisionId:id.repeat(64),contentHash:'b'.repeat(64)},display:{revisionNumber:3,createdAt:'2026-11-16T10:00:00+00:00',planTitle:'Studio concept A',planVersion:2,rowCount:6,proposedRoomCount:6,proposedAreaM2:104.5}});
+const envelopeV2=root=>({...envelope(root),schemaVersion:2,kind:'evidence-backed-explanation'});
+
+test('v2 admits saved-report evidence leaves while v1 and malformed v2 reject them',async()=>{
+ const result=await validate(envelopeV2({type:'stack',children:[{type:'text',text:span('Illustrative only.')},evidence()]}));
+ assert.equal(result.schemaVersion,2);
+ assert.deepEqual(result.root.children[1],evidence());
+ assert.equal((await validate(envelope({type:'text',text:span('Illustrative only.')}))).schemaVersion,1);
+ assert.equal(await validate(envelope(evidence())),null);
+ assert.equal(await validate({...envelopeV2(evidence()),kind:'illustrative-explanation'}),null);
+ assert.equal(await validate(envelopeV2({...evidence(),ref:{...evidence().ref,contentHash:'B'.repeat(64)}})),null);
+ assert.equal(await validate(envelopeV2({type:'stack',children:[evidence('a'),evidence('a')]})),null);
+ assert.equal(await validate(envelopeV2({type:'stack',children:['a','b','c','d','e'].map(evidence)})),null);
+});
