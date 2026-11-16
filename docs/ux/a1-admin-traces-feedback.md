@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **proposed, awaiting user approval** |
+| Status | **approved, build in progress** |
 | Depends on | N3 (done 16 Nov) for lifecycle fields; C1 (done) for capability gating |
-| Approved by / date | |
+| Approved by / date | User, 16 Nov ("Approve A1, recommended"): every decision takes its recommended option (A) |
 | Base commits | Web `a57d866` on `codex/ui-ux-foundation-2026-11-12`; backend `48bbd1d` on `codex/web-ui-harness-20261116` |
 
 All `path:line` facts below were **observed** in source on 16 Nov (backend `48bbd1d`, web working tree). Statements marked *inferred* were not run. No test, browser or hosted check was run for this packet. Backend paths are under `datumm-orchestrator/apps/domain-api/`.

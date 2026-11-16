@@ -18,7 +18,7 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | N1 | Durable completion proof | Done 16 Nov (local, not pushed) | [Packet](docs/ux/n1-durable-completion-proof.md) |
 | N3 | Tool, task and sub-agent lifecycle | Done 16 Nov (local, not pushed) | [Packet](docs/ux/n3-tool-task-subagent-lifecycle.md) |
 | N2 | Frontend capability awareness and reversible actions | Done 16 Nov (local, not pushed) | [Packet](docs/ux/n2-frontend-capabilities-reversible-actions.md) |
-| A1 | Admin: traces and feedback | Packet proposed, awaiting approval | [Packet](docs/ux/a1-admin-traces-feedback.md) |
+| A1 | Admin: traces and feedback | Approved 16 Nov; in progress | [Packet](docs/ux/a1-admin-traces-feedback.md) |
 | A2 | Admin: versioned config and audit | Proposed | Roadmap |
 | N4 | Evidence-backed compositions | Proposed | Roadmap |
 | Q1 | Rules pre-router and latency measurement (model router deferred) | Proposed | Roadmap |
