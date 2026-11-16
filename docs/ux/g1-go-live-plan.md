@@ -30,7 +30,7 @@ Non-goals and limits:
 
 ### 2.2 What the local `main` branches add
 
-**Backend** (`datumm-orchestrator`, `main` = `70ce912be3249d0cfe277a1a5fd669ddff18707a`, same as `codex/web-ui-harness-20261116`): **9 commits** beyond deployed `188ebc0`, 44 files, +5,761 / −110 (O, `git diff --stat 188ebc0`). Its `origin` is a local folder (`artifacts/ux/agui-presentation/candidate`), not GitHub. A3 is **uncommitted** (11 modified, 2 new files: `model_registry.py`, `test_model_registry.py`).
+**Backend** (`datumm-orchestrator`, `main` = `70ce912be3249d0cfe277a1a5fd669ddff18707a`, same as `codex/web-ui-harness-20261116`): **9 commits** beyond deployed `188ebc0`, 44 files, +5,761 / −110 (O, `git diff --stat 188ebc0`). Its `origin` is a local folder (`artifacts/ux/agui-presentation/candidate`), not GitHub. A3 was uncommitted when this plan was written and is now committed as `2e00ee3` (10 commits beyond `188ebc0`, with `model_registry.py` and `test_model_registry.py`).
 
 | Commit | Phase | One line |
 | --- | --- | --- |
@@ -44,7 +44,7 @@ Non-goals and limits:
 | `fa25300` | N4 | Evidence cards bound to saved report revisions (setting off) |
 | `70ce912` | Q1 | Rules pre-router (setting off), phase timings in traces; `require_model_connection` completion fix |
 
-**Web** (`datumm-web`, `main` = `77c078a`): **45 commits** ahead of `origin/main` (the request said ~47), 849 files, +173,782 / −5,133. Only 27 of them are S0→A3 work; **18 earlier commits (`e0982f6`…`76564d3`) carry the whole AG-UI chat transport, affectUI migration of settings/admin/review/activity, onboarding, pricing, connector authorization and `/connect`**, none of which has run on Vercel either. 119,898 added lines are `.agents/skills/` (374 files). A3 web is **uncommitted** (15 modified, 4 untracked incl. `src/app/admin/models/`).
+**Web** (`datumm-web`, `main` = `77c078a`): **45 commits** ahead of `origin/main` (the request said ~47), 849 files, +173,782 / −5,133. Only 27 of them are S0→A3 work; **18 earlier commits (`e0982f6`…`76564d3`) carry the whole AG-UI chat transport, affectUI migration of settings/admin/review/activity, onboarding, pricing, connector authorization and `/connect`**, none of which has run on Vercel either. 119,898 added lines are `.agents/skills/` (374 files). A3 web was uncommitted when this plan was written and is now committed as `0fbe0c6` (46 commits ahead of `origin/main`, including the plan itself).
 
 | Commit | Phase | One line |
 | --- | --- | --- |
@@ -57,7 +57,7 @@ Non-goals and limits:
 | `9038aa2` | A2 | Config history page, restore dialog, richer audit |
 | `4a26109` | N4 | Evidence card for saved report revisions |
 | `a403747` | Q1 | Phase timings, packet sizes, direct-answer lane in traces |
-| (uncommitted) | A3 | Admin Models page, test dialog |
+| `0fbe0c6` | A3 | Admin Models page, test dialog |
 
 ### 2.3 Contract and data changes by phase
 
