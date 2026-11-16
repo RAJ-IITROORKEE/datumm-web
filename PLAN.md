@@ -16,7 +16,7 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | S0 | Source verification and backend baseline (fresh branch at `188ebc0`) | Done 16 Nov | [Packet](docs/ux/s0-source-verification-and-baseline.md) |
 | C1 | Capability contract and config consistency | Done 16 Nov (local, not pushed) | [Packet](docs/ux/c1-capability-contract-and-config.md) |
 | N1 | Durable completion proof | Done 16 Nov (local, not pushed) | [Packet](docs/ux/n1-durable-completion-proof.md) |
-| N3 | Tool, task and sub-agent lifecycle | Packet proposed, awaiting approval | [Packet](docs/ux/n3-tool-task-subagent-lifecycle.md) |
+| N3 | Tool, task and sub-agent lifecycle | Approved 16 Nov; in progress | [Packet](docs/ux/n3-tool-task-subagent-lifecycle.md) |
 | N2 | Frontend capability awareness and reversible actions | Proposed | Roadmap |
 | A1 | Admin: traces and feedback | Proposed | Roadmap |
 | A2 | Admin: versioned config and audit | Proposed | Roadmap |
