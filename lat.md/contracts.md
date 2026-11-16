@@ -100,13 +100,13 @@ Dirty state compares configs independent of key order, and domain chips are norm
 
 The service proxy opens only the named admin routes, mapped to backend v1 admin paths, and rejects every other admin path.
 
-The open routes are config, config history (list, one numeric revision, restore), audit, overview, traces and knowledge sources; traces and history keep their query strings. Paths such as `admin/traces/x`, `admin/config/history/x` and `admin/config/other` are refused.
+The open routes are config, config history (list, one numeric revision, restore), audit, overview, traces, model registry and knowledge sources; traces, history and model usage keep their query strings. The model routes are `admin/models`, `models/test`, `models/usage` and `models/{provider}/{model}/tests`: a model id contains one `/`, so the tests path has exactly two id segments, and `.` or `..` segments, a third segment or `models/x/y/z` are refused. Paths such as `admin/traces/x`, `admin/config/history/x` and `admin/config/other` are refused.
 
 ## Capability parsing
 
 The backend config's `capabilities` object is read as a tri-state per feature; anything missing or malformed is unknown, never off, so older backends keep working.
 
-Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. `adminTraces`, `feedback` and `adminHistory` are the exception: unknown is off, because no deployed backend serves them yet. See `src/lib/capabilities.mjs`.
+Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. `adminTraces`, `feedback`, `adminHistory` and `adminModels` are the exception: unknown is off, because no deployed backend serves them yet. See `src/lib/capabilities.mjs`.
 
 ## Durable completion proof
 
@@ -165,3 +165,15 @@ A restore always saves a new revision and is bound to both the revision being re
 The Config history page and the save bar's revision link exist only when the backend reports `adminHistory` on.
 
 The nav item is strict: unknown counts as off, the page waits for the capabilities before calling, and a direct visit while off reads "Not provided by this backend". The audit log keeps its previous behavior until the flag is on. See `src/components/admin/admin-shell.tsx`.
+
+## Admin model registry parsing
+
+The Models page rebuilds every registry row, test and usage day key by key, so a later backend change can never put an unknown field, a prompt, an answer or a key on screen.
+
+`src/lib/admin-models.mjs` keeps only allowlisted keys at every level. A row needs a model id matching `^[A-Za-z0-9._/:-]{1,160}$` and one of the five statuses (`enabled`, `ready`, `failed`, `untested`, `needs_allowlist`); a row with any other status is dropped, never shown as enable-able. A flag counts only when it is literally `true`, integers are bounded, and dollar and price strings must be plain decimals. A `null` price reads "Price unavailable" only when the catalog failed. A `kind: 'legacy'` test reads "Legacy · not tested" and keeps its measurements null. Per-model totals are summed from the daily usage rows, with dollars added as integers so a column never drifts. See `src/components/admin/models-section.tsx`.
+
+## Admin model gating
+
+A model is off until it has been tested: the web only mirrors the server rule that an untested, failed or outside-allowlist model cannot be enabled.
+
+`canEnable` returns "Add it to the server allowlist first", "Test this model first" or "Last test failed", and Enable stays disabled with that reason; the server refuses the same adds with 422 on save. Enable, Disable and Make default edit the shared A2 draft and save with the existing revision check. Disabling the current default shows "Choose another default first." and changes nothing; disabling any other model asks for confirmation that the next turn of chats using it will ask users to pick another model. A test names its cost cap ("at most $0.05 per test, 20 tests a day") before it runs. The `adminModels` nav item is strict, so a direct visit while it is off reads "Not provided by this backend", and the Agent page lists models read-only with a "Manage models" link only while it is on. A follow-up refused with "Model is not enabled." reads "This model was turned off by an admin; pick another model." in `serviceErrorMessage`. See `src/components/admin/model-rows.tsx`.

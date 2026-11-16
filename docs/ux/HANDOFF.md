@@ -2,12 +2,13 @@
 
 Overwritten at every checkpoint. Read [AGENTS.md](../../AGENTS.md) first, then this file, then the packet named under "Active phase". Older detail is in Git history and [docs/ux/history/](history/handoff-before-agui-progress-review-2026-11-16.md).
 
-Updated 17 November 2026, end of Q1.
+Updated 17 November 2026, end of A3.
 
 ## Now
 
-- **Hold:** the roadmap is approved (16 Nov). No application code changes until the user approves each phase packet. Do not deploy, merge, release or push. AWS login is unavailable; do not request it.
-- **Branch:** `codex/ui-ux-foundation-2026-11-12`, ahead of `origin/main`, not pushed. Backend C1, N1, N3, N2, A1, A2, N4 and Q1 are local commits on `codex/web-ui-harness-20261116` (C1 `c188add`). A preview launch config for the dev server is at the workspace root `Datumm/.claude/launch.json` (outside both repos).
+- **Hold:** the roadmap is approved (16 Nov). No application code changes until the user approves each phase packet. Do not deploy, merge to a remote, release or push. AWS login is unavailable; do not request it. The user's direction (17 Nov, D24): this work is going to the live site (backend on AWS, web on Vercel) after approval of [the go-live plan](g1-go-live-plan.md); nothing has been pushed or deployed.
+- **Branch:** both repos are on local `main`, not pushed (web is ahead of `origin/main`; the backend `origin` is a local folder). Backend S0 to A3 are local commits on `main`. A preview launch config for the dev server is at the workspace root `Datumm/.claude/launch.json` (outside both repos).
+- **Real-site local test (17 Nov):** `datumm-web/.env.local` has `ORCHESTRATOR_URL=https://localhost:8443`; the original value is in `.env.local.bak-a3` (both git-ignored). Restore it before any real use. A local https backend with in-memory Mongo and no provider key runs from the session scratchpad (`local_backend_real.py`, with a self-signed certificate); the dev server is started with `NODE_EXTRA_CA_CERTS` pointing at that certificate. The first Clerk user verified becomes admin on that throwaway server only. Chats that need a model cannot run there; admin pages and the "hi" short path can.
 - **Subagent routing (user, 16 Nov):** Haiku (high effort) for mechanical code and file work, Sonnet (high) for moderate implementation and coordination, Opus for planning, research, review and bug fixes. Implementer and reviewer stay separate.
 - **Scope changes by the user on 16 Nov** (logged as D22 and D23 in [PLAN.md](../../PLAN.md)): AG-UI with affectUI across the whole app in phases, middle chat first; connect the UI to the existing harness first, then expand admin capability. Panda-agent is a read-only reference.
 - **Decisions on the research (16 Nov):** detect capabilities per backend; backend work on a fresh local branch from `188ebc0` with the candidate patches re-applied; admin scope is traces and feedback, versioned config and audit, model registry, MCP and skills registry; the model router is deferred. Findings: [research record](research-reference-and-harness-2026-11-16.md).
@@ -25,7 +26,8 @@ Updated 17 November 2026, end of Q1.
 | A2 | Done 16 Nov: [packet and result](a2-admin-versioned-config-audit.md) | Index and duplicate-key behavior on real Mongo belong to G1 |
 | N4 | Done 16 Nov: [packet and result](n4-evidence-backed-compositions.md) | Turn on `evidence_compositions_enabled` only after the schema bytes are accepted; live-model quality at G1 |
 | Q1 | Done 17 Nov: [packet and result](q1-rules-prerouter-latency.md) | Reply copy approved by the user 17 Nov; enable `entry_rules_enabled` only at G1 after a baseline trace window |
-| A3 | [Packet](a3-admin-model-registry.md) approved 17 Nov (recommended options); build in progress | Backend registry routes, write gate and tests; web Models page |
+| A3 | Done 17 Nov: [packet and result](a3-admin-model-registry.md) | Live provider tests, real prices and rollback behavior belong to G1 |
+| G1 | [Go-live plan](g1-go-live-plan.md) proposed 17 Nov, awaiting approval | User decides D1 to D12 in the plan; AWS steps need access the user provides or runs; then W1, A4 and N5 remain proposed |
 
 Phase table: [PLAN.md](../../PLAN.md#phases). Packet format: [PACKET_TEMPLATE.md](PACKET_TEMPLATE.md).
 
@@ -33,11 +35,11 @@ Phase table: [PLAN.md](../../PLAN.md#phases). Packet format: [PACKET_TEMPLATE.md
 
 | Check | Result | Date / how |
 | --- | --- | --- |
-| `npm run typecheck`, `npm test` (749), `npm run build`, `lat check` | Passed (build exits 0 on retry; see Q1 limits) | 17 Nov, Node 24.18.0, end of Q1 |
-| Runtime smoke `--production` (18 checks; 3 `/api/chat` checks removed in C1) | Passed 18 / 18 | 16 Nov, fresh `next start` on port 3100, end of Q1 |
+| `npm run typecheck`, `npm test` (769), `npm run build`, `lat check` | Passed (build exited 1 once after compiling and 0 on retry; see Q1 limits) | 17 Nov, Node 24.18.0, end of A3 |
+| Runtime smoke `--production` (18 checks; 3 `/api/chat` checks removed in C1) | Passed 18 / 18 | 17 Nov, fresh `next start` on port 3100, end of A3 |
 | Recorded source hashes (`artifacts/ux/agui-presentation/qualification.json`) | Superseded for files C1 edited; four web entries reported stale before C1 (see [C1 result](c1-capability-contract-and-config.md#11-result)) | 16 Nov, reviewer; not re-verified |
-| Backend suite (`uv run --frozen pytest`) | 499 + 26 subtests; `lat check` passed | 17 Nov, Python 3.12.10, end of Q1 |
-| Browser scenarios | Q1 scenarios 1–4 passed on the `/dev/ux` Admin fixture (built-in browser, 1280 px, and 390 px dark); N4, A2, A1, N2, N3 and N1 passed earlier; C1 scenarios not run | 16 Nov, see [N1 result](n1-durable-completion-proof.md#12-result) |
+| Backend suite (`uv run --frozen pytest`) | 530 + 26 subtests; `lat check` passed | 17 Nov, Python 3.12.10, end of A3 |
+| Browser scenarios | A3: Models page, disable and save, Config history revision, test dialog and "Provider not configured" error passed on the real signed-in localhost site against the local backend (built-in browser). Q1 scenarios 1–4 passed on the `/dev/ux` Admin fixture (built-in browser, 1280 px, and 390 px dark); N4, A2, A1, N2, N3 and N1 passed earlier; C1 scenarios not run | 16 Nov, see [N1 result](n1-durable-completion-proof.md#12-result) |
 | Code graph freshness (backend) | Unresolved | Refresh refused semantic-node loss; no destructive rebuild |
 
 Node 22.18 or newer is required for `npm test`. The default `node` here is 20.13.1; Node 24.18.0 is at `%LOCALAPPDATA%\Programs\node-v24.18.0-win-x64`.
@@ -61,11 +63,11 @@ Final answers are delivered after validation, not as true provider token streami
 
 | Checkout | Branch / base | State |
 | --- | --- | --- |
-| Web `E:/Web development/PROJECTS-FULL STACK/Datumm/datumm-web` | `codex/ui-ux-foundation-2026-11-12` | Committed, not pushed |
+| Web `E:/Web development/PROJECTS-FULL STACK/Datumm/datumm-web` | `main` (the old `codex/ui-ux-foundation-2026-11-12` is merged into it locally) | Committed, not pushed |
 | `artifacts/ux/agui-presentation/candidate` | `codex/agui-chat-presentation-20261116`, base `188ebc0bc0599ff84f3760aaef24711e522972ae` | Uncommitted producer, projection and storage changes plus a copy of the Plan-intent repair; locally qualified, undeployed. Backed up as a patch in [docs/backend-candidates](../backend-candidates/README.md) |
 | `artifacts/ux/checklist-completion/candidate` | `codex/agui-plan-intent-20261116`, same base | Original five-file Plan-intent repair, frozen; do not overwrite or reset |
 | Original backend clone | `codex/alternative-count-clarification-20261116`, commit `4eb6135862fcd6083d798f5eaff4f9c1e4a79f00` | Paused and excluded from the producer candidate; its own qualification gates are open |
-| Backend working checkout `E:/Web development/PROJECTS-FULL STACK/Datumm/datumm-orchestrator` | `codex/web-ui-harness-20261116`, commit `e8cefa7` on `188ebc0` | Presentation patch applied and committed locally; origin is the candidate folder, not GitHub; not pushed. All backend phases build here |
+| Backend working checkout `E:/Web development/PROJECTS-FULL STACK/Datumm/datumm-orchestrator` | `main` (same history as `codex/web-ui-harness-20261116`), based on `188ebc0` | Presentation patch and phases C1 to A3 committed locally; origin is the candidate folder, not GitHub; not pushed. All backend phases build here |
 | `../datumm-web-ask-recovery` | `codex/independent-ask` | Unmerged, two uncommitted files; untouched |
 | `../_archive/datumm-web-artifacts-archive-2026-11-16` | n/a | Archived evidence from the cleanup; old packets cite it as `artifacts/ux/<name>` |
 

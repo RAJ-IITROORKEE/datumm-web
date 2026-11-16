@@ -1,0 +1,119 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 20px;
+  margin-bottom: 16px;
+}
+.select {
+  min-width: 160px;
+}
+.note {
+  display: block;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+  margin: 0;
+}
+.strip {
+  margin-bottom: 20px;
+}
+.inlineError {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--destructive);
+  margin: 0 0 10px;
+}
+.inlineError:empty {
+  display: none;
+}
+.modelCell {
+  min-width: 200px;
+}
+.modelCell code {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.modelCell span {
+  display: block;
+  font-size: 11px;
+  color: var(--text);
+}
+.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.usageRow td {
+  padding-top: 8px;
+  padding-bottom: 12px;
+}
+.usageRow summary {
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  width: fit-content;
+}
+.usageRow summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.usageRow details[open] summary {
+  margin-bottom: 10px;
+  color: var(--foreground);
+}
+.dialogBody {
+  display: grid;
+  gap: 12px;
+}
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  margin: 0;
+}
+.outcome {
+  display: grid;
+  gap: 10px;
+  font-size: 13px;
+}
+.outcome p {
+  margin: 0;
+}
+.checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--separator, var(--border));
+  border-radius: var(--radius-md, 7px);
+}
+.checks li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+.checks li + li {
+  border-top: 1px solid var(--separator, var(--border));
+}
+.checks [data-state='fail'] {
+  color: var(--destructive);
+}
+.checks [data-state='na'] {
+  color: var(--text);
+}
+.banner {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--destructive);
+  border: 1px solid var(--destructive);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 0 0 12px;
+}

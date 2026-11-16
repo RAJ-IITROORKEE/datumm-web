@@ -74,3 +74,12 @@ test('workspace API normalizes HTML and preserves structured and plain errors',a
  ];
  for(const [value,expected] of cases){response=value;await assert.rejects(apiExports.api('tasks'),error=>error.message.includes(expected)&&error.status===value.status);}
 });
+
+test('a follow-up on a model an admin turned off asks for another model and keeps the draft',async()=>{
+ const copy='This model was turned off by an admin; pick another model.';
+ assert.equal(exports.serviceErrorMessage('Model is not enabled.',400),copy);
+ assert.equal(exports.serviceErrorMessage('Model is not enabled',400),copy);
+ assert.equal(exports.serviceErrorMessage('The model is not enabled for this device.',400),'The model is not enabled for this device.');
+ const response=await exports.chatStartResult(Response.json({detail:'Model is not enabled.'},{status:400}));
+ assert.equal((await response.json()).message,copy);
+});

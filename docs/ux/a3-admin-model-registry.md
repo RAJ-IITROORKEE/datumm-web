@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **approved, build in progress** |
+| Status | **done 17 Nov (local, not pushed)**: see section 11 |
 | Depends on | A1 (done) for telemetry parsing and the `strict` nav pattern; A2 (done) for the shared config write, history, restore and audit |
 | Approved by / date | User, 17 Nov ("Approve A3, recommended"): every decision takes its recommended option (A). Work continues on `main` in both repos (the user asked for the work to live on main; nothing is pushed) |
 | Base commits | Web `93806ba` (checkout reports branch `main`; the handoff names `codex/ui-ux-foundation-2026-11-12`, see section 10); backend `70ce912` on `codex/web-ui-harness-20261116` (also local `main`) |
@@ -200,3 +200,47 @@ Revert the backend and web commits. Without the flag the web hides the page; the
 7. **Telemetry untested directly (A1 item 8)** and still inside run documents with no TTL: usage depends on runs never being purged.
 8. **Web branch:** the checkout reports `main` at `93806ba`, while the handoff names `codex/ui-ux-foundation-2026-11-12`; confirm the branch before building.
 9. **Fixture model** `openai/gpt-6.1-sol` (`admin-preview.tsx:20`) is not in the env default list; under decision 2A the fixture must mark it `needs_allowlist` or replace it.
+
+## 11. Result
+
+Built on `main` in both repos on 17 Nov, local commits only, nothing pushed. Backend paths are under `datumm-orchestrator/apps/domain-api/`.
+
+### What was built
+
+- **Backend:** `model_registry.py` (new): derived status per model, `model_tests` collection, bounded paid test (at most $0.05 per test, 20 per day across admins, fees per call counted), usage read from run telemetry, startup migration that records existing admin and env models as `legacy` passes.
+- **Fail closed:** `app_config.py` serves only models whose newest test passed. There is no unfiltered fallback; a failed re-test removes the model at once (cache invalidated). The write gate in `config_history.py` compares the saved list against the *served* list, returns 409 for a stale revision before the gate, and rejects any model without a passing test with 422.
+- **Row shape:** `enabled` means served; `listed` means present in the stored admin list; `isDefault` only when served.
+- **Web:** `/admin/models` (`models-section.tsx`, `model-rows.tsx`, `model-test-dialog.tsx`), `admin-models.mjs`, `model_test` audit rows, "Listed, not served" badge and a "No models are enabled" banner. Hidden without the `adminModels` capability.
+
+### Review
+
+An independent Opus review found 10 backend and 6 web findings, one of them HIGH (a path that served untested env models after a failed test). Opus agents fixed all of them with a failing test first, except three tests that already passed on the old code and were kept as regression guards. The orchestrator re-ran the gates after the fixes.
+
+### Gates (orchestrator, 17 Nov, Node 24.18.0, Python 3.12.10)
+
+| Check | Result |
+| --- | --- |
+| Backend `uv run --frozen pytest` | 530 passed, 26 subtests, 2 warnings (duplicate FastAPI operation id for `archive_project`; not checked whether older) |
+| Backend `lat check` | Passed |
+| Web `npm run typecheck` | Clean |
+| Web `npm test` | 769 / 769 |
+| Web `lat check` | Passed |
+| Web `npm run build` | Exit 1 on the first run after the compile, exit 0 on retry (same intermittent behavior as Q1; no dependency was changed) |
+| Runtime smoke `--production` | 18 / 18 |
+
+### Browser (built-in browser, real signed-in `http://localhost:3001` over a local https backend with in-memory Mongo; no provider key)
+
+- Models page lists 6 legacy-blessed models with prices, context, last test and usage; default marked.
+- Disable `openai/gpt-4.1`: confirmation dialog, save, "Changes saved.", row becomes "Ready", summary becomes Enabled 5 / Ready 1.
+- Config history shows Revision 1, live, changed `models`.
+- Test dialog states the $0.05 / 20-a-day cap; running it returns "Provider not configured" and writes no row.
+- Not run: a passing live test, real prices and spend, real usage totals, the failed-test removal path on the real page, screen-reader reading, 390 px width on the real site.
+
+### Limits and notes
+
+- The test-suite fixture `_legacy_blessed_env_models` in `conftest.py` is slightly broader than the real startup migration (it also blesses env models added later). The real migration only covers the lists present at migration time.
+- Two test rows with the same timestamp resolve by random id: consistent everywhere, but arbitrary.
+- When nothing is served, `/v1/config` returns an empty `models` and `defaultModel` equal to the env default string; admission still rejects it with 400.
+- A rollback leaves the migration marker: after a redeploy, any model added to the admin list in between is not served until it is tested (see the go-live plan).
+- Adding a brand-new model still needs an env change (decision 2A).
+- Real Mongo behavior, live provider tests and hosted behavior belong to G1.

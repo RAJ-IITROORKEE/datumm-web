@@ -1,10 +1,13 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { featureEnabled } from '@/lib/capabilities.mjs';
+import { useCapabilities } from './capabilities-context';
 import { ChipList, ConfigPage, Field, ItemCard, SettingsGroup } from './form';
 import styles from './admin-form.module.css';
 import { LIMIT_KEYS, MODES, normalizeDomain, type AdminMcp, type AdminSkill } from '@/lib/admin-config.mjs';
@@ -12,13 +15,35 @@ import { LIMIT_KEYS, MODES, normalizeDomain, type AdminMcp, type AdminSkill } fr
 const num = (v: string) => (v === '' ? 0 : Number(v));
 const effectiveText = (v: unknown) => (Array.isArray(v) ? v.join(', ') : String(v ?? ''));
 
+/** With the model registry on, models are managed on their own page; this is a read-only list. */
+function ModelSummary({ values, errors }: { values: string[]; errors?: string }) {
+  return (
+    <Field layout="row" label="Allowed models" error={errors}
+      hint="Enable, disable and test models on the Models page.">
+      {() => <>
+        {values.length > 0
+          ? <ul className={styles.chips} aria-label="Allowed models">
+            {values.map(value => <li key={value}><span>{value}</span></li>)}
+          </ul>
+          : <p>Using the server default list.</p>}
+        <Link href="/admin/models" className="text-sm underline underline-offset-4">
+          Manage models
+        </Link>
+      </>}
+    </Field>
+  );
+}
+
 export function AgentSection() {
+  const registry = featureEnabled(useCapabilities(), 'adminModels');
   return (
     <ConfigPage title="Agent" description="Models, budgets and concurrency applied to new runs. A run keeps the model and limits it started with. Skills and web search are read while a run works, so edits to them can reach chats already running within about 30 seconds.">
       {({ draft, update, errors, effective }) => (
         <>
           <SettingsGroup title="Models" description={`Models users may pick. Empty uses the server default list (${effectiveText(effective.models) || 'unknown'}).`}>
-            <ChipList draftKey="models" label="Allowed models" values={draft.models} onChange={models => update({ models })} max={20} placeholder="provider/model-name" error={errors.models || Object.entries(errors).find(([key]) => key.startsWith('models.'))?.[1]}/>
+            {registry
+              ? <ModelSummary values={draft.models} errors={errors.models} />
+              : <ChipList draftKey="models" label="Allowed models" values={draft.models} onChange={models => update({ models })} max={20} placeholder="provider/model-name" error={errors.models || Object.entries(errors).find(([key]) => key.startsWith('models.'))?.[1]}/>}
               <Field layout="row" label="Default model" error={errors.defaultModel} hint={`Effective: ${effectiveText(effective.defaultModel)}`}>
                 {p => <Select {...p} value={draft.defaultModel} onChange={e => update({ defaultModel: e.target.value })}><option value="">Server default</option>{draft.models.map(m => <option key={m}>{m}</option>)}</Select>}
               </Field>

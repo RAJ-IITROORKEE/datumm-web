@@ -1,6 +1,6 @@
 export type HistoryAction = 'update' | 'restore' | 'baseline';
-export type AuditKind = 'config' | 'knowledge';
-export type AuditAction = HistoryAction | 'add' | 'reindex' | 'delete';
+export type AuditKind = 'config' | 'knowledge' | 'model_test';
+export type AuditAction = HistoryAction | 'add' | 'reindex' | 'delete' | 'test';
 type Shown = string | number | boolean | (string | number | boolean)[];
 
 export interface ConfigChange {

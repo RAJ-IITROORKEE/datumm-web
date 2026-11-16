@@ -12,6 +12,8 @@ export function serviceErrorMessage(message:unknown,status?:number,contentType='
   if(status && status>=500)return 'DATUMM service is temporarily unavailable. Check your saved task before trying again.';
   return 'DATUMM could not complete the request. Check your connection and saved task before trying again.';
  }
+ // A disabled model is refused at admission; say what the person can do about it.
+ if(/^Model is not enabled\.?$/i.test(text))return 'This model was turned off by an admin; pick another model.';
  return text;
 }
 

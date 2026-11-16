@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  auditPath, changedPaths, formatChange, historyPath, parseAuditRows, parseHistory,
-  parseHistoryDetail, restoreBlock, restoreBody,
+  AUDIT_KINDS, actionLabel, auditPath, changedPaths, formatChange, historyPath, kindLabel,
+  parseAuditRows, parseHistory, parseHistoryDetail, restoreBlock, restoreBody,
 } from '../src/lib/admin-history.mjs';
 import { createHistoryFixture } from '../src/components/dev/admin-history-fixture.ts';
 import { emptyConfig } from '../src/lib/admin-config.mjs';
@@ -250,4 +250,15 @@ test('the fixture marks revisions identical to live and checks staleness before 
   assert.equal(fixture.current(), 13);
   assert.equal(fixture.detail(11).identical, true, 'identity follows the new live revision');
   assert.equal(fixture.detail(old).identical, false);
+});
+
+test('model test audit rows keep their kind, action and summary text', () => {
+  const [row] = parseAuditRows([{ at: '2026-11-17T09:00:00Z', by: 'boss', kind: 'model_test',
+    action: 'test', summary: 'Tested openai/gpt-6-luna: passed, $0.0011', changes: [] }]);
+  assert.deepEqual([row.kind, row.action, row.summary, row.changes],
+    ['model_test', 'test', 'Tested openai/gpt-6-luna: passed, $0.0011', []]);
+  assert.equal(kindLabel('model_test'), 'Model test');
+  assert.equal(actionLabel('test'), 'Tested');
+  assert.ok(AUDIT_KINDS.includes('model_test'), 'the audit kind filter offers it');
+  assert.equal(auditPath({ kind: 'model_test' }), 'admin/audit?limit=25&kind=model_test');
 });

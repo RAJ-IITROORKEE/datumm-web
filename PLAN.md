@@ -1,6 +1,6 @@
 # DATUMM UI/UX plan
 
-Updated 16 November 2026. This file holds the decisions, the phase table and the design reference map. Current state and the next step are in [docs/ux/HANDOFF.md](docs/ux/HANDOFF.md); rules for agents are in [AGENTS.md](AGENTS.md). Earlier narrative status is in Git history and in [the archived plan](docs/ux/history/plan-before-workspace-acceptance-2026-11-15.md); old "next step" text there does not reopen anything.
+Updated 17 November 2026. This file holds the decisions, the phase table and the design reference map. Current state and the next step are in [docs/ux/HANDOFF.md](docs/ux/HANDOFF.md); rules for agents are in [AGENTS.md](AGENTS.md). Earlier narrative status is in Git history and in [the archived plan](docs/ux/history/plan-before-workspace-acceptance-2026-11-15.md); old "next step" text there does not reopen anything.
 
 ## Phases
 
@@ -22,11 +22,11 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | A2 | Admin: versioned config and audit | Done 16 Nov (local, not pushed) | [Packet](docs/ux/a2-admin-versioned-config-audit.md) |
 | N4 | Evidence-backed compositions | Done 16 Nov (local, not pushed) | [Packet](docs/ux/n4-evidence-backed-compositions.md) |
 | Q1 | Rules pre-router and latency measurement (model router deferred) | Done 17 Nov (local, not pushed; flag off by default) | [Packet](docs/ux/q1-rules-prerouter-latency.md) |
-| A3 | Admin: model registry | Approved 17 Nov; in progress | [Packet](docs/ux/a3-admin-model-registry.md) |
+| A3 | Admin: model registry | Done 17 Nov (local, not pushed) | [Packet](docs/ux/a3-admin-model-registry.md) |
 | W1 | Right work area on AG-UI state | Proposed; separate go or no-go | Roadmap |
 | A4 | Admin: MCP and skills registry | Proposed | Roadmap |
 | N5 | Provider streaming and measured performance | Proposed | Roadmap |
-| G1 | Hosted gate | Blocked: AWS access unavailable | Roadmap |
+| G1 | Go-live: backend on AWS, web on Vercel | Plan proposed 17 Nov, awaiting user approval of decisions D1 to D12; nothing deployed. AWS steps need access the user provides or runs themselves | [Go-live plan](docs/ux/g1-go-live-plan.md) |
 
 ## Confirmed decisions
 
@@ -55,6 +55,7 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | D21 | Compact project-centered navigation | Confirmed13 November. Keep Design / Activity / Assets / Exports; add Running / Needs your input filters to the project task/chat overview and place Brief & decisions under Project context. No separate top-level Tasks/Memory screens in this direction. Preserve the approved compact structure; current implementation/evidence is indexed in the handoff. |
 | D22 | AG-UI with shadcn-style affectUI components across the whole app | Confirmed 16 November. Every agent-facing surface moves to AG-UI and the affectUI component set, in phases: the middle chat first, then the right work area, settings and admin, each with its own approved plan. This lifts the earlier "chat only" narrowing; native writes, direct drafting and billing stay out of scope until separately approved. |
 | D23 | Connect the UI to the existing harness first, then expand admin capability | Confirmed 16 November. First update the UI/UX so the harness's current features work well; then add admin capability to the harness. Panda-agent (`Pandabyte/Panda-agent`, local and live) is a read-only design reference; nothing there is changed. No Panda-agent orchestration idea, such as a model router, is adopted until P4 evaluates it and the user approves. |
+| D24 | Work lives on `main`; target is the live site | Confirmed 17 November. The finished phases run on the real `main` localhost site against a local backend first (local merge, no push). Then the same code goes live: backend on AWS, web on Vercel. Every push, merge to a remote, deploy and AWS action still needs separate approval; the plan is [g1-go-live-plan.md](docs/ux/g1-go-live-plan.md). |
 
 Product framing from the user: **a Cursor for Revit**. The web workspace supports architectural reasoning and review; native modifications still require exact approval and verified execution.
 

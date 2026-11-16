@@ -2,8 +2,8 @@
 // this module still rebuilds every row key by key, so a later backend change can never put an
 // unknown field (or a whole config snapshot) on screen.
 export const HISTORY_ACTIONS = ['update', 'restore', 'baseline'];
-export const AUDIT_KINDS = ['config', 'knowledge'];
-export const AUDIT_ACTIONS = [...HISTORY_ACTIONS, 'add', 'reindex', 'delete'];
+export const AUDIT_KINDS = ['config', 'knowledge', 'model_test'];
+export const AUDIT_ACTIONS = [...HISTORY_ACTIONS, 'add', 'reindex', 'delete', 'test'];
 export const MAX_NOTE = 200;
 export const HISTORY_LIMIT = 20;
 export const AUDIT_LIMIT = 25;
@@ -11,9 +11,9 @@ const MAX_CHANGES = 50;
 
 const LABELS = {
   update: 'Edit', restore: 'Restore', baseline: 'Baseline',
-  add: 'Source added', reindex: 'Reindex', delete: 'Source removed',
+  add: 'Source added', reindex: 'Reindex', delete: 'Source removed', test: 'Tested',
 };
-const KIND_LABELS = { config: 'Configuration', knowledge: 'Knowledge' };
+const KIND_LABELS = { config: 'Configuration', knowledge: 'Knowledge', model_test: 'Model test' };
 export const actionLabel = value => LABELS[value] ?? 'Change';
 export const kindLabel = value => KIND_LABELS[value] ?? String(value);
 
