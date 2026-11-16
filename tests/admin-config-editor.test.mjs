@@ -7,6 +7,7 @@ import * as jsxRuntime from 'react/jsx-runtime';
 import ts from 'typescript';
 import * as config from '../src/lib/admin-config.mjs';
 import * as capabilities from '../src/lib/capabilities.mjs';
+import * as history from '../src/lib/admin-history.mjs';
 
 // Run the real hooks with persistent state and effect dependencies, without network access.
 function harness(client) {
@@ -246,6 +247,9 @@ function formHarness(configState = {}) {
       if (name === 'react') return hooks;
       if (name === 'react/jsx-runtime') return jsxRuntime;
       if (name === './use-admin') return { useAdminConfig, ResultState };
+      if (name === './capabilities-context') return { useCapabilities: () => configState.caps ?? null };
+      if (name === '@/lib/capabilities.mjs') return capabilities;
+      if (name === 'next/link') return { default: 'Link' };
       if (name.endsWith('.module.css')) return { default: {} };
       return new Proxy({}, { get: (_target, key) => key });
     },
@@ -589,4 +593,247 @@ test('root admin owner lazily activates and retains exact drafts and in-flight K
   const uncertain=owner.submitKnowledge();finish({ok:false,reason:'error',message:'offline'});assert.equal(await uncertain,false);
   owner=render();assert.equal(owner.knowledgeUnknown,true);assert.equal(await owner.submitKnowledge(),false);
   owner.allowKnowledgeRetry();owner=render();assert.equal(owner.knowledgeUnknown,false);
+});
+
+const textOf = node => typeof node === 'string' || typeof node === 'number' ? [String(node)]
+  : React.isValidElement(node) ? textOf(node.props.children)
+    : Array.isArray(node) ? node.flatMap(textOf) : [];
+
+// @lat: [[contracts#Hosted contract tests#Admin history gating]]
+test('the Config history nav item and page need adminHistory on; unknown counts as off', () => {
+  const ResultState = loadResultState();
+  const slots = [], configState = { dirty: false, saving: false };
+  let cursor = 0, resource = {};
+  const hooks = { ...React, useEffect: () => {}, useContext: () => configState,
+    useState(initial) { const i = cursor++; if (!(i in slots)) slots[i] = initial; return [slots[i], () => {}]; },
+    useRef(value) { const i = cursor++; return slots[i] ??= { current: value }; } };
+  const exports = {};
+  const source = readFileSync(new URL('../src/components/admin/admin-shell.tsx', import.meta.url), 'utf8');
+  const options = { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 };
+  runInNewContext(ts.transpileModule(source, { compilerOptions: options }).outputText, {
+    exports, require(name) {
+      if (name === 'react') return hooks;
+      if (name === 'react/jsx-runtime') return jsxRuntime;
+      if (name === 'next/navigation') return { usePathname: () => '/admin', useRouter: () => ({}) };
+      if (name === './form') return { AdminConfigProvider: 'Provider', useSharedAdminConfig: () => configState };
+      if (name === '@/lib/utils') return { cn: (...parts) => parts.filter(Boolean).join(' ') };
+      if (name === 'next/link') return { default: 'Link' };
+      if (name === './use-admin') return { useAdminResource: () => resource, ResultState };
+      if (name === '@/lib/capabilities.mjs') return capabilities;
+      return new Proxy({}, { get: (_target, key) => key });
+    } });
+  const render = activePath => {
+    const shell = exports.AdminShell({ email: 'a@example.test', children: 'history page', activePath });
+    cursor = 0;
+    return elements(shell.props.children.type(shell.props.children.props));
+  };
+  const links = () => {
+    const nav = render('/admin').find(node => node.type?.name === 'Nav');
+    return elements(nav.type(nav.props)).filter(node => node.type === 'Link').map(node => node.props.href);
+  };
+  const features = extra => ({ capabilities: { version: 1, features: { adminAudit: true, ...extra } } });
+  const loaded = data => { resource = { data, result: { ok: true, data } }; };
+  const page = () => render('/admin/history').find(node => node.type === ResultState);
+
+  resource = { data: null };
+  assert.equal(page().props.result, null, 'a strict page waits for the config');
+  for (const data of [null, features({}), features({ adminHistory: false })]) {
+    loaded(data);
+    assert.ok(!links().includes('/admin/history'), JSON.stringify(data));
+    assert.ok(links().includes('/admin/audit'), 'other items keep unknown-is-visible');
+    const missing = page();
+    assert.equal(missing.props.result.reason, 'missing');
+    assert.match(textOf(missing.type(missing.props)).join(''), /Not provided by this backend/);
+  }
+  loaded(features({ adminHistory: true }));
+  assert.ok(links().includes('/admin/history'));
+  assert.equal(page(), undefined);
+  assert.ok(render('/admin/history').some(node => textOf(node).includes('history page')));
+});
+
+test('the save bar revision links to Config history only when adminHistory is on', () => {
+  const state = { result: { ok: true, data: envelope(3) }, draft: config.emptyConfig(), base: { ...envelope(3), updatedBy: 'boss' },
+    errors: {}, dirty: false, saving: false, saved: false, saveResult: null, pendingChipCount: 0 };
+  const history = featureOn => ({ ...state, caps: capabilities.parseCapabilities(
+    { capabilities: { version: 1, features: { adminHistory: featureOn } } }) });
+  const bar = value => elements(formHarness(value).render('ConfigPage',
+    { title: 'Agent', description: 'x', children: () => null }));
+  const link = bar(history(true)).find(node => node.type === 'Link');
+  assert.equal(link.props.href, '/admin/history');
+  assert.equal(textOf(link).join(''), 'Revision 3');
+  for (const value of [history(false), state]) {
+    assert.equal(bar(value).find(node => node.type === 'Link'), undefined);
+    assert.ok(bar(value).some(node => textOf(node).join('').includes('Revision 3')));
+  }
+});
+
+function restoreHarness(shared, client) {
+  const slots = [];
+  let cursor = 0;
+  const hooks = { ...React,
+    useRef(initial) { const i = cursor++; return slots[i] ??= { current: initial }; },
+    useState(initial) {
+      const i = cursor++;
+      if (!(i in slots)) slots[i] = initial;
+      return [slots[i], next => { slots[i] = typeof next === 'function' ? next(slots[i]) : next; }];
+    } };
+  const exports = {};
+  const ResultState = function ResultState() { return null; };
+  const source = readFileSync(new URL('../src/components/admin/restore-dialog.tsx', import.meta.url), 'utf8');
+  const options = { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 };
+  runInNewContext(ts.transpileModule(source, { compilerOptions: options }).outputText, {
+    exports, require(name) {
+      if (name === 'react') return hooks;
+      if (name === 'react/jsx-runtime') return jsxRuntime;
+      if (name === './form') return { Field: 'Field', useSharedAdminConfig: () => shared };
+      if (name === './use-admin') return { useAdminClient: () => client, ResultState };
+      if (name === '@/lib/admin-history.mjs') return history;
+      if (name.endsWith('.module.css')) return { default: {} };
+      return new Proxy({}, { get: (_target, key) => key });
+    } });
+  return { ResultState, render(props) { cursor = 0; return elements(exports.RestoreAction(props)); } };
+}
+
+// @lat: [[contracts#Config restore binding]]
+test('Restore is disabled with its reason while the shared draft is dirty or saving', () => {
+  const detail = history.parseHistoryDetail({ revision: 1, action: 'update', restorable: true,
+    changesFromCurrent: [{ path: 'parallelChats', beforeHash: 'abcdef012345', afterHash: 'abcdef012345', before: 4, after: 2 }] });
+  const props = { detail, current: 3, onRestored() {}, onReload() {} };
+  const trigger = (shared, override = props) => {
+    const nodes = restoreHarness(shared, async () => ({ ok: true, data: {} })).render(override);
+    return { button: nodes.find(node => node.type === 'Button'), why: nodes.find(node => node.type === 'span') };
+  };
+  assert.equal(trigger({ dirty: false, saving: false }).button.props.disabled, false);
+  for (const shared of [{ dirty: true, saving: false }, { dirty: false, saving: true }]) {
+    const { button, why } = trigger(shared);
+    assert.equal(button.props.disabled, true);
+    assert.equal(textOf(why).join(''), 'Save or discard your edits first');
+    assert.equal(button.props['aria-describedby'], why.props.id);
+  }
+  const redacted = { ...props, detail: { ...detail, restorable: false } };
+  const { button, why } = trigger({ dirty: false, saving: false }, redacted);
+  assert.equal(button.props.disabled, true);
+  assert.equal(textOf(why).join(''), 'Contains data that cannot be restored');
+});
+
+test('confirming a restore sends the bound body, then reloads the shared config', async () => {
+  const detail = history.parseHistoryDetail({ revision: 1, action: 'update', restorable: true });
+  const calls = [], events = [];
+  const shared = { dirty: false, saving: false, reload: () => events.push('reload') };
+  const client = async (path, init) => { calls.push({ path, init }); return { ok: true, data: { revision: 4 } }; };
+  const h = restoreHarness(shared, client);
+  const props = { detail, current: 3, onRestored: (...args) => events.push(args), onReload() {} };
+  const confirmButton = () => h.render(props).filter(node => node.type === 'Button').at(-1);
+  const nodes = h.render(props);
+  assert.match(textOf(nodes.find(node => node.type === 'DialogDescription')).join(''),
+    /^Saves as revision 4; running chats may pick up skills and web-search changes within 30 seconds$/);
+  assert.match(textOf(confirmButton()).join(''), /Restore as revision 4/);
+  const field = elements(nodes.find(node => node.type === 'Field').props.children({ id: 'note' }));
+  field.find(node => node.type === 'Textarea').props.onChange({ target: { value: '  rollback  ' } });
+  confirmButton().props.onClick();
+  await new Promise(setImmediate);
+  assert.deepEqual(JSON.parse(JSON.stringify(calls)), [{ path: 'admin/config/restore',
+    init: { method: 'POST', body: { fromRevision: 1, expectedRevision: 3, note: 'rollback' } } }]);
+  assert.deepEqual(JSON.parse(JSON.stringify(events)), ['reload', [1, 4]]);
+});
+
+test('a stale restore keeps the dialog, shows the stale state and offers Reload history', async () => {
+  const detail = history.parseHistoryDetail({ revision: 1, action: 'update', restorable: true });
+  const events = [];
+  const shared = { dirty: false, saving: false, reload: () => events.push('reload') };
+  const client = async () => ({ ok: false, reason: 'stale', message: 'Stale revision.' });
+  const h = restoreHarness(shared, client);
+  const props = { detail, current: 3, onRestored: () => events.push('restored'), onReload: () => events.push('history') };
+  h.render(props).filter(node => node.type === 'Button').at(-1).props.onClick();
+  await new Promise(setImmediate);
+  const nodes = h.render(props);
+  assert.equal(nodes.find(node => node.type === h.ResultState).props.result.reason, 'stale');
+  nodes.find(node => node.type === 'Button' && textOf(node).join('') === 'Reload history').props.onClick();
+  assert.deepEqual(events, ['history'], 'no shared reload and no success status on a conflict');
+});
+
+test('Restore is disabled for a revision with the live settings or an unfinished list entry', () => {
+  const change = { path: 'parallelChats', beforeHash: 'abcdef012345', afterHash: 'abcdef012345' };
+  const detail = extra => history.parseHistoryDetail({ revision: 1, action: 'update',
+    restorable: true, changesFromCurrent: [change], ...extra });
+  const why = (shared, value) => {
+    const nodes = restoreHarness(shared, async () => ({ ok: true, data: {} }))
+      .render({ detail: value, current: 3, onRestored() {}, onReload() {} });
+    const button = nodes.find(node => node.type === 'Button');
+    const reason = nodes.find(node => node.type === 'span');
+    return button.props.disabled ? textOf(reason).join('') : null;
+  };
+  const idle = { dirty: false, saving: false, pendingChipCount: 0 };
+  assert.equal(why(idle, detail()), null);
+  assert.equal(why(idle, detail({ identical: true })), 'Same settings as the live revision');
+  assert.equal(why(idle, detail({ changesFromCurrent: [] })), 'Same settings as the live revision');
+  assert.equal(why({ ...idle, pendingChipCount: 1 }, detail()), 'Save or discard your edits first');
+});
+
+// @lat: [[contracts#Admin history parsing]]
+test('the history detail keeps only the parsed diff in state, never the snapshot', async () => {
+  const slots = [];
+  let cursor = 0;
+  const changed = (old, next) => !old || next.some((value, i) => !Object.is(value, old[i]));
+  const effects = [];
+  const raw = { revision: 2, action: 'update', restorable: true,
+    config: { skills: [{ instructions: 'CANARY-SKILL' }],
+      mcpServers: [{ url: 'https://canary.example.invalid/mcp' }] },
+    changesFromCurrent: [{ path: 'skills[a].instructions', beforeHash: 'abcdef012345',
+      afterHash: 'abcdef012345' }] };
+  const client = async () => ({ ok: true, data: structuredClone(raw) });
+  const hooks = { ...React,
+    useContext: () => client,
+    useRef(initial) { const i = cursor++; return slots[i] ??= { current: initial }; },
+    useState(initial) {
+      const i = cursor++;
+      if (!(i in slots)) slots[i] = typeof initial === 'function' ? initial() : initial;
+      return [slots[i], next => { slots[i] = typeof next === 'function' ? next(slots[i]) : next; }];
+    },
+    useCallback(fn, deps) {
+      const i = cursor++;
+      if (changed(slots[i]?.deps, deps)) slots[i] = { value: fn, deps };
+      return slots[i].value;
+    },
+    useMemo(fn, deps) {
+      const i = cursor++;
+      if (changed(slots[i]?.deps, deps)) slots[i] = { value: fn(), deps };
+      return slots[i].value;
+    },
+    useEffect(fn, deps) {
+      const i = cursor++;
+      if (changed(slots[i]?.deps, deps)) {
+        const old = slots[i], next = slots[i] = { deps };
+        effects.push(() => { old?.cleanup?.(); next.cleanup = fn(); });
+      }
+    } };
+  const options = { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 };
+  const load = (file, require) => {
+    const exports = {};
+    const source = readFileSync(new URL(`../src/components/admin/${file}`, import.meta.url), 'utf8');
+    runInNewContext(ts.transpileModule(source, { compilerOptions: options }).outputText,
+      { exports, document: { hidden: false }, require });
+    return exports;
+  };
+  const base = name => (name === 'react' ? hooks : name === 'react/jsx-runtime' ? jsxRuntime
+    : name.endsWith('.module.css') ? { default: {} } : null);
+  const admin = load('use-admin.tsx', name => base(name)
+    ?? (name === '@/lib/admin-config.mjs' ? config : new Proxy({}, { get: () => () => null })));
+  const section = load('history-section.tsx', name => base(name)
+    ?? (name === './use-admin' ? admin : name === '@/lib/admin-history.mjs' ? history
+      : new Proxy({}, { get: (_target, key) => key })));
+  const row = history.parseHistoryDetail(raw);
+  const render = () => {
+    cursor = 0;
+    const tree = section.Detail({ row, current: 3, onRestored() {}, onReload() {} });
+    effects.splice(0).forEach(fn => fn());
+    return tree;
+  };
+  render(); await new Promise(setImmediate);
+  const tree = render();
+  const restore = elements(tree).find(node => node.type === 'RestoreAction');
+  assert.equal(restore.props.detail.changesFromCurrent[0].path, 'skills[a].instructions');
+  const held = JSON.stringify(slots, (_key, value) => (typeof value === 'function' ? undefined : value));
+  assert.ok(!held.includes('CANARY'), 'no skill text or MCP URL is held');
+  assert.ok(!held.includes('"config"'), 'no snapshot is held');
 });

@@ -2,12 +2,12 @@
 
 Overwritten at every checkpoint. Read [AGENTS.md](../../AGENTS.md) first, then this file, then the packet named under "Active phase". Older detail is in Git history and [docs/ux/history/](history/handoff-before-agui-progress-review-2026-11-16.md).
 
-Updated 16 November 2026, end of A1.
+Updated 16 November 2026, end of A2.
 
 ## Now
 
 - **Hold:** the roadmap is approved (16 Nov). No application code changes until the user approves each phase packet. Do not deploy, merge, release or push. AWS login is unavailable; do not request it.
-- **Branch:** `codex/ui-ux-foundation-2026-11-12`, ahead of `origin/main`, not pushed. Backend C1, N1, N3, N2 and A1 are local commits on `codex/web-ui-harness-20261116` (C1 `c188add`). A preview launch config for the dev server is at the workspace root `Datumm/.claude/launch.json` (outside both repos).
+- **Branch:** `codex/ui-ux-foundation-2026-11-12`, ahead of `origin/main`, not pushed. Backend C1, N1, N3, N2, A1 and A2 are local commits on `codex/web-ui-harness-20261116` (C1 `c188add`). A preview launch config for the dev server is at the workspace root `Datumm/.claude/launch.json` (outside both repos).
 - **Subagent routing (user, 16 Nov):** Haiku (high effort) for mechanical code and file work, Sonnet (high) for moderate implementation and coordination, Opus for planning, research, review and bug fixes. Implementer and reviewer stay separate.
 - **Scope changes by the user on 16 Nov** (logged as D22 and D23 in [PLAN.md](../../PLAN.md)): AG-UI with affectUI across the whole app in phases, middle chat first; connect the UI to the existing harness first, then expand admin capability. Panda-agent is a read-only reference.
 - **Decisions on the research (16 Nov):** detect capabilities per backend; backend work on a fresh local branch from `188ebc0` with the candidate patches re-applied; admin scope is traces and feedback, versioned config and audit, model registry, MCP and skills registry; the model router is deferred. Findings: [research record](research-reference-and-harness-2026-11-16.md).
@@ -22,7 +22,8 @@ Updated 16 November 2026, end of A1.
 | N3 | Done 16 Nov: [packet and result](n3-tool-task-subagent-lifecycle.md) | Hosted verification belongs to G1 |
 | N2 | Done 16 Nov: [packet and result](n2-frontend-capabilities-reversible-actions.md) | Live-model and hosted checks belong to G1 |
 | A1 | Done 16 Nov: [packet and result](a1-admin-traces-feedback.md) | Provision `TRACE_OWNER_HASH_SECRET` and check index behavior at G1 |
-| A2 | [Packet](a2-admin-versioned-config-audit.md) approved 16 Nov (recommended options); build in progress | Backend history, restore and audit enrichment; web Config history page; N4 follows |
+| A2 | Done 16 Nov: [packet and result](a2-admin-versioned-config-audit.md) | Index and duplicate-key behavior on real Mongo belong to G1 |
+| N4 | Not started; packet not written | Write the N4 packet (evidence-backed compositions) and get approval |
 
 Phase table: [PLAN.md](../../PLAN.md#phases). Packet format: [PACKET_TEMPLATE.md](PACKET_TEMPLATE.md).
 
@@ -30,11 +31,11 @@ Phase table: [PLAN.md](../../PLAN.md#phases). Packet format: [PACKET_TEMPLATE.md
 
 | Check | Result | Date / how |
 | --- | --- | --- |
-| `npm run typecheck`, `npm test` (689), `npm run build`, `lat check` | Passed | 16 Nov, Node 24.18.0, end of A1 |
-| Runtime smoke `--production` (18 checks; 3 `/api/chat` checks removed in C1) | Passed 18 / 18 | 16 Nov, fresh `next start` on port 3100, end of A1 |
+| `npm run typecheck`, `npm test` (710), `npm run build`, `lat check` | Passed | 16 Nov, Node 24.18.0, end of A2 |
+| Runtime smoke `--production` (18 checks; 3 `/api/chat` checks removed in C1) | Passed 18 / 18 | 16 Nov, fresh `next start` on port 3100, end of A2 |
 | Recorded source hashes (`artifacts/ux/agui-presentation/qualification.json`) | Superseded for files C1 edited; four web entries reported stale before C1 (see [C1 result](c1-capability-contract-and-config.md#11-result)) | 16 Nov, reviewer; not re-verified |
-| Backend suite (`uv run --frozen pytest`) | 334 + 26 subtests; `lat check` passed | 16 Nov, Python 3.12.10, end of A1 |
-| Browser scenarios | A1 scenarios 1–8 passed on `/dev/ux` (built-in browser, 1280 px, and 390 px dark); N2, N3 and N1 passed earlier; C1 scenarios not run | 16 Nov, see [N1 result](n1-durable-completion-proof.md#12-result) |
+| Backend suite (`uv run --frozen pytest`) | 349 + 26 subtests; `lat check` passed | 16 Nov, Python 3.12.10, end of A2 |
+| Browser scenarios | A2 scenarios 1–9 passed on `/dev/ux` (built-in browser, 1280 px, and 390 px dark); A1, N2, N3 and N1 passed earlier; C1 scenarios not run | 16 Nov, see [N1 result](n1-durable-completion-proof.md#12-result) |
 | Code graph freshness (backend) | Unresolved | Refresh refused semantic-node loss; no destructive rebuild |
 
 Node 22.18 or newer is required for `npm test`. The default `node` here is 20.13.1; Node 24.18.0 is at `%LOCALAPPDATA%\Programs\node-v24.18.0-win-x64`.

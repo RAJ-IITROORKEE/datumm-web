@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { BookOpen, Download, ExternalLink, Loader2, Plus, RefreshCw, Search, ScrollText, Trash2, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,12 @@ import { Input, Select } from '@/components/ui/input';
 import { Field, PageHeader, useSharedAdminConfig } from './form';
 import { ResultState, useAdminClient, useAdminResource, type Result } from './use-admin';
 import { CORPORA } from '@/lib/admin-config.mjs';
+import {
+  AUDIT_KINDS, AUDIT_LIMIT, actionLabel, auditPath, kindLabel, parseAuditRows, type ConfigChange,
+} from '@/lib/admin-history.mjs';
+import { featureEnabled } from '@/lib/capabilities.mjs';
+import { useCapabilities } from './capabilities-context';
+import { ChangeList } from './change-list';
 import styles from './data-sections.module.css';
 
 const when = (iso?: string) => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(+d) ? d.toLocaleString() : iso || 'Not supplied'; };
@@ -90,9 +96,101 @@ export function PluginSection({release}:{release:PluginRelease}) {
     <details className={styles.details}><summary>Integrity and source details</summary><dl className={styles.facts}><div><dt>SHA-256</dt><dd><code>{release.sha256}</code></dd></div><div><dt>Checksum file</dt><dd><a href={release.checksumUrl}>{release.checksumUrl.split('/').pop()}</a></dd></div><div><dt>Source commit</dt><dd><code>{release.sourceCommit}</code></dd></div></dl></details>
   </div></>;
 }
+type AuditItem = {
+  at: string | null; by: string | null; summary: string; kind?: string | null;
+  action?: string | null; restoredFrom?: number | null; note?: string | null;
+  changes?: ConfigChange[]; changesTruncated?: boolean; cursor?: string | null;
+};
+const auditDetails = (row: AuditItem) => <>
+  {row.action && <Badge variant="outline">
+    {actionLabel(row.action)}{row.restoredFrom ? ` from ${row.restoredFrom}` : ''}
+  </Badge>}
+  {row.note && <p className={styles.feedback}>Note: {row.note}</p>}
+  {row.changes && row.changes.length > 0
+    && <ChangeList changes={row.changes} truncated={row.changesTruncated} empty="" />}
+  {!row.action && !row.note && !row.changes?.length && '—'}
+</>;
 export function AuditSection() {
-  const {result,load,data}=useAdminResource<{at:string;by:string;summary:string}[]>('admin/audit');
-  const [query,setQuery]=useState('');
-  const shown=data?.filter(row=>(row.by+' '+row.summary+' '+when(row.at)).toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
-  return <><PageHeader title="Audit log" description="The last 100 recorded admin changes."/><div className={styles.listHeading}><span className={styles.listHint}>Configuration history</span><RecordSearch value={query} onChange={setQuery} label="Search audit log"/></div><ResultState result={result} onRetry={()=>void load()}/>{data&&(data.length===0?<EmptyState icon={ScrollText} title="No changes recorded">Admin changes will appear here after they are saved.</EmptyState>:shown?.length===0?<EmptyState icon={Search} title="No matching changes">Try another account, date or description, or clear your search.</EmptyState>:<Table caption="Admin audit log" head={['When','By','Change']}>{shown?.map((row,index)=><tr key={index}><td className={styles.timestamp}>{when(row.at)}</td><td>{row.by}</td><td>{row.summary}</td></tr>)}</Table>)}</>;
+  const caps = useCapabilities(), history = featureEnabled(caps, 'adminHistory');
+  const client = useAdminClient();
+  const [kind, setKind] = useState(''), [query, setQuery] = useState('');
+  const path = history ? auditPath({ kind }) : 'admin/audit';
+  // Wait for the capabilities so the first request is already the right one.
+  const { result, load, data } = useAdminResource<unknown>(path, undefined, caps !== null);
+  const [more, setMore] =
+    useState<{ path: string; rows: AuditItem[]; done: boolean } | null>(null);
+  const [moreResult, setMoreResult] = useState<Result<unknown> | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const live = useRef(path);
+  live.current = path;
+  useEffect(() => { setMore(null); setMoreResult(null); setLoadingMore(false); }, [path]);
+  const first: AuditItem[] | null = history ? parseAuditRows(data)
+    : Array.isArray(data) ? (data as AuditItem[]) : null;
+  const extra = more?.path === path ? more : null;
+  const rows = first ? [...first, ...(extra?.rows ?? [])] : null;
+  const last = rows?.at(-1)?.cursor;
+  const lastPage = extra ? extra.rows.length : first?.length ?? 0;
+  const canMore = history && Boolean(last) && !extra?.done && lastPage >= AUDIT_LIMIT;
+  const loadMore = async () => {
+    if (!last || loadingMore) return;
+    const from = path;
+    setLoadingMore(true); setMoreResult(null);
+    const response = await client<unknown>(auditPath({ kind, before: last }));
+    if (live.current !== from) return;
+    setLoadingMore(false);
+    const parsed = response.ok ? parseAuditRows(response.data) : null;
+    if (!parsed) {
+      setMoreResult(response.ok
+        ? { ok: false, reason: 'error', message: 'The next page could not be read.' } : response);
+      return;
+    }
+    setMore(current => {
+      const kept = current?.path === from ? current.rows : [];
+      const seen = new Set([...(first ?? []), ...kept].map(row => row.cursor).filter(Boolean));
+      const fresh = parsed.filter(row => !row.cursor || !seen.has(row.cursor));
+      return { path: from, rows: [...kept, ...fresh], done: parsed.length < AUDIT_LIMIT };
+    });
+  };
+  const needle = query.trim().toLocaleLowerCase();
+  const shown = rows?.filter(row => ((row.by ?? '') + ' ' + row.summary + ' '
+    + when(row.at ?? undefined) + ' ' + (row.changes?.map(change => change.path).join(' ') ?? ''))
+    .toLocaleLowerCase().includes(needle));
+  const head = history ? ['When', 'By', 'Change', 'Details'] : ['When', 'By', 'Change'];
+  return <>
+    <PageHeader title="Audit log" description={history
+      ? 'Admin changes, newest first, with the settings each one touched.'
+      : 'The last 100 recorded admin changes.'}/>
+    <div className={styles.listHeading}>
+      {history ? <Field label="Kind">{p => <Select {...p} value={kind}
+        onChange={event => setKind(event.target.value)}>
+        <option value="">All changes</option>
+        {AUDIT_KINDS.map(value => <option key={value} value={value}>{kindLabel(value)}</option>)}
+      </Select>}</Field> : <span className={styles.listHint}>Configuration history</span>}
+      <RecordSearch value={query} onChange={setQuery} label="Search audit log"/>
+    </div>
+    <ResultState result={result?.ok && !rows ? { ok: false, reason: 'error',
+      message: 'The service returned the audit log in a format this page does not understand.' }
+      : result} onRetry={() => void load()}/>
+    {rows && (rows.length === 0
+      ? <EmptyState icon={ScrollText} title="No changes recorded">
+        Admin changes will appear here after they are saved.
+      </EmptyState>
+      : shown?.length === 0
+        ? <EmptyState icon={Search} title="No matching changes">
+          Try another account, date or description, or clear your search.
+        </EmptyState>
+        : <Table caption="Admin audit log" head={head}>
+          {shown?.map((row, index) => <tr key={row.cursor ?? index}>
+            <td className={styles.timestamp}>{when(row.at ?? undefined)}</td>
+            <td>{row.by}</td><td>{row.summary}</td>
+            {history && <td>{auditDetails(row)}</td>}
+          </tr>)}
+        </Table>)}
+    {canMore && <div className={styles.feedback}>
+      <Button variant="outline" size="sm" disabled={loadingMore} onClick={() => void loadMore()}>
+        {loadingMore && <Loader2 className="animate-spin" aria-hidden/>}Load older
+      </Button>
+    </div>}
+    {moreResult && <ResultState result={moreResult}/>}
+  </>;
 }

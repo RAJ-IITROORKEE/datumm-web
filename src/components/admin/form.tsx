@@ -1,9 +1,12 @@
 'use client';
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import { ChevronDown, Loader2, Plus, Save, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/vendor/affectui/card-clean';
+import { featureEnabled } from '@/lib/capabilities.mjs';
+import { useCapabilities } from './capabilities-context';
 import { ResultState, useAdminClient, useAdminConfig, type Result } from './use-admin';
 import type { AdminConfig } from '@/lib/admin-config.mjs';
 import styles from './admin-form.module.css';
@@ -130,6 +133,7 @@ export function ItemCard({ title, subtitle, badges, open, onToggle, onRemove, ch
 export function ConfigPage({ title, description, children }: { title: string; description: string; children: (c: { draft: AdminConfig; update: (p: Partial<AdminConfig>) => void; errors: Record<string, string>; effective: Record<string, unknown> }) => ReactNode }) {
   const c = useSharedAdminConfig();
   const count = Object.keys(c.errors).length;
+  const history = featureEnabled(useCapabilities(), 'adminHistory');
   return (
     <>
       <PageHeader title={title} description={description} />
@@ -141,7 +145,7 @@ export function ConfigPage({ title, description, children }: { title: string; de
             : c.saveResult && <ResultState result={c.saveResult} />}
           <fieldset className={styles.configFields} disabled={c.saving}><legend className="sr-only">{title} configuration</legend>{children({ draft: c.draft, update: c.update, errors: c.errors, effective: c.base.effective })}</fieldset>
           <div className={styles.saveBar}>
-            <p role="status">{c.saving ? 'Saving changes…' : c.pendingChipCount ? 'Add or clear the unfinished list entry before saving.' : count ? <span className={styles.fieldError}>{count} field{count > 1 ? 's' : ''} need attention. Check the highlighted settings.</span> : c.saved && !c.dirty ? 'Changes saved.' : c.dirty ? 'You have unsaved changes.' : `Revision ${c.base.revision}${c.base.updatedBy ? ` · ${c.base.updatedBy}` : ''}`}</p>
+            <p role="status">{c.saving ? 'Saving changes…' : c.pendingChipCount ? 'Add or clear the unfinished list entry before saving.' : count ? <span className={styles.fieldError}>{count} field{count > 1 ? 's' : ''} need attention. Check the highlighted settings.</span> : c.saved && !c.dirty ? 'Changes saved.' : c.dirty ? 'You have unsaved changes.' : <>{history ? <Link href="/admin/history">Revision {c.base.revision}</Link> : `Revision ${c.base.revision}`}{c.base.updatedBy ? ` · ${c.base.updatedBy}` : ''}</>}</p>
             <div className={styles.saveActions}><Button type="button" variant="ghost" disabled={!c.dirty || c.saving} onClick={c.reload}>Discard changes</Button><Button type="submit" disabled={!c.dirty || c.saving || count > 0 || c.pendingChipCount > 0}>{c.saving ? <Loader2 className="animate-spin" aria-hidden /> : <Save aria-hidden />} Save changes</Button></div>
           </div>
         </form>

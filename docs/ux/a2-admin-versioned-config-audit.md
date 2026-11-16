@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **approved, build in progress** |
+| Status | **done 16 Nov 2026** (local; not pushed or deployed) |
 | Depends on | C1 (done) for capability gating; A1 (done) for the `strict` nav pattern and the latest admin code |
 | Approved by / date | User, 16 Nov ("Approve A2, recommended"): every decision takes its recommended option (A) |
 | Base commits | Web working tree on `codex/ui-ux-foundation-2026-11-12`; backend `94c8ed4` on `codex/web-ui-harness-20261116` |
@@ -190,13 +190,17 @@ Revert the backend and web commits. Without the flag the web hides the page and 
 8. **Panda reference:** its conflict copy says "reloaded" (automatic reload). DATUMM keeps the user's draft and asks first (`form.tsx:140`), which is safer; A2 keeps that.
 9. **Hosted data unknown:** whether the production `app_config` already holds a credential-bearing MCP URL, and its revision count, cannot be checked without hosted access (G1).
 
-## 11. Result (fill at checkpoint)
+## 11. Result
 
 | Item | Outcome |
 | --- | --- |
-| Commit | |
-| Gates run (command, Node version, counts, date) | |
-| Browser evidence (tool, URL, scenario, result) | |
-| Not run or not verified | |
-| Limits found | |
-| Next step | |
+| Commit | Backend and web A2 commits on their branches (see `git log`); not pushed |
+| Backend change | `config_history.py`: snapshot with a write-path credential check (userinfo, query, fragment, or an unparseable URL, refused with 422), diff with a value allowlist and hashes otherwise computed against the redacted old config, self-healing baseline rows (`recovered`), the existing compare-and-set moved unchanged into one shared `write`; `GET /v1/admin/config/history` and `/{revision}`, `POST /v1/admin/config/restore` (CAS-guarded, 404 / 422 / 409, creates revision N+1 with `restoredFrom` and a note); audit rows gain `kind`, `action`, `changes`, `restoredFrom`, `note`, `cursor`, with a `before` cursor, `limit` and `kind` filter and the no-parameter call unchanged; capability `adminHistory`; indexes `admin_audit (kind, at, _id)`; history rows carry `restorable` and `identical`; revision numbers bounded to 31 bits; Agent-config docstring corrected; `test_config_history.py` |
+| Web change | `adminHistory` flag (strict, unknown = off); proxy entries; defensive parser (the detail snapshot is parsed away and never held); Config history page with a revision table, per-revision diff against live, and a restore dialog (change list, note ≤200, "Restore as revision N+1", 409 / 404 / 422 handling, focus returns to the trigger); Restore blocked for unsaved or unfinished edits, non-restorable, live, or identical revisions; audit page with kind filter, "Load older" and a changes cell; save-bar revision link; Agent page copy corrected; dev fixture with a history store |
+| Gates run (16 Nov, Node 24.18.0, Python 3.12.10, orchestrator after all changes) | Backend `uv run --frozen pytest`: 349 passed + 26 subtests (baseline 334 + 26); `lat check` passed. Web `npm run typecheck`, `npm run build`, `npm test` 710 / 710 (baseline 689), `lat check` passed; runtime smoke `--production` 18 / 18 on a fresh `next start` (port 3100) |
+| Failing-first evidence | 10 of 11 first backend tests failed on `94c8ed4` (the other pins today's behavior); every review fix on both sides had a test that failed first |
+| Browser evidence | Built-in browser, local dev server, `/dev/ux` "Admin fixture". 1: edited Parallel chats 3 → 2 and saved; history showed Revision 13 (Live) and "parallelChats 2 → 3" against live; audit showed "Edit · parallelChats 3 → 2". 2: in the conflict state Restore showed "Changed elsewhere … Reload to continue from it." with "Reload history", the dialog stayed open and no revision was written. 3: Restore with a note gave "Restored revision 12 as revision 14", a new "Restore from 12" live row, the Agent page showed the restored value 3, and the audit row carried the note. 4: with an unsaved edit, Restore was disabled with "Save or discard your edits first". 5: instruction changes read "changed" with no text or hash, allowlisted values were shown (`enabled false → true`), and the page held no snapshot or skill text. 6: "Load older" went 25 to 28 rows with no duplicates; the Knowledge filter showed only knowledge rows. 7: Enter on Restore opened the dialog with focus on the note field; Escape closed it and returned focus to the trigger. 8: flag off hid Config history, a direct visit read "Not provided by this backend", the audit page and plain "Revision 12" save bar behaved as before. 9 (390 px, dark): no page overflow, the table scrolled in its region, the dialog fit (16–374 px) |
+| Independent review | 10 findings. Fixed: a malformed IPv6 MCP URL gave a 500 and blocked all saves, a hash of a credential URL reached the audit log, a history read during a save could relabel it as a baseline and lose its restore note, oversized revision numbers gave a 500, Restore enabled when it would fail (identical or invalid revisions, unfinished list entries), the browser holding the full snapshot, a mid-run pin test that proved nothing, style and line endings |
+| Not run or not verified | Real Mongo or Cosmos behavior (index use, duplicate-key paths, `$or` plus sort), multi-worker behavior, anything hosted (G1); whether production already stores a credential-bearing MCP URL; screen-reader reading |
+| Limits found | Skills and web search are still read live by runs in progress, so a restore reaches them within about 30 seconds (documented; snapshotting is A4). The audit insert is not atomic with the config write, so a crash between them leaves a revision without an audit row (history is repaired, audit is not). The history list reads up to 51 stored snapshots per page to compute `restorable` and `identical`. History and audit are kept forever with no retention (revisit at G1). A URL with `@` inside its path is not userinfo and is not refused. Admin identities are raw Clerk subjects. The save bar's "Changes saved." state outlasts navigation until the provider remounts (existing behavior) |
+| Next step | Write the N4 packet (evidence-backed compositions) |

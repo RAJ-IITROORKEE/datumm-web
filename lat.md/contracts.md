@@ -98,13 +98,15 @@ Dirty state compares configs independent of key order, and domain chips are norm
 
 ## Admin proxy routes
 
-The service proxy opens only the admin config, audit, overview, traces and knowledge source routes, mapped to backend v1 admin paths (traces with its query string), and rejects every other admin path, including `admin/traces/x`.
+The service proxy opens only the named admin routes, mapped to backend v1 admin paths, and rejects every other admin path.
+
+The open routes are config, config history (list, one numeric revision, restore), audit, overview, traces and knowledge sources; traces and history keep their query strings. Paths such as `admin/traces/x`, `admin/config/history/x` and `admin/config/other` are refused.
 
 ## Capability parsing
 
 The backend config's `capabilities` object is read as a tri-state per feature; anything missing or malformed is unknown, never off, so older backends keep working.
 
-Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. `adminTraces` and `feedback` are the exception: unknown is off, because no deployed backend serves them yet. See `src/lib/capabilities.mjs`.
+Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. `adminTraces`, `feedback` and `adminHistory` are the exception: unknown is off, because no deployed backend serves them yet. See `src/lib/capabilities.mjs`.
 
 ## Durable completion proof
 
@@ -133,3 +135,21 @@ The traces page shows one text-free row per hosted turn, and the browser keeps o
 A rating is accepted by the client only for a saved answer whose completion proof just verified, and it always carries that proof's turn id and answer hash.
 
 `feedbackBody` in `src/lib/answer-feedback.mjs` refuses without `turnId` and a 64-hex `answerHash`, maps the five reason labels to the service enum, and never produces free text; the last label is "Something else" so the vendored text input stays hidden. `AnswerContent` shows the thumbs only with a verified proof, the `feedback` capability on, the owner's votes loaded (for `defaultVote`) and never while streaming, partial, shared, replayed or in the output panel. Saves are queued so a reason lands after its thumb, and a failed save is announced in the composer status line, never reported as saved.
+
+## Admin history parsing
+
+The config history and audit pages rebuild every row key by key, so a later backend change can never put a snapshot, skill text or an unknown field on screen.
+
+`src/lib/admin-history.mjs` keeps only allowlisted keys at every level, requires integer revisions and the closed `action` (`update`, `restore`, `baseline`) and `kind` (`config`, `knowledge`) sets, and counts a flag only when it is literally `true` (an absent `restorable` means not restorable). A change keeps `before` and `after` only when the backend sent a short scalar or list of scalars; free text, MCP URLs and tool lists arrive as hashes, are shown as "changed", and a hash is never rendered as a value. The detail response's full `config` snapshot is dropped, and only `changesFromCurrent` is kept. The audit response stays an array, rows from older backends lack the new fields, and the audit page uses the new `limit`, `before` and `kind` parameters only when `adminHistory` is on. See `src/components/admin/history-section.tsx`.
+
+## Config restore binding
+
+A restore always saves a new revision and is bound to both the revision being restored and the revision the admin saw as live.
+
+`restoreBody` in `src/lib/admin-history.mjs` refuses without integer `fromRevision` (1 or more) and `expectedRevision` (0 or more) and trims the note to 200 characters. The dialog says it saves as revision N+1 and that running chats may pick up skills and web-search changes within 30 seconds. Restore stays disabled, with the reason shown, while the shared config draft is dirty or saving, for a row the backend marks unrestorable (redacted data), and for the live revision. A 409 keeps the dialog open with the stale copy and a "Reload history" action; success reloads the shared config and announces "Restored revision R as revision N+1". See `src/components/admin/restore-dialog.tsx`.
+
+## Admin history gating
+
+The Config history page and the save bar's revision link exist only when the backend reports `adminHistory` on.
+
+The nav item is strict: unknown counts as off, the page waits for the capabilities before calling, and a direct visit while off reads "Not provided by this backend". The audit log keeps its previous behavior until the flag is on. See `src/components/admin/admin-shell.tsx`.

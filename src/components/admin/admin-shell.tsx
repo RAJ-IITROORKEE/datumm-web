@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { ArrowLeft, BookOpen, Bot, ChevronRight, Globe, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen, Plug, Puzzle, ScrollText, Server, Activity, UserRound, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Bot, ChevronRight, Globe, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen, Plug, Puzzle, ScrollText, Server, Activity, History, UserRound, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { featureEnabled, featureState, parseCapabilities, type Capabilities, type CapabilityFeature } from '@/lib/capabilities.mjs';
+import { CapabilitiesProvider } from './capabilities-context';
 import { AdminConfigProvider, useOptionalAdminConfig, useSharedAdminConfig } from './form';
 import { ResultState, useAdminResource } from './use-admin';
 
@@ -26,6 +27,7 @@ const groups: { label: string; items: Item[] }[] = [
   { label: 'System', items: [
     { href: '/admin/traces', label: 'Traces', icon: Activity, feature: 'adminTraces', strict: true },
     { href: '/admin/audit', label: 'Audit log', icon: ScrollText, feature: 'adminAudit' },
+    { href: '/admin/history', label: 'Config history', icon: History, feature: 'adminHistory', strict: true },
   ] },
 ];
 const hiddenByBackend = (caps: Capabilities, item?: Item) => Boolean(item?.feature && (item.strict ? !featureEnabled(caps, item.feature) : featureState(caps, item.feature) === 'off'));
@@ -166,7 +168,7 @@ function AdminShellContent({ email, children, activePath, onNavigate }: ShellPro
             </ol>
           </nav>
         </header>
-        <main id="admin-main" tabIndex={-1} className="admin-main"><div className="admin-content">{content}</div></main>
+        <main id="admin-main" tabIndex={-1} className="admin-main"><div className="admin-content"><CapabilitiesProvider value={configResource.result ? caps : null}>{content}</CapabilitiesProvider></div></main>
       </div>
     </div>
   );

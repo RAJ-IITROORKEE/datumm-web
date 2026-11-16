@@ -14,7 +14,7 @@ const effectiveText = (v: unknown) => (Array.isArray(v) ? v.join(', ') : String(
 
 export function AgentSection() {
   return (
-    <ConfigPage title="Agent" description="Models, budgets and concurrency applied to new runs. Runs snapshot these at creation, so edits never change a run in progress.">
+    <ConfigPage title="Agent" description="Models, budgets and concurrency applied to new runs. A run keeps the model and limits it started with. Skills and web search are read while a run works, so edits to them can reach chats already running within about 30 seconds.">
       {({ draft, update, errors, effective }) => (
         <>
           <SettingsGroup title="Models" description={`Models users may pick. Empty uses the server default list (${effectiveText(effective.models) || 'unknown'}).`}>
