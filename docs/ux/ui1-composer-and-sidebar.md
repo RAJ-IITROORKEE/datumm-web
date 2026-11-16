@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **proposed** (17 Nov): needs the user's decisions in section 3 |
+| Status | **approved 17 Nov, build in progress** |
 | Depends on | G1 (live site), H0 [harness decision](harness-decision-2026-11-17.md) §5 row 2; A3 for prices (optional, see UI1-a) |
-| Approved by / date | |
+| Approved by / date | User, 17 Nov ("Approve UI1"): every decision UI1-a to UI1-i takes option A |
 | Base commits | Web `017bd0d` (`main`). Backend local `main` `387e687`; **live `70ce912`**, which has no A3 (`2e00ee3` is after it). Panda `panda-agent-ui/Panda-agent` on `claude/agent-ui-migrations`, checkout at `1bedf1c` (the brief names `7c78dea`, an ancestor; the files cited below were read at `1bedf1c`) |
 
 Facts marked **observed** were read in source on 17 Nov with `path:line`; *inferred* ones were reasoned,
