@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **proposed, awaiting user approval** |
+| Status | **approved, build in progress** |
 | Depends on | C1 (done 16 Nov), N3 (done 16 Nov) |
-| Approved by / date | |
+| Approved by / date | User, 16 Nov ("Approve N2, recommended"): every decision takes its recommended option, including `suggest_followup` as placeholder only |
 | Base commits | Web working tree at the end of N3 (`codex/ui-ux-foundation-2026-11-12`); backend `36613f4` on `codex/web-ui-harness-20261116` |
 
 All `path:line` facts below were **observed** in source on 16 Nov (backend `36613f4`, web working tree). Statements marked *inferred* were not run. No test, browser or hosted check was run for this packet. Backend paths are under `datumm-orchestrator/apps/domain-api/`.

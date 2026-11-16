@@ -20,7 +20,7 @@ Updated 16 November 2026, end of N3.
 | C1 | Done 16 Nov: [packet and result](c1-capability-contract-and-config.md) | Decide `history/done` and the unused `organizeDone`; browser scenarios were not run |
 | N1 | Done 16 Nov: [packet and result](n1-durable-completion-proof.md) | Real-Mongo plan and index build checks belong to G1 |
 | N3 | Done 16 Nov: [packet and result](n3-tool-task-subagent-lifecycle.md) | Hosted verification belongs to G1 |
-| N2 | [Packet](n2-frontend-capabilities-reversible-actions.md) written, awaiting approval | User approves the packet and its seven decisions; then build |
+| N2 | [Packet](n2-frontend-capabilities-reversible-actions.md) approved 16 Nov (recommended options); build in progress | Backend clientContext and displayActions; web envelope, registry, undo |
 
 Phase table: [PLAN.md](../../PLAN.md#phases). Packet format: [PACKET_TEMPLATE.md](PACKET_TEMPLATE.md).
 
