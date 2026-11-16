@@ -200,9 +200,9 @@ The user chose to let the orchestrator use the existing `datumm` AWS CLI profile
 
 **P5 counts (read-only SSM command on the host, `estimatedDocumentCount` per collection in `datumm_staging`, 17 Nov, approved by the user):** about 35,900 documents in 84 collections (18,739 in 63 collections on 11 Nov). The ones this release touches or indexes: `task_events` 4,443; `runs` 427; `run_events` 5,560; `admin_audit` 2; `app_config` 1; `report_revisions` 22; `tasks` 128; `graph_writes` 19,978; `graph_checkpoints` 4,039. None of the new collections exist yet (`config_history`, `model_tests`, `answer_feedback`, `feedback_limits`), as expected. The new indexes on `runs`, `task_events` and `admin_audit` are on collections of a few thousand documents at most, so builds at startup should take well under a second (still inferred, not measured). About 45 empty `validation_*` collections from 1 Oct are left over; not part of G1.
 
-`app_config` already holds one document, so the live admin config exists. Whether its `models` list is non-empty decides what the A3 migration blesses and what C1 shows at deploy (P3).
+**P3 (read-only projection of `app_config`, 17 Nov, approved by the user; only `models`, `defaultModel`, `defaultReasoningEffort`, `revision` and the top-level key names were printed):** the single document `_id: "global"` is at revision 1 with `models: []`, `defaultModel: ""`, `defaultReasoningEffort: ""` and no other keys, so **no admin model list, default or effort is stored**. Consequences: C1 serves the env list (the six built-in models) and the env default effort, so the picker and effort do not change at deploy; the A3 migration blesses the env list, so all six stay served as `legacy:` rows; A2 starts from an empty baseline; no MCP servers or skills are stored.
 
-Not yet checked: P3 (the live `/v1/config` and `/v1/admin/config` values, which need a signed-in session on the live site or a read-only projection of `models`, `defaultModel` and effort from `app_config`), P8 (Vercel environment variable names, dashboard only).
+Not yet checked: P8 (Vercel environment variable names, dashboard only). The live `/v1/config` response itself was not fetched; it follows from the empty `app_config` and the env list above (inferred).
 
 **New finding (Q-10):** a Vercel preview URL is not in `ClerkAuthorizedParties`, so sign-in on a preview (steps W1 and W2) would fail. Adding an origin changes a stack parameter, which replaces the task and costs the same 1 to 3 minutes of downtime as an image change. Cheapest fix: add the stable preview alias in the **same** change set as the backend image at B3, instead of a second outage. Decision for the user before B3.
 
@@ -247,8 +247,8 @@ Cannot be rolled back: admin config revisions and restores (history and audit ar
 
 | Risk | Likelihood | Mitigation |
 | --- | --- | --- |
-| A3 fail-closed picker serves fewer or no models (migration missed, env list differs, failed re-test) | Medium | P3, P6, H-B3; D5 ships A3 separately; never test in production until H-W passes |
-| C1 makes the admin model list and effort live on deploy | Medium | P3 comparison before and after |
+| A3 fail-closed picker serves fewer or no models (migration missed, env list differs, failed re-test) | Low to medium: the stored admin list is empty, so the migration blesses the six env models (P3); a failed later re-test is the remaining way | P3, P6, H-B3; D5 ships A3 separately; never test in production until H-W passes |
+| C1 makes the admin model list and effort live on deploy | Low: nothing is stored (P3), so the env values keep applying | P3 comparison before and after |
 | AG-UI and affectUI web (18 pre-S0 commits) never hosted | Medium | W1–W2 on preview; D2 |
 | Clerk origin/instance mismatch blocks preview sign-in | Medium | P9, Q-4 |
 | Startup index builds or migration exceed the health window | Low | P5 counts; B2 timing |

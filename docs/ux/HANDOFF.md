@@ -28,7 +28,7 @@ Updated 17 November 2026, end of U1.
 | Q1 | Done 17 Nov: [packet and result](q1-rules-prerouter-latency.md) | Reply copy approved by the user 17 Nov; enable `entry_rules_enabled` only at G1 after a baseline trace window |
 | A3 | Done 17 Nov: [packet and result](a3-admin-model-registry.md) | Live provider tests, real prices and rollback behavior belong to G1 |
 | U1 | Done 17 Nov: [packet and result](u1-nextjs-security-upgrade.md) | Vercel build behavior is checked in the W1 preview log |
-| G1 | [Go-live plan](g1-go-live-plan.md) approved 17 Nov (D1 to D12, all recommended options) | Read-only AWS checks done 17 Nov (live backend is `188ebc0`; production uses a Clerk development instance; see the plan's AWS check results). P5 done (about 35,900 documents; indexes are trivial). Still open: P3 (live config values), P8 (Vercel env names), Q-10 (preview origin); then P11 to P13; AWS steps are run by the user and agents prepare commands (D8 A); each push, merge or deploy still needs its own approval. W1, A4 and N5 remain proposed |
+| G1 | [Go-live plan](g1-go-live-plan.md) approved 17 Nov (D1 to D12, all recommended options) | Read-only AWS checks done 17 Nov (live backend is `188ebc0`; production uses a Clerk development instance; see the plan's AWS check results). P5 done (about 35,900 documents; indexes are trivial). P3 done (stored admin config is empty, so the picker and effort do not change at deploy). Still open: P8 (Vercel env names), Q-10 (preview origin); then P11 to P13; AWS steps are run by the user and agents prepare commands (D8 A); each push, merge or deploy still needs its own approval. W1, A4 and N5 remain proposed |
 
 Phase table: [PLAN.md](../../PLAN.md#phases). Packet format: [PACKET_TEMPLATE.md](PACKET_TEMPLATE.md).
 
