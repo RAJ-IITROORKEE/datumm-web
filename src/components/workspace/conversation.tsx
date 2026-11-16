@@ -29,6 +29,7 @@ import { EvidenceResults } from '../evidence-results';
 import { DraftAssessmentDetails } from '../draft-assessment';
 import { AgentLimit } from '../agent-memory';
 import { Composer } from './composer';
+import { DisplayActionsTurn, type DisplayActionsApi } from './display-actions';
 import {
   type WorkspaceState,
   api,
@@ -221,7 +222,7 @@ export type ConversationPanelProps = Pick<
   | 'queueMessage'
   | 'providerStatus'
   | 'contextView'
-> & {workAreaActions: WorkAreaActions};
+> & {workAreaActions: WorkAreaActions; displayActions?: DisplayActionsApi};
 
 export function ConversationPanel(props: ConversationPanelProps) {
   const {workAreaActions, runId, scene} = props;
@@ -533,7 +534,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                     const index = turn.index;
                     const includesIndex = (value: number) => value >= index && value <= turn.endIndex;
                     return (
-                    <div key={`${run.id}:${index}`} className="conversation-turn" data-conversation-index={index}>
+                    <div key={`${run.id}:${index}`} className="conversation-turn" data-conversation-index={index} data-turn-id={turn.turnId}>
                       {turn.prompt && (
                         <Message from="user">
                           <MessageContent>
@@ -588,6 +589,11 @@ export function ConversationPanel(props: ConversationPanelProps) {
                             {!hideProcess && <TurnProcess
                               {...process}
                               settledLabel={last ? currentResult?.label : undefined}
+                              {...(props.displayActions?.enabled && turn.turnId ? {
+                                open: props.displayActions.processOpen(run.id, turn.turnId),
+                                onOpenChange: (value: boolean) => props.displayActions?.setProcessOpen(run.id, turn.turnId!, value),
+                                actionRows: props.displayActions.rows(run.id, turn.turnId),
+                              } : {})}
                               publicSummary={todos.length ? `${unboundPlan ? 'Run checklist · turn not recorded' : 'Checklist'} · ${todoSummary(todos).done} of ${todoSummary(todos).total}` : undefined}
                               evidenceExtra={
                                 last && run.data.agent_coverage ? (
@@ -614,6 +620,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                                 <ConversationAnswer text={turn.answer} turnId={turn.turnId} presentation={turn.presentation} completed={answerComplete} completion={completion} source={{ key: `${run.id}:answer:${turn.answerIndex ?? index}`, taskId: run.id, conversationIndex: turn.answerIndex ?? index, answerNumber: ordinal + 1, state: answerOutputState }} />
                               </MessageContent>
                             )}
+                            {turn.answer && <DisplayActionsTurn api={props.displayActions} taskId={run.id} turnId={turn.turnId} last={last} text={turn.answer} completion={completion} actions={(turn.presentation as {actions?: unknown} | undefined)?.actions} turnIds={displayedTurns.flatMap(row => row.turnId ? [row.turnId] : [])} />}
                           </Message>
                         );
                       })()}

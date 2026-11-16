@@ -1,6 +1,7 @@
 import { EventSchema, RunAgentInputSchema, PROTOCOL_VERSION } from '@ag-ui/core/schemas';
 import { z } from 'zod';
 import { hostedCommand, postHostedCommand } from '../hosted-command.mjs';
+import { FRONTEND_CONTEXT_DESCRIPTION, parseFrontendContext } from './frontend-context.mjs';
 
 const id = z.string().min(1).max(128);
 const propsSchema = z.object({
@@ -19,10 +20,21 @@ const answerSchema = z.object({questionId:id,questionVersion:z.number().int().po
   answers:z.array(z.object({question_id:id,option_id:id.optional(),value:z.string().max(12000).optional()}).strict()).min(1).max(40).optional(),
 }).strict().refine(value => (value.answer !== undefined) !== (value.answers !== undefined));
 
+// One display-state entry is the only context this chat accepts; it never reaches a question resume.
+function frontendContext(input) {
+  if (!input.context.length) return undefined;
+  const [entry]=input.context;
+  if (input.context.length!==1 || input.resume?.length || entry.description!==FRONTEND_CONTEXT_DESCRIPTION) throw new Error('Client tools and context are not supported by this chat.');
+  const parsed=parseFrontendContext(entry.value);
+  if (!parsed) throw new Error('Invalid frontend context.');
+  return parsed;
+}
+
 export function prepareInput(value) {
   const input=RunAgentInputSchema.parse(value);
   if (!input.threadId || input.threadId.length>128 || !input.runId || input.runId.length>128) throw new Error('Invalid run identity.');
-  if (input.tools.length || input.context.length) throw new Error('Client tools and context are not supported by this chat.');
+  if (input.tools.length) throw new Error('Client tools and context are not supported by this chat.');
+  const clientContext=frontendContext(input);
   const props=propsSchema.parse(input.forwardedProps);
   if (input.resume?.length) {
     if (!props.taskId || input.threadId!==props.taskId || input.messages.length || input.resume.length!==1 || input.resume[0].status!=='resolved') throw new Error('Invalid question continuation.');
@@ -39,7 +51,7 @@ export function prepareInput(value) {
     reasoningEffort:props.reasoningEffort,modelContextRequirement:props.modelContextRequirement==='read'?'read':'auto',deviceId:props.deviceId||null} :
     {schemaVersion:2,type:'submit',prompt,mode:props.mode??'plan',model:props.model,reasoningEffort:props.reasoningEffort,
       modelContextRequirement:props.modelContextRequirement==='read'?'read':'auto',deviceId:props.deviceId||null,recipe:props.recipe===true};
-  return {input,props,envelope:hostedCommand(props,command),answer:null};
+  return {input,props,envelope:hostedCommand(props,command,clientContext),answer:null};
 }
 
 function event(value) { return EventSchema.parse(value); }

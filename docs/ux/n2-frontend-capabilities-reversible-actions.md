@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **approved, build in progress** |
+| Status | **done 16 Nov 2026** (local; not pushed or deployed) |
 | Depends on | C1 (done 16 Nov), N3 (done 16 Nov) |
 | Approved by / date | User, 16 Nov ("Approve N2, recommended"): every decision takes its recommended option, including `suggest_followup` as placeholder only |
 | Base commits | Web working tree at the end of N3 (`codex/ui-ux-foundation-2026-11-12`); backend `36613f4` on `codex/web-ui-harness-20261116` |
@@ -230,13 +230,17 @@ Revert the web and backend commits. The capability flags give a runtime off swit
 8. **"Logged in the process list":** the process list is built from task events. A browser-only log disappears on reload unless decision 7B adds an event.
 9. **C1's "unknown keeps today's behavior"** does not fit here: an unknown backend must be treated as off, or chat requests fail with 422.
 
-## 12. Result (fill at checkpoint)
+## 12. Result
 
 | Item | Outcome |
 | --- | --- |
-| Commit | |
-| Gates run (command, Node version, counts, date) | |
-| Browser evidence (tool, URL, scenario, result) | |
-| Not run or not verified | |
-| Limits found | |
-| Next step | |
+| Commit | Backend and web N2 commits on their branches (see `git log`); not pushed |
+| Backend change | Strict `ClientContext` (`v` strict 1, required `selection`, `roomKey` 1–128 UTF-16 units without control characters, unique `actions` ≤4); `CommandRequest.clientContext` and `NewRun.client_context` typed with it and excluded from digests, stored for `submit`/`chat_followup` only; model packet `frontendContext` with server-built `turnIds` (≤11, this task's turns up to the current one) and a fixed note; `finish_answer.displayActions` offered only when the context lists actions (+691 bytes); `display_actions.py` validation (whole array dropped on any invalid entry, unsupported action or foreign turn), stored beside the composition, projected as `presentation.actions` `{schemaVersion, kind, answerHash, taskId, turnId, items}` only under the completion proof; capability flags `frontendContext`, `displayActions` (local app false); `test_display_actions.py` |
+| Web change | C1 flags with `unknown` = off; envelope builder/validator; adapter accepts one `datumm.frontend.v1` context entry; pure registry (`display-actions.mjs`, no imports) with denials `unknown`, `unbound`, `history`, `stale`, `missing_target`; controller applies once only for this browser's own submitted turn (`turnId` = submission key) in the same scope and epoch after the hash proof; narrow screens get a one-click offer; one-level Undo per action (narrow Undo works after returning to chat); turn anchors and a controlled process disclosure only when enabled; `suggest_followup` as placeholder only, cleared on submit or answer; polite announcements only for live results; dev `/dev/ux` "Display actions" fixture; 26 shared Python/JS vectors |
+| Gates run (16 Nov, Node 24.18.0, Python 3.12.10, orchestrator after all changes) | Backend `uv run --frozen pytest`: 291 passed + 26 subtests (baseline 216 + 26); `lat check` passed. Web `npm run typecheck`, `npm run build`, `npm test` 669 / 669 (baseline 629), `lat check` passed; runtime smoke `--production` 18 / 18 on a fresh `next start` (port 3100) |
+| Failing-first evidence | 22 of 36 first backend tests failed on `36613f4` (the 14 others were 422 cases already rejected by `extra='forbid'`); every review fix on both sides had a test that failed first, except some `workspace.tsx` wiring checks, which are source-text assertions |
+| Browser evidence | Built-in browser, local dev server, `/dev/ux` "Display actions" fixture. 1 (1280 px): Activity opened and turn 1 expanded, rows "Opened Activity · Undo" and "Expanded process details · Undo", focus not moved; Undo restored design, automatic work area and chat pane. 2 (390 px, dark): chat kept, "Offered: open Activity (narrow screen)" announced in the polite status; one click opened Activity; after "Back to chat", Undo was enabled and restored design and chat; no horizontal overflow. 3: scroll to turn 1 (264 → 12 px), keyboard Enter on Undo restored 264. 4: "Switch chat and back" before finish gave "Not applied: view changed", nothing moved, no Undo. 5: history gave inert "Offered: …" rows, no Undo, no `/api/agui` or `/api/service` request. 6: placeholder showed the suggestion with an empty draft; typing replaced it |
+| Independent review | 10 findings. Fixed: unreachable narrow Undo, live check not tied to this browser's command, turn ids never given to the model, `/v1/runs` skipping envelope validation, Python/JS edge-case parity (U+FEFF, roomKey, strict `v`, required selection), screen-reader spam from history offers, disclosure lifted with the flag off, stale suggestion, scroll Undo target, tool schema offered with no actions, long lines in new files |
+| Not run or not verified | Live model producing `displayActions`; hosted behavior (G1); scroll interaction with the stick-to-bottom transcript in a real conversation; light mode beyond the dev page's own styling |
+| Limits found | Projection accepts any command id of the task, while storage is limited to the 11-turn window (safe, looser). The packet still carries `frontendContext` when `actions` is empty. Wiring in `workspace.tsx` is covered by source-text checks, not behaviour tests |
+| Next step | Write the A1 packet (admin traces and feedback) or A2 (versioned config and audit), which can run beside N4; then N4 |

@@ -60,6 +60,10 @@ function Node({ title, status, count, summary, children }: { title: string; stat
   );
 }
 
+/** One display-action line for this turn: text, plus an optional single button (Undo or a one-click offer). */
+/** `announce` marks rows applied or undone live in this session; only those reach the polite status. */
+export type ActionRow = {key: string; text: string; announce?: boolean; button?: {label: string; disabled?: boolean; note?: string; onClick: () => void}};
+
 type Props = {
   events: TaskEvent[];
   active: boolean;
@@ -77,6 +81,10 @@ type Props = {
   evidenceExtra?: ReactNode;
   /** Plan step key to title, for nested steps. */
   stepTitles?: Record<string, string>;
+  /** Lifted disclosure state; when both are given the caller controls open/closed. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  actionRows?: ActionRow[];
   children?: ReactNode;
 };
 
@@ -109,7 +117,7 @@ function summarize(props: Props) {
   const spans = stageSpans(nested.rest);
   const updates = nativeMessages.filter((row) => active || row.finish !== 'stop');
   const live = active && !waiting && (!status || ['running', 'in_progress'].includes(status));
-  const hasDetails = Boolean(batches.length || nested.steps.length || spans.length || evidence.length || children.length || jobs.length || team.length || evidenceExtra || props.children || props.publicSummary?.trim());
+  const hasDetails = Boolean(batches.length || nested.steps.length || spans.length || evidence.length || children.length || jobs.length || team.length || evidenceExtra || props.children || props.publicSummary?.trim() || props.actionRows?.length);
   return { events, evidence, nested, batches, spans, children, jobs, team, updates, live, hasDetails, visible: Boolean(hasDetails || active || waiting || status || updates.length) };
 }
 
@@ -151,8 +159,9 @@ const publicAction = (event: TaskEvent) => {
 /** One collapsed accordion per agent turn, with recorded action names and tool details. */
 export function TurnProcess(props: Props) {
   // No streaming effect: the user's choice survives updates and completion.
-  const [open, setOpen] = useState(false);
-  const { manifest, evidenceExtra, stepTitles = {} } = props;
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = props.open ?? localOpen, setOpen = props.onOpenChange ?? setLocalOpen;
+  const { manifest, evidenceExtra, stepTitles = {}, actionRows = [] } = props;
   const { active, waiting } = activityFlags(props);
   const { events, evidence, nested, batches, spans, children, jobs, team, updates, live, hasDetails, visible } = summarize(props);
   const public_ = updates.map((row) => <div key={row.id} className="activity-update"><MessageResponse isAnimating={live && !row.finish}>{row.text}</MessageResponse></div>);
@@ -217,7 +226,7 @@ export function TurnProcess(props: Props) {
   return (
     <>
       <Collapsible.Root open={open} onOpenChange={setOpen} className={styles.process} data-status={summaryStatus}>
-        <span className={styles.srOnly} role="status" aria-live="polite" aria-atomic="true">{stateLabel}</span>
+        <span className={styles.srOnly} role="status" aria-live="polite" aria-atomic="true">{stateLabel}{actionRows.filter(row => row.announce).map(row => `. ${row.text}`).join('')}</span>
         <Collapsible.Trigger className={styles.trigger}>
           <StatusIcon status={summaryStatus} />
           <span className={styles.summary}>
@@ -226,6 +235,7 @@ export function TurnProcess(props: Props) {
           </span>
           <ChevronDown size={14} className={styles.chevron} aria-hidden="true" />
         </Collapsible.Trigger>
+        {actionRows.length > 0 && <ul className={styles.actions} aria-label="Display actions">{actionRows.map(row => <li key={row.key}><span>{row.text}</span>{row.button && <><button type="button" className={styles.actionButton} disabled={row.button.disabled} onClick={row.button.onClick}>{row.button.label}</button>{row.button.note && <small className={styles.metadata}>{row.button.note}</small>}</>}</li>)}</ul>}
         <Collapsible.Content className={styles.content}>
         {props.children}
         {public_}

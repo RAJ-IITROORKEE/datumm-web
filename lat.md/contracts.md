@@ -109,3 +109,15 @@ Unknown admin features still call the endpoint, and unknown planning goals keep 
 ## Durable completion proof
 
 A saved answer keeps its completion proof when its own answer events have left the event window. The client checks exact identity, unique binding, visible contradictions and the full-answer SHA-256, not event presence.
+
+## Frontend context and display actions
+
+The browser tells the agent what it displays, and the agent may ask for up to two reversible display changes. Both are off unless the backend reports them on.
+
+Unknown is off for `frontendContext` and `displayActions`, because an old backend answers an unknown `clientContext` with 422. See `src/lib/agui/frontend-context.mjs` and `src/lib/display-actions.mjs`.
+
+The envelope `{v:1, viewport, workArea:{open, section, preview}, selection, actions}` holds display state only, at most 1 KB, and is rejected rather than trimmed. It travels as the single AG-UI context entry `datumm.frontend.v1`; the adapter validates it with the same validator, maps it to `clientContext`, and still rejects any tools, unknown descriptions, two entries, and context on a question resume. Viewport classes are narrow below 768 px, medium below 1,180 px, wide from 1,180 px; the section and preview values are those of `work-area-contract.ts`.
+
+Actions arrive as `presentation.actions`, an object with `schemaVersion` 1, `kind` `display-actions`, the answer hash, task, turn and at most two items. They apply only once, on the live run that produced the answer, in the scope and epoch captured at submit, after the completion proof verifies; `history`, `stale`, `missing_target`, `unknown` and `unbound` actions never apply. The registry imports nothing, so no action can send a command, call the API or write a draft. `suggest_followup` text is only ever the empty composer's placeholder. Each applied action records the fields it changed and offers one-level Undo, disabled once the user changed that target or the scope changed. Below 1,180 px opening the work area is offered, not applied, so the answer is never hidden.
+
+The vectors in `tests/fixtures/display-action-vectors.json` are shared with the backend validator.

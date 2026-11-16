@@ -3,6 +3,12 @@ import { EventSchema } from '@ag-ui/core/schemas';
 import type { ChatTransport, UIMessage, UIMessageChunk } from 'ai';
 import { chatStartFailure, serviceErrorMessage } from './chat-start';
 
+/** The display-state envelope travels as the one AG-UI context entry, never as a command prop. */
+// The adapter validates it strictly; the builder in agui/frontend-context.mjs only produces valid envelopes.
+function contextEntries(envelope: unknown): RunAgentInput['context'] {
+  return envelope === undefined || envelope === null ? [] : [{ description: 'datumm.frontend.v1', value: JSON.stringify(envelope) }];
+}
+
 /** Adapts AG-UI transport to the existing chat view; task snapshots remain authoritative. */
 export class AguiChatTransport implements ChatTransport<UIMessage> {
   private generation = 0;
@@ -12,12 +18,12 @@ export class AguiChatTransport implements ChatTransport<UIMessage> {
     const latest = messages.filter(message => message.role === 'user').at(-1);
     if (!latest) throw new Error('A user message is required.');
     const content = latest.parts.filter(part => part.type === 'text').map(part => part.text).join('\n');
-    const { clientSubmissionId, ...forwardedProps } = (body ?? {}) as Record<string, unknown>;
+    const { clientSubmissionId, frontendContext, ...forwardedProps } = (body ?? {}) as Record<string, unknown>;
     if (typeof clientSubmissionId !== 'string' || !clientSubmissionId) throw new Error('Missing request identity.');
     const input: RunAgentInput = {
       threadId: typeof forwardedProps.taskId === 'string' ? forwardedProps.taskId : crypto.randomUUID(),
       runId: crypto.randomUUID(), protocolVersion: PROTOCOL_VERSION,
-      messages: [{ id: latest.id, role: 'user', content }], tools: [], context: [], forwardedProps,
+      messages: [{ id: latest.id, role: 'user', content }], tools: [], context: contextEntries(frontendContext), forwardedProps,
     };
     return this.request(input, clientSubmissionId, abortSignal);
   }

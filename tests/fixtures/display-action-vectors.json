@@ -1,0 +1,379 @@
+[
+  {
+    "name": "open-section",
+    "actions": [
+      {
+        "action": "open_work_area",
+        "section": "activity"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": true
+  },
+  {
+    "name": "expand-own-turn",
+    "actions": [
+      {
+        "action": "expand_process",
+        "turnId": "turn-0001"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": true
+  },
+  {
+    "name": "two-actions",
+    "actions": [
+      {
+        "action": "scroll_to_turn",
+        "turnId": "turn-0002"
+      },
+      {
+        "action": "suggest_followup",
+        "text": "Compare the two alternatives’ areas"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": true
+  },
+  {
+    "name": "astral-text-at-limit",
+    "actions": [
+      {
+        "action": "suggest_followup",
+        "text": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": true
+  },
+  {
+    "name": "unknown-action",
+    "actions": [
+      {
+        "action": "open_work_area",
+        "section": "activity"
+      },
+      {
+        "action": "send_message",
+        "text": "hi"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "three-actions",
+    "actions": [
+      {
+        "action": "open_work_area",
+        "section": "activity"
+      },
+      {
+        "action": "expand_process",
+        "turnId": "turn-0001"
+      },
+      {
+        "action": "scroll_to_turn",
+        "turnId": "turn-0002"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "empty-array",
+    "actions": [],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "bad-section",
+    "actions": [
+      {
+        "action": "open_work_area",
+        "section": "settings"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "foreign-turn",
+    "actions": [
+      {
+        "action": "expand_process",
+        "turnId": "turn-9999"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "one-bad-drops-all",
+    "actions": [
+      {
+        "action": "open_work_area",
+        "section": "activity"
+      },
+      {
+        "action": "scroll_to_turn",
+        "turnId": "turn-9999"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "extra-key",
+    "actions": [
+      {
+        "action": "open_work_area",
+        "section": "activity",
+        "url": "https://example.com"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "missing-key",
+    "actions": [
+      {
+        "action": "open_work_area"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "non-string-turn",
+    "actions": [
+      {
+        "action": "expand_process",
+        "turnId": 1
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "text-too-long",
+    "actions": [
+      {
+        "action": "suggest_followup",
+        "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "astral-text-over-limit",
+    "actions": [
+      {
+        "action": "suggest_followup",
+        "text": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "text-newline",
+    "actions": [
+      {
+        "action": "suggest_followup",
+        "text": "one\ntwo"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "text-markup",
+    "actions": [
+      {
+        "action": "suggest_followup",
+        "text": "Try <b>this</b>"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "text-annotation-marker",
+    "actions": [
+      {
+        "action": "suggest_followup",
+        "text": "Viewport annotation: {\"id\":\"a\"}"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "text-viewport-marker",
+    "actions": [
+      {
+        "action": "suggest_followup",
+        "text": "viewport context: x"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "text-padded",
+    "actions": [
+      {
+        "action": "suggest_followup",
+        "text": " pad"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "text-leading-bom",
+    "actions": [
+      {
+        "action": "suggest_followup",
+        "text": "﻿Compare areas"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "text-trailing-bom",
+    "actions": [
+      {
+        "action": "suggest_followup",
+        "text": "Compare areas﻿"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "text-inner-bom",
+    "actions": [
+      {
+        "action": "suggest_followup",
+        "text": "Compare﻿areas"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "text-line-separator",
+    "actions": [
+      {
+        "action": "suggest_followup",
+        "text": "one two"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "text-nbsp-padded",
+    "actions": [
+      {
+        "action": "suggest_followup",
+        "text": " pad"
+      }
+    ],
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  },
+  {
+    "name": "not-a-list",
+    "actions": {
+      "action": "open_work_area",
+      "section": "design"
+    },
+    "turnIds": [
+      "turn-0001",
+      "turn-0002"
+    ],
+    "valid": false
+  }
+]

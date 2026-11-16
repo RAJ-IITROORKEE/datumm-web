@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {CAPABILITY_FEATURES, featureState, parseCapabilities, planningGoalsVisible} from '../src/lib/capabilities.mjs';
+import {CAPABILITY_FEATURES, featureEnabled, featureState, parseCapabilities, planningGoalsVisible} from '../src/lib/capabilities.mjs';
 
 const allUnknown = {version: null, features: Object.fromEntries(CAPABILITY_FEATURES.map(name => [name, 'unknown']))};
 const v1 = features => ({capabilities: {version: 1, features}});
@@ -17,7 +17,7 @@ test('a config without a usable capabilities object reports every feature unknow
 
 test('a valid v1 object maps booleans and leaves missing or malformed features unknown', () => {
   const parsed = parseCapabilities(v1({adminConfig: true, adminAudit: false, adminOverview: 'yes', adminKnowledge: 1, extra: true}));
-  assert.deepEqual(parsed, {version: 1, features: {adminConfig: 'on', adminAudit: 'off', adminOverview: 'unknown', adminKnowledge: 'unknown', planningGoals: 'unknown'}});
+  assert.deepEqual(parsed, {version: 1, features: {adminConfig: 'on', adminAudit: 'off', adminOverview: 'unknown', adminKnowledge: 'unknown', planningGoals: 'unknown', frontendContext: 'unknown', displayActions: 'unknown'}});
   assert.equal(featureState(parsed, 'adminAudit'), 'off');
   assert.equal(featureState(null, 'adminAudit'), 'unknown');
 });
@@ -32,4 +32,17 @@ test('planning goals fall back to today\'s gate only while the backend is silent
     [off, true, false, false], [off, false, false, false], [off, false, true, true],
     [null, true, false, true],
   ]) assert.equal(planningGoalsVisible(capabilities, {liveRuntime, desktopPreview}), expected, `${capabilities?.features.planningGoals} ${liveRuntime} ${desktopPreview}`);
+});
+
+// @lat: [[contracts#Hosted contract tests#Frontend context and display actions]]
+test('frontend context and display actions are off unless the backend reports them on', () => {
+  const on = parseCapabilities(v1({frontendContext: true, displayActions: true}));
+  const off = parseCapabilities(v1({frontendContext: false, displayActions: false}));
+  for (const name of ['frontendContext', 'displayActions']) {
+    assert.equal(featureEnabled(on, name), true);
+    assert.equal(featureEnabled(off, name), false);
+    assert.equal(featureEnabled(parseCapabilities({}), name), false, 'unknown is off');
+    assert.equal(featureEnabled(null, name), false);
+    assert.equal(featureEnabled(parseCapabilities(v1({[name]: 'yes'})), name), false);
+  }
 });

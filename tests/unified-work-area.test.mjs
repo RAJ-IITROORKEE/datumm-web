@@ -10,7 +10,8 @@ import * as geometry from '../src/lib/plan-geometry.mjs';
 import * as settingsNavigation from '../src/lib/settings-navigation.mjs';
 import * as chatSeen from '../src/lib/chat-seen.mjs';
 import {stopRequested} from '../src/lib/stop-requested.mjs';
-import {parseCapabilities} from '../src/lib/capabilities.mjs';
+import {featureEnabled,parseCapabilities} from '../src/lib/capabilities.mjs';
+import {buildFrontendContext} from '../src/lib/agui/frontend-context.mjs';
 import * as selectionMarker from '../src/lib/selection-uncertainty.mjs';
 import * as conversationResult from '../src/lib/conversation-result.mjs';
 
@@ -129,7 +130,8 @@ function workspaceHarness(sharedStorage,sharedLocks){
   '@/lib/settings-navigation.mjs':settingsNavigation,
   '@/lib/chat-seen.mjs':chatSeen,
   '@/lib/stop-requested.mjs':{stopRequested},
-  '@/lib/capabilities.mjs':{parseCapabilities},
+  '@/lib/capabilities.mjs':{parseCapabilities,featureEnabled},
+  '@/lib/agui/frontend-context.mjs':{buildFrontendContext},
   '@/lib/task-command':{replaceTerminalCommand:(type,state)=>state==='applied'||state==='rejected'||(state==='interrupted'&&['compare_result','inspect_result'].includes(type))},
   '@/lib/chat-start':{chatStartFailure:()=>null,savedTaskConnectionNotice:()=>'',admissionMessage:message=>message},
   '@/lib/prompt-drafts.mjs':{createPromptDraftStore:()=>draft},
@@ -143,7 +145,7 @@ function workspaceHarness(sharedStorage,sharedLocks){
   '@/lib/agui-chat-transport':{AguiChatTransport:class{
    resumeQuestion(props,questionId,version,payload,clientSubmissionId){return new Promise((resolve,reject)=>requests.push({path:'/api/agui',init:{body:JSON.stringify({forwardedProps:props,resume:[{interruptId:`${questionId}:${version}`,status:'resolved',payload}]})},reject,resolve:()=>resolve(new ReadableStream({start(c){c.enqueue({type:'data-run',data:{id:props.taskId,clientSubmissionId}});c.close();}}))}));}
   }},
-  '@ai-sdk/react':{useChat(options){chat.options=options;return {messages:chat.messages,status:chat.status,setMessages(value){chat.messages=typeof value==='function'?value(chat.messages):value;},stop:async()=>{},sendMessage:(...args)=>{chat.sent.push(args);return new Promise((resolve,reject)=>{chat.finish=resolve;chat.reject=reject;});}};}},
+  '@ai-sdk/react':{useChat(options){chat.options=options;return {messages:chat.messages,status:chat.status,error:chat.error,setMessages(value){chat.messages=typeof value==='function'?value(chat.messages):value;},stop:async()=>{},sendMessage:(...args)=>{chat.sent.push(args);return new Promise((resolve,reject)=>{chat.finish=resolve;chat.reject=reject;});}};}},
  };
  const storage=sharedStorage??(()=>{const values=new Map();return {getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)};})();
  const listeners=new Map(),window={location:{href:'https://datumm.test/'},history:{replaceState(){}},matchMedia:()=>({matches:false}),desktop:null,localStorage:storage,navigator:{locks:sharedLocks??fakeLocks()},addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:name=>listeners.delete(name)};
@@ -777,4 +779,54 @@ test('accepting the exact drawing without a device does not start Build or place
  assert.equal(h.requests.filter(row=>row.path==='/api/service/tasks/a/commands').length,1,'Acceptance is the only task command');
  assert.equal(h.requests.some(row=>row.path.includes('/build-context?')),false,'Acceptance does not inspect native placement');
  assert.equal(w.buildSetupOpen,false);
+});
+
+// @lat: [[contracts#Hosted contract tests#Frontend context and display actions]]
+test('the browser sends the frontend context only when the backend reports the capability on', async()=>{
+ const config=features=>({runtime:'opencode',models:['m'],defaultModel:'m',nativeAvailable:true,...(features?{capabilities:{version:1,features}}:{})});
+ const sentContext=async features=>{
+  const h=workspaceHarness();let w=h.render();
+  const refreshing=w.refresh();
+  for(const request of h.requests.splice(0)){
+   if(request.path.endsWith('/config'))request.resolve(config(features));
+   else request.resolve(request.path.endsWith('/devices')||request.path.includes('/runs')?[]:{});
+  }
+  await refreshing;w=h.render();w.setPrompt('Ask a question');w=h.render();
+  const sending=w.submit();await tick();
+  const body=h.chat.sent[0][1].body;h.chat.finish?.();await sending.catch(()=>{});
+  return body.frontendContext;
+ };
+ assert.equal(await sentContext(undefined),undefined,'unknown is off');
+ assert.equal(await sentContext({frontendContext:false}),undefined);
+ const envelope=await sentContext({frontendContext:true,displayActions:false});
+ assert.deepEqual(Object.keys(envelope),['v','viewport','workArea','selection','actions']);
+ assert.deepEqual(envelope.actions,[],'no actions are advertised while displayActions is off');
+ assert.equal(envelope.selection,null);
+ assert.deepEqual((await sentContext({frontendContext:true,displayActions:true})).actions,['open_work_area','expand_process','scroll_to_turn','suggest_followup']);
+});
+
+test('a chat_followup sends the envelope; the live submission is keyed by its command key and dropped on failure',async()=>{
+ const prior=task('a',{taskVersion:1,eventCursor:1});
+ const config={runtime:'opencode',models:['m'],defaultModel:'m',nativeAvailable:true,
+  capabilities:{version:1,features:{frontendContext:true,displayActions:true}}};
+ for(const failure of ['rejected','chatError']){
+  const h=workspaceHarness();let w=h.render();
+  const refreshing=w.refresh();
+  for(const request of h.requests.splice(0)){
+   if(request.path.endsWith('/config'))request.resolve(config);
+   else request.resolve(request.path.endsWith('/devices')||request.path.includes('/runs')?[]:{});
+  }
+  await refreshing;w=h.render();
+  w.selectRun(prior);h.requests.at(-1).resolve(prior);await tick();w=h.render();
+  const sending=w.submit('Follow up on the rooms');
+  h.requests.findLast(row=>row.path==='/api/service/tasks/a').resolve(prior);await tick();
+  const body=h.chat.sent.at(-1)[1].body;
+  assert.equal(body.taskId,'a');assert.equal(body.frontendContext.v,1,'a follow-up carries the envelope');
+  // The idempotency key is the command id, which the backend reports as the turn id.
+  assert.equal(w.liveSubmission.current.key,body.idempotencyKey);
+  assert.deepEqual(w.liveSubmission.current.scope,w.displayScope());
+  if(failure==='rejected'){h.chat.reject(Error('offline'));await sending;}
+  else{h.chat.error=Error('refused');w=h.render();h.effects.findLast(fn=>fn.toString().includes('dropOptimistic(pending.text)'))();}
+  assert.equal(w.liveSubmission.current,null,failure);
+ }
 });

@@ -9,6 +9,8 @@ import type { ReviewReport } from '@/lib/review-report.mjs';
 import {projectWorkspaceAssets} from '@/lib/workspace-assets.mjs';
 import {drawingTitle} from '@/lib/drawing-presentation.mjs';
 import {exactConceptName} from '@/lib/drawing-export-identity.mjs';
+import {featureEnabled} from '@/lib/capabilities.mjs';
+import {liveScopeFor} from '@/lib/display-actions.mjs';
 import {AssetsPanel} from './workspace/assets-panel';
 import {ExportsPanel} from './workspace/exports-panel';
 import {StudioProperties} from './studio-properties';
@@ -59,6 +61,7 @@ import { useWorkspaceState, api, type Run, type WorkspaceState } from './workspa
 import { Sidebar } from './workspace/sidebar';
 import { PanelRight as WorkAreaCloseIcon, PanelRightOpen as WorkAreaOpenIcon } from './workspace/sidebar-icons';
 import { ConversationPanel } from './workspace/conversation';
+import { useDisplayActions } from './workspace/display-actions';
 import { PlanDetails } from './workspace/plan-details';
 import { Inspector } from './workspace/inspector';
 import { ShareButton } from './workspace/share-dialog';
@@ -413,7 +416,27 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
     const focused=document.activeElement;
     if(focused instanceof HTMLElement&&focused.isConnected&&!focused.getClientRects().length)document.querySelector<HTMLElement>(`.studio-pane-switch button[data-pane="${workspacePane}"]`)?.focus();
   }, [workspacePane, w.effectiveLayout.split, canvasOpen, settingsOpen]);
-  const conversationPanel = <ConversationPanel {...w} openCanvas={trigger=>enterFocus(trigger)} workAreaActions={actions} />;
+  w.workAreaView.current = {open: workAreaOpen, preview: preview.kind};
+  // Agent display actions reach the view only through the existing setters passed here.
+  const displayActions = useDisplayActions({
+    enabled: featureEnabled(w.capabilities, 'displayActions'),
+    scopeNow: w.displayScope,
+    liveScope: (...args) => liveScopeFor(w.liveSubmission.current, ...args),
+    split: w.effectiveLayout.split,
+    view: {section: w.workAreaSection, workAreaOpen: workAreaVisibility?.key === scope.key && workAreaVisibility.epoch === scope.epoch ? workAreaVisibility.open : null, workspacePane: w.workspacePane},
+    composerEmpty: w.prompt === '',
+    openSection: section => actions.selectSection(section),
+    restoreView: fields => {
+      if (!matches(scope)) return;
+      if (fields.section !== undefined) w.selectWorkAreaSection(fields.section);
+      if (fields.workAreaOpen !== undefined) setWorkAreaVisibility(fields.workAreaOpen === null ? null : {key: scope.key, epoch: scope.epoch, open: fields.workAreaOpen});
+      if (fields.workspacePane !== undefined) w.setWorkspacePane(fields.workspacePane);
+    },
+  });
+  // A sent prompt, queued prompt or question answer retires the suggestion it may have followed.
+  const conversationPanel = <ConversationPanel {...w} openCanvas={trigger=>enterFocus(trigger)} workAreaActions={actions} displayActions={displayActions}
+    submit={(...args: Parameters<typeof w.submit>) => { displayActions.dismissPlaceholder(); return w.submit(...args); }}
+    replyToQuestion={(...args: Parameters<typeof w.replyToQuestion>) => { displayActions.dismissPlaceholder(); return w.replyToQuestion(...args); }} />;
   const chatOptions = (
     <DropdownMenuPrimitive.Root>
       <DropdownMenuPrimitive.Trigger asChild>

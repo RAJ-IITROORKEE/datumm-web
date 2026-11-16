@@ -1,5 +1,5 @@
 export const CAPABILITY_VERSION = 1;
-export const CAPABILITY_FEATURES = ['adminConfig', 'adminAudit', 'adminOverview', 'adminKnowledge', 'planningGoals'];
+export const CAPABILITY_FEATURES = ['adminConfig', 'adminAudit', 'adminOverview', 'adminKnowledge', 'planningGoals', 'frontendContext', 'displayActions'];
 
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -17,6 +17,9 @@ export function parseCapabilities(config) {
 }
 
 export const featureState = (capabilities, name) => capabilities?.features?.[name] ?? 'unknown';
+
+// An old backend rejects `clientContext` with 422, so these N2 features treat unknown as OFF.
+export const featureEnabled = (capabilities, name) => featureState(capabilities, name) === 'on';
 
 // Planning goals are served only by the OpenCode local app, so unknown keeps today's gate.
 export function planningGoalsVisible(capabilities, { liveRuntime, desktopPreview }) {

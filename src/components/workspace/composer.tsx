@@ -24,6 +24,7 @@ import { PluginSetupGuide } from '../plugin-setup-guide';
 import { ComposerMedia } from '../composer-media';
 import { ModelPicker } from '../model-picker';
 import { useOutputWorkspace } from './output-workspace';
+import type { DisplayActionsApi } from './display-actions';
 import { type WorkspaceState, api, type Run, type Mode } from './use-workspace-state';
 
 const modes = [
@@ -113,7 +114,7 @@ export type ComposerProps = Pick<
   | 'providerStatus'
   | 'act'
   | 'contextView'
->;
+> & {displayActions?: DisplayActionsApi};
 
 export function Composer(props: ComposerProps) {
   const [retryingConnection,setRetryingConnection]=useState(false);
@@ -476,11 +477,12 @@ export function Composer(props: ComposerProps) {
             );
             setCommandIndex(0);
             setCommandsDismissed(false);
+            props.displayActions?.dismissPlaceholder();
           }}
           aria-controls={commandsOpen ? 'workflow-commands' : undefined}
           aria-activedescendant={commandsOpen ? `workflow-${commandIndex}` : undefined}
           placeholder={
-            hasContent ? drawingCurrent ? 'Ask about this plan or describe a change…' : 'Ask a follow-up or describe your task…' : 'Describe your project or ask anything…'
+            !prompt && props.displayActions?.placeholder ? props.displayActions.placeholder : hasContent ? drawingCurrent ? 'Ask about this plan or describe a change…' : 'Ask a follow-up or describe your task…' : 'Describe your project or ask anything…'
           }
           rows={2}
           onKeyDown={(e) => {

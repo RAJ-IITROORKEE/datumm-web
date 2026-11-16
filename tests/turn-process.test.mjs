@@ -474,3 +474,12 @@ test('a needs_input pause stays waiting even when its outcome is failed, and a l
   assert.deepEqual(attempts.map(r => r.props['data-status']), ['waiting', 'done']);
   assert.ok(content(attempts[0]).includes('0.5 s') && content(attempts[1]).includes('0.7 s'));
 });
+
+test('the polite status announces only display-action rows marked for announcement', () => {
+  const h = harness();
+  const actionRows = [{ key: 'a', text: 'Offered: open Activity' }, { key: 'b', text: 'Opened Activity', announce: true }];
+  const tree = h.render(props({ status: 'completed', actionRows }));
+  const status = flatten(tree).find(node => node.props?.role === 'status');
+  assert.match(content(status), /Opened Activity/);
+  assert.doesNotMatch(content(status), /Offered/);
+});

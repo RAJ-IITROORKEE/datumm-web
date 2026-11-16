@@ -154,3 +154,37 @@
 :global([data-motion=reduce]) .chevron { transition: none; }
 .trigger { align-items: flex-start; }
 .trigger > svg { margin-top: 3px; }
+
+.actions {
+  display: grid;
+  gap: 2px;
+  margin: 2px 0 4px 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.actions li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  min-width: 0;
+  padding: 2px 4px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.actionButton {
+  padding: 1px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.actionButton:hover:not(:disabled) { background: var(--hover); }
+.actionButton:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.actionButton:disabled { color: var(--text); cursor: not-allowed; opacity: 0.7; }
