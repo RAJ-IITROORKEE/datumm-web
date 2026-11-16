@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **proposed, awaiting user approval** |
+| Status | **approved, build in progress** |
 | Depends on | N1 (done 16 Nov), N2 (done 16 Nov) |
-| Approved by / date | |
+| Approved by / date | User, 16 Nov (chose "N4 first"): every decision takes its recommended option (A) |
 | Base commits | Web `codex/ui-ux-foundation-2026-11-12` working tree at the end of A2; backend `70395b3` on `codex/web-ui-harness-20261116` |
 
 All `path:line` facts below were **observed** in source on 16 Nov (backend `70395b3`, web working tree). Statements marked *inferred* were not run. The only command run was a read-only byte count of the two tool schemas (section 2). No test, build, browser or hosted check was run for this packet. Backend paths are under `datumm-orchestrator/apps/domain-api/`.
