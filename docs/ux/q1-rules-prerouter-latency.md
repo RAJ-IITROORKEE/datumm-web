@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **proposed, awaiting user approval** |
+| Status | **approved, build in progress** |
 | Depends on | A1 (done 16 Nov): text-free traces built from per-call telemetry and run events |
-| Approved by / date | |
+| Approved by / date | User, 17 Nov ("Approve Q1, recommended"): every decision takes its recommended option (A). The packet gives the reply behavior but not the exact text; the implementer drafts it and the user reviews the copy at the checkpoint |
 | Base commits | Web `codex/ui-ux-foundation-2026-11-12` (end of A2); backend `70395b3` on `codex/web-ui-harness-20261116` |
 
 All `path:line` facts were **observed** in source on 16 Nov 2026 (backend `70395b3`, web working tree). Statements marked *inferred* were not run or measured. No test, browser or hosted check was run for this packet. Backend paths are under `datumm-orchestrator/apps/domain-api/`.

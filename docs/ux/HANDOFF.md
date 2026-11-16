@@ -24,7 +24,7 @@ Updated 16 November 2026, end of N4.
 | A1 | Done 16 Nov: [packet and result](a1-admin-traces-feedback.md) | Provision `TRACE_OWNER_HASH_SECRET` and check index behavior at G1 |
 | A2 | Done 16 Nov: [packet and result](a2-admin-versioned-config-audit.md) | Index and duplicate-key behavior on real Mongo belong to G1 |
 | N4 | Done 16 Nov: [packet and result](n4-evidence-backed-compositions.md) | Turn on `evidence_compositions_enabled` only after the schema bytes are accepted; live-model quality at G1 |
-| Q1 | [Packet](q1-rules-prerouter-latency.md) written, awaiting approval | User approves the packet and its twelve decisions (including the canned reply wording); independent of N4 |
+| Q1 | [Packet](q1-rules-prerouter-latency.md) approved 17 Nov (recommended options); build in progress | Backend entry rules, graph edge and trace phases; web trace blocks; user reviews the drafted reply copy at the checkpoint |
 
 Phase table: [PLAN.md](../../PLAN.md#phases). Packet format: [PACKET_TEMPLATE.md](PACKET_TEMPLATE.md).
 
