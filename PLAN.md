@@ -12,8 +12,8 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | P1 | Agent rules, design map, READMEs | Done 16 Nov | `76564d3`: AGENTS.md, CLAUDE.md, DESIGN.md |
 | P2 | Plan → build tracking format | Done 16 Nov | [PACKET_TEMPLATE.md](docs/ux/PACKET_TEMPLATE.md), this table, the handoff |
 | P3 | Research: Panda-agent reference and harness capability inventory | Done 16 Nov | [Research record](docs/ux/research-reference-and-harness-2026-11-16.md) |
-| P4 | Revised phased plan | Proposed, awaiting approval | [roadmap](docs/ux/roadmap-2026-11-16.md) |
-| S0 | Source verification and backend baseline (fresh branch at `188ebc0`) | Proposed | Roadmap |
+| P4 | Revised phased plan | Approved 16 Nov | [roadmap](docs/ux/roadmap-2026-11-16.md) |
+| S0 | Source verification and backend baseline (fresh branch at `188ebc0`) | Done 16 Nov | [Packet](docs/ux/s0-source-verification-and-baseline.md) |
 | C1 | Capability contract and config consistency | Proposed | Roadmap |
 | N1 | Durable completion proof | Proposed | Roadmap |
 | N3 | Tool, task and sub-agent lifecycle | Proposed | Roadmap |

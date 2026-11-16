@@ -117,7 +117,7 @@ Node 22.18 or newer is required (one test imports a `.ts` file). Dev server: `np
 | Tests | `npm test` |
 | Build | `npm run build` |
 | Knowledge links | `lat check` |
-| Runtime boundaries | `npm start`, then `npm run check:runtime` |
+| Runtime boundaries | `npm start`, then `npm run check:runtime -- http://127.0.0.1:3000 --production` (the origin must come first; without `--production` the dev-route 404 checks are skipped) |
 
 ## 10. Scope and state
 

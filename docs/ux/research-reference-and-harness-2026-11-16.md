@@ -29,11 +29,11 @@ Source of truth for backend work: the candidate clone at `artifacts/ux/agui-pres
 | Web search | Implemented: OpenRouter web plugin, domain allowlist, budgeted |
 | Memory | Project brief with compare-and-set; task handoff memory; no per-user long-term memory |
 | Sub-agents | Five specialist roles behind default-off flags; deployed flag values unknown; no full lifecycle events |
-| Events | Stage and detail records, 300 ms polled SSE; no per-tool duration or outcome; inline cap 200, tail cap 2,000 |
+| Events | Stage and detail records, 300 ms polled SSE; no event-level per-tool duration or outcome (the web separately reads `run_manifest.tools[].elapsedMs`, whose production fill is unverified); inline cap 200, tail cap 2,000 |
 | Telemetry | Per model call (tokens, USD, duration, finish reason) recorded privately, excluded from public data |
 | Usage | Cumulative per task; today's USD in the admin overview; no per-owner, per-day or per-model aggregate |
 | Quotas | Only a parallel-chat cap and a project cap; no per-user quota or billing |
-| Cancel, pause, continue | Implemented on production; queue, questions and design-review routes exist only on the OpenCode local app |
+| Cancel, pause, continue | Implemented on production as `/v1/runs/{id}/cancel|pause|continue|recover|resume` and as v2 command types; the v2 REST routes `tasks/{id}/cancel`, `queue*`, `questions/answer` and `design-review` exist only on the OpenCode local app |
 | Feedback | Absent |
 | Audit | Admin only, last 100 rows, fields `at, by, summary` |
 | Admin auth | Clerk subject in `ADMIN_SUBJECTS`; one role, no tiers |

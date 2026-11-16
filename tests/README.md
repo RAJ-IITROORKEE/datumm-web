@@ -5,7 +5,7 @@ Node's built-in test runner, no extra framework.
 ```bash
 npm test               # node --test tests/*.test.mjs
 npm start              # then, in another shell:
-npm run check:runtime  # anonymous boundary checks against a running build
+npm run check:runtime -- http://127.0.0.1:3000 --production  # anonymous boundary checks, incl. dev-route 404s
 ```
 
 Node 22.18 or newer is required: one test imports a `.ts` file directly, which older Node cannot load.

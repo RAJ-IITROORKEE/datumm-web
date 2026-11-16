@@ -30,5 +30,5 @@ Next.js App Router: pages, layouts and API route handlers. Read the installed do
 - Every state-changing `/api/*` request is origin-checked in `src/proxy.ts` (Next.js 16 name for middleware). Keep that check when adding handlers.
 - Set `maxDuration` on handlers that stream or wait on the backend, and mirror it in `vercel.json`.
 - Add a new proxied path by extending the allow-list in `api/service/[...path]/route.ts` and `tests/service-proxy.test.mjs` together.
-- Dev-only routes check `process.env.NODE_ENV` and call `notFound()`, and are covered by `npm run check:runtime -- --production` against a production build.
+- Dev-only routes check `process.env.NODE_ENV` and call `notFound()`, and are covered by `npm run check:runtime -- http://127.0.0.1:3000 --production` against a production build.
 - Never expose secrets, the orchestrator origin or raw backend errors to the browser.
