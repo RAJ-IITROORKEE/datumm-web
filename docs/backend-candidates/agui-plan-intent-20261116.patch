@@ -1,0 +1,450 @@
+diff --git a/apps/domain-api/agent_workflow.py b/apps/domain-api/agent_workflow.py
+index 2638b8e..a1d43c4 100644
+--- a/apps/domain-api/agent_workflow.py
++++ b/apps/domain-api/agent_workflow.py
+@@ -779,8 +779,72 @@ def focus_overflowed_plan_step(tools, plan):
+     return [tool for tool in tools if tool['function']['name'] in keep]
+ 
+ 
++def _footprint_question_condition(prompt):
++    from brief_interpreter import design_text
++    text=design_text({'text':prompt or ''})
++    text=re.sub(r'''["“][^"”]*["”]|(?<!\w)'[^']*'(?!\w)''',lambda m:' '*len(m[0]),text)
++    return bool(re.search(r'\bfirst\s+ask\s+me\s+together\b[^.!?;]{0,180}\bfootprint\s+width\s+and\s+depth\b[^.!?;]{0,100}\bentrance\s+side\b',text,re.I)
++        and re.search(r'\buntil\s+i\s+answer\s+those\s+questions\b',text,re.I))
++
++
++async def _answered_footprint_condition(state):
++    """Accept only the exact current grouped receipt and its rebuilt source facts."""
++    if not _footprint_question_condition(state.get('prompt','')): return False
++    brief=state.get('interpreted_brief') or {}
++    if brief.get('unresolved'): return False
++    run=await storage.db.runs.find_one({'_id':state['run_id'],'owner':state['owner']})
++    data=(run or {}).get('data') or {}; receipt=data.get('agent_reply_receipt')
++    if not isinstance(receipt,dict) or not receipt.get('questionId'): return False
++    version=receipt.get('version'); answers=receipt.get('answers')
++    if (type(version) is not int or version<1 or type(data.get('agent_question_version')) is not int
++        or data.get('agent_question_version')!=version
++        or receipt not in (data.get('agent_answers') or []) or not isinstance(answers,list) or len(answers)!=2): return False
++    by_id={a.get('questionId'):a for a in answers if isinstance(a,dict)}
++    expected={'dimensions':'What are the building footprint width and depth, including units?',
++              'entry':'Which side should the entrance face?'}
++    if set(by_id)!=set(expected) or any(by_id[k].get('question')!=q for k,q in expected.items()): return False
++    if not any(o.get('kind')=='user_answer' and o.get('questionVersion')==version and o.get('answers')==answers
++               for o in state.get('observations',[]) if isinstance(o,dict)): return False
++    sources={s.get('id'):s for s in brief.get('sources',[]) if isinstance(s,dict)}
++    for key in expected:
++        answer=by_id[key]; src=sources.get('answer:'+key) or {}; value=answer.get('value')
++        if not isinstance(value,str): return False
++        value+=(' '+answer['unit'] if answer.get('unit') and not answer.get('optionId') else '')
++        if (src.get('provenance')!='answered' or src.get('field')!=key or src.get('questionVersion')!=version
++            or src.get('question')!=expected[key] or src.get('text')!=value): return False
++    return (any(d.get('role')=='footprint' and d.get('sourceId')=='answer:dimensions' for d in brief.get('dimensions',[]))
++            and (brief.get('values',{}).get('entry') or {}).get('sourceId')=='answer:entry')
++
++
++def explicit_generation_veto(prompt, answered_footprint=False):
++    """Recognize a narrow current-turn refusal; unknown wording stays unknown."""
++    from brief_interpreter import design_text
++    text=design_text({'text':prompt or ''})
++    text=re.sub(r'''["“][^"”]*["”]|(?<!\w)'[^']*'(?!\w)''',lambda m:' '*len(m[0]),text)
++    noun=r'(?:floor[ -]plans?|plans?|drawings?|designs?|layouts?|concepts?|geometry)'
++    action=r'(?:generate|create|produce|draw|make)'
++    pattern=rf"\b(?P<negative>do not|don't|never|no)\s+(?:(?:{action})\s+(?:or\s+(?:{action})\s+)?)?(?:(?:a|an|the|any|new|floor)\s+)*{noun}\b|\b(?P<positive>{action})\s+(?:(?:a|an|the|any|new|floor)\s+)*{noun}\b"
++    veto=False
++    for m in re.finditer(pattern,text,re.I):
++        clause=re.split(r'[.!?;]',text[:m.start()])[-1]
++        tail=re.split(r'[.!?;]',text[m.end():])[0]
++        if re.search(r'\b(?:example|for instance)\b',clause,re.I): continue
++        if m.group('negative'):
++            if answered_footprint and re.match(r'\s+until\s+i\s+answer\s+those\s+questions\b',tail,re.I): continue
++            veto=True
++        elif not re.search(r"\b(?:do not|don't|never|without)\s+$",clause,re.I):
++            veto=False
++    return veto
++
++
+ def first_concept_policy(state):
+     from brief_interpreter import concept_draft_policy
++    if explicit_generation_veto(state.get('prompt',''),state.get('generation_condition_satisfied',False)): return None
++    # A complete brief is not itself a request to generate geometry.
++    steps=(state.get('task_plan') or {}).get('steps',[])
++    if (state.get('decision') or {}).get('name')!='create_design' and not any(
++            step.get('action')=='create_design' for step in steps if isinstance(step,dict)):
++        return None
+     if (state.get('mode')!='plan' or state.get('design') or state.get('previous_design')
+             or state.get('model_context_requirement','none')!='none'
+             or any(row.get('kind')=='design_feedback' for row in state.get('observations',[]))):
+@@ -2284,8 +2348,6 @@ def route_after_discover(state: AgentState):
+         'read' if state.get('device_id') else 'auto')
+     if requirement=='read' and not state.get('session_id'):
+         return 'require_model_connection'
+-    if state.get('scope_review'):
+-        return 'explain_plan_scope'
+     return 'decide'
+ 
+ 
+@@ -2311,11 +2373,7 @@ async def interpret_brief_node(state):
+     import task_scheduler
+     await task_scheduler.install_brief(state['brief_context'].get('taskId'), state['run_id'], brief)
+     update={'interpreted_brief':brief,'brief_status':'ready','brief_interpreted':True,
+-            'scope_review':None if state.get('brief_read_only') else bi.footprint_scope(brief),'needs_input':False,'control_outcome':'continue'}
+-    question=None if state.get('brief_read_only') else bi.questions(brief)
+-    if question:
+-        paused=await pause_question(state,question,state.get('observations',[]))
+-        return {**update,**paused,'control_outcome':'needs_input'}
++            'scope_review':None,'needs_input':False,'control_outcome':'continue'}
+     await event(state['run_id'],'brief_ready','Exact constraints and confirmed answers are ready for the planner.')
+     return update
+ 
+@@ -3084,6 +3142,32 @@ async def dispatch_action(state: AgentState) -> dict:
+     if name == 'create_design' and state['mode'] == 'plan':
+         if state.get('design'):
+             raise RuntimeError('NO_PROGRESS: a validated concept is already ready; finish or ask for feedback before generating another.')
++        from brief_interpreter import questions, footprint_scope
++        brief=state.get('interpreted_brief')
++        if (_footprint_question_condition(state.get('prompt','')) and isinstance(brief,dict)
++            and (question:=questions(brief))):
++            return await pause_question(state,question,prior)
++        condition_satisfied=await _answered_footprint_condition(state) if _footprint_question_condition(state.get('prompt','')) else False
++        if explicit_generation_veto(state.get('prompt',''),condition_satisfied):
++            latest_answer=max((i for i,item in enumerate(prior) if item.get('kind')=='user_answer'),default=-1)
++            if any(item.get('code')=='explicit_no_generation' for item in prior[latest_answer+1:]):
++                answer=('The requested planning response could not be completed. No design was generated. '
++                        'Please restate the planning question to continue.')
++                await checkpoint(state['run_id'],{'answer':answer,'agent_result':{
++                    'status':'partial','goalStatus':'incomplete','answer':answer}})
++                await event(state['run_id'],'answer',answer)
++                return {'answer':answer,'observations':prior,'controlOutcome':'finish'}
++            return {'observations':[*prior,{'kind':'design_feedback',
++                'code':'explicit_no_generation',
++                'diagnostics':['The current request explicitly says not to generate geometry. Continue the requested planning or explanation.']}]}
++        if not isinstance(brief,dict):
++            raise RuntimeError('BRIEF_CONTEXT_MISSING: Start a new Plan chat with the original request before generating a design.')
++        question=questions(brief)
++        if question:
++            return await pause_question(state,question,prior)
++        review=footprint_scope(brief)
++        if review:
++            return {**await explain_plan_scope({**state,'scope_review':review}),'controlOutcome':'finish'}
+         await reserve(state['run_id'], 'agent_tool_calls')
+         latest_answer=max((i for i,item in enumerate(prior) if item.get('kind')=='user_answer'),default=-1)
+         if sum(item.get('kind') == 'design_feedback' for item in prior[latest_answer+1:]) >= 2:
+@@ -3139,7 +3223,7 @@ async def dispatch_action(state: AgentState) -> dict:
+             assumptions.append('Earlier numerical minimum area and width assumptions are superseded by the authorized minima below; other assumptions remain.')
+             assumptions.extend('User-authorized provisional minima (area/width): '+line for line in lines)
+             if len(assumptions)>12: raise ValueError('Cannot disclose all provisional minima; retry stopped.')
+-        if first_concept_policy(state):
++        if first_concept_policy({**state,'generation_condition_satisfied':condition_satisfied}):
+             # Persist the actual numerical program even if the model forgets
+             # to label its selected minima. Review/acceptance binds these facts.
+             lines=[]; current=''
+diff --git a/apps/domain-api/check_footprint_admission.py b/apps/domain-api/check_footprint_admission.py
+index 5cd4033..caf0865 100644
+--- a/apps/domain-api/check_footprint_admission.py
++++ b/apps/domain-api/check_footprint_admission.py
+@@ -31,7 +31,8 @@ async def main():
+                  '10 m wide and 8 m deep, south entrance, one bedroom, one bathroom.',
+                  "Ignore the example 'footprint 10 m wide and 8 m deep'. South entrance, one bedroom, one bathroom.",
+                  'Footprint 10 m wide and 8 m deep; footprint 11 m wide and 8 m deep. South entrance, one bedroom, one bathroom.'):
+-        assert (await check([source(text)]))['needs_input']
++        result=await check([source(text)])
++        assert not result['needs_input'] and brief.questions(result['interpreted_brief'])
+     print('PASS: production brief admission smoke check')
+ 
+ if __name__=='__main__':
+diff --git a/apps/domain-api/failure_taxonomy.py b/apps/domain-api/failure_taxonomy.py
+index 7b48667..25841b4 100644
+--- a/apps/domain-api/failure_taxonomy.py
++++ b/apps/domain-api/failure_taxonomy.py
+@@ -6,6 +6,8 @@ from openai import APIError
+ 
+ 
+ _PREFIXES = {
++    'BRIEF_CONTEXT_MISSING': ('workflow_error','review_progress',
++        'The saved planning context is unavailable. Start a new Plan chat with the original request before generating a design.'),
+     'BUILD_PLACEMENT_OCCUPIED': ('build_placement_occupied','review_placement',
+         'Existing rooms, including rooms without enclosed areas, occupy this footprint. Choose a clear origin or level and prepare a fresh preview. No existing rooms were changed.'),
+     'BUILD_ROOM_COVERAGE_UNAVAILABLE': ('build_room_coverage_unavailable','review_placement',
+diff --git a/lat.md/planning.md b/lat.md/planning.md
+index 4d9efea..2f2e2e0 100644
+--- a/lat.md/planning.md
++++ b/lat.md/planning.md
+@@ -2,6 +2,12 @@
+ 
+ The approved `docs/product/plan.md` pipeline uses a small strict design brief and one validated geometry graph for vector drawing, proposed 3D and exact native binding.
+ 
++## Plan questions and design admission
++
++Plan discussions may finish without a geometry brief; actual design generation still requires the source-bound brief and scope checks before the engine runs.
++
++[[apps/domain-api/agent_workflow.py#interpret_brief_node]] preserves the brief and versioned answers without blocking general discussion. [[apps/domain-api/agent_workflow.py#dispatch_action]] asks unresolved geometry questions or records unsupported scope before generation. A narrow current-turn explicit refusal is honored, while unrecognized phrasing is not treated as a complete intent classifier. The recorded footprint-and-entry conditional is satisfied only by its matching current-run grouped receipt and rebuilt sources; other conditions are not inferred. `apps/domain-api/test_plan_general_admission.py` covers controlled graph routing, cancellation and versioned question resumption with mocked I/O.
++
+ ## Output recovery
+ 
+ Structured output, context, budget and step failures preserve usage and completed evidence while rejecting incomplete native operations. Continuation is an explicit user action.
+diff --git a/apps/domain-api/test_plan_general_admission.py b/apps/domain-api/test_plan_general_admission.py
+new file mode 100644
+index 0000000..44bf8ad
+--- /dev/null
++++ b/apps/domain-api/test_plan_general_admission.py
+@@ -0,0 +1,259 @@
++"""Plan brief gating with real graph/dispatch and bounded external I/O fakes."""
++from copy import deepcopy
++from types import SimpleNamespace
++
++import pytest
++from langgraph.checkpoint.memory import MemorySaver
++import agent_workflow as w
++import brief_interpreter as b
++import task_scheduler
++import specialist_jobs
++from agent_questions import question_record, resolve_answers
++REAL_PAUSE=w.pause_question
++RESUMED_HOME=('For a web-only concept exercise, first ask me together for the building footprint width and depth in metres and the entrance side. '
++    'I want exactly one single-storey two-bedroom home with one bathroom, kitchen and open living/dining. '
++    'Do not generate the design until I answer those questions. Do not inspect, connect to, approve or change Revit.')
++
++
++def source(text):
++    return {'id':'original','text':text,'provenance':'explicit'}
++
++
++@pytest.fixture
++def boundary(monkeypatch):
++    calls={'questions':[],'engine':0,'checkpoints':[]}
++    async def noop(*a,**k): pass
++    async def interpret(sources,**kwargs): return b.build_brief(sources)
++    async def checkpoint(run,data,*a,**k): calls['checkpoints'].append(deepcopy(data))
++    async def pause(state,question,prior): calls['questions'].append(question); return {'needs_input':True}
++    async def engine(*a,**k): calls['engine']+=1; raise AssertionError('engine must not run')
++    async def find(*a,**k): return None
++    for obj,name,value in [(w,'_active',noop),(w,'event',noop),(w,'checkpoint',checkpoint),
++        (w,'reserve',noop),(w,'save_memory',noop),(w,'pause_question',pause),
++        (b,'interpret',interpret),(task_scheduler,'install_brief',noop),
++        (task_scheduler,'record_graph_plan',noop),(w.variable_engine,'generate',engine)]:
++        monkeypatch.setattr(obj,name,value)
++    monkeypatch.setattr(w.storage,'db',SimpleNamespace(runs=SimpleNamespace(find_one=find)))
++    return calls
++
++
++@pytest.mark.asyncio
++@pytest.mark.parametrize('prompt',[
++    'Explain the difference between planning and design. Do not create a floor plan.',
++    'Plan the steps for renovating a kitchen; no floor plan or geometry.',
++    'Prepare a phased BIM coordination plan.',
++    'Explain general accessibility compliance; do not create a design.',
++    'Discuss the term "create a layout" without generating a design.',
++])
++async def test_general_plan_reaches_actual_finish_through_graph(boundary,monkeypatch,prompt):
++    async def discover(state): return {'model_context_requirement':'none','observations':[]}
++    async def decide(state):
++        return {'decision':{'name':'finish_answer','args':{'answer':'Here is the requested explanation.'}},
++                'offered_actions':['finish_answer']}
++    monkeypatch.setattr(w,'discover',discover); monkeypatch.setattr(w,'decide',decide)
++    state=w.initial_agent_state(run_id='r',owner='o',mode='plan',prompt=prompt,model='test',
++        device_id=None,brief_context={'taskId':'t','sources':[source(prompt)]})
++    result=await w.build_agent_graph(MemorySaver()).ainvoke(state,{'configurable':{'thread_id':prompt}})
++    assert result['control_outcome']=='finish' and result['answer']=='Here is the requested explanation.'
++    assert not boundary['questions'] and boundary['engine']==0
++    assert result['interpreted_brief']['unresolved']
++
++
++@pytest.mark.asyncio
++async def test_complete_program_does_not_force_generation_in_decision(boundary,monkeypatch):
++    prompt=('Plan construction stages for a 3BHK on a 10 m wide by 8 m deep building footprint, '
++            'south entrance, one bathroom; do not generate a drawing.')
++    state={'run_id':'r','owner':'o','mode':'plan','model':'model','prompt':prompt,'intent_status':'fallback',
++           'model_context_requirement':'none','observations':[],'interpreted_brief':b.build_brief([source(prompt)])}
++    captured=[]
++    class Captured(Exception): pass
++    async def memory(*a):
++        return {k:[] if k not in ('nextAction','planVersion') else None for k in
++                ('answers','priorGoals','criteria','assumptions','unresolvedOperationIds','nextAction','remainingSteps','planVersion','evidence')}
++    async def config(): return {'skills':[],'webSearch':{'enabled':False}}
++    async def capacity(*a): return 100000
++    async def freeze(*a): return {'ref':'test'}
++    def fit(system,packet,tools,capacity): captured.append((packet,tools)); raise Captured()
++    for obj,name,value in [(w,'save_memory',memory),(w,'selected_planner',lambda *a:{'policyVersion':1}),
++        (w,'available',lambda *a,**k:[]),(w.app_config,'current',config),
++        (w,'model_context_capacity',capacity),(w,'input_measure',lambda *a:{'estimatedInputTokens':100,'inputReservationBound':100}),
++        (w,'fit_packet',fit),(w,'skills_prompt',lambda *a:'')]: monkeypatch.setattr(obj,name,value)
++    monkeypatch.setattr(specialist_jobs,'freeze',freeze)
++    monkeypatch.setattr(w,'settings',SimpleNamespace(variable_plan_enabled=True,models=['model'],openrouter_api_key='test'))
++    with pytest.raises(Captured): await w.decide(state)
++    packet,tools=captured[0]
++    assert packet['conceptDraftPolicy'] is None
++    assert 'ask_question' in [t['function']['name'] for t in tools]
++
++
++@pytest.mark.asyncio
++@pytest.mark.parametrize('prompt',[
++    'Create a home with two bedrooms.',
++    'Create a home, 10 by 8, south entrance.',
++    'Create a home on a 10 m by 8 m parcel, south entrance.',
++])
++async def test_actual_create_asks_missing_geometry_before_engine(boundary,prompt):
++    brief=b.build_brief([source(prompt)])
++    state={'run_id':'r','owner':'o','mode':'plan','prompt':prompt,'decision':{'name':'create_design','args':{}},
++           'interpreted_brief':brief,'observations':[]}
++    result=await w.dispatch(state)
++    assert result['control_outcome']=='needs_input' and boundary['questions'] and boundary['engine']==0
++
++
++@pytest.mark.asyncio
++@pytest.mark.parametrize('prompt',[
++    'Create a home on a 2 m wide by 8 m deep building footprint, south entrance.',
++    'Create a home on a 10 m wide by 8 m deep building footprint, south entrance, with a garden.',
++])
++async def test_unsupported_geometry_stops_before_engine(boundary,prompt):
++    brief=b.build_brief([source(prompt)])
++    state={'run_id':'r','owner':'o','mode':'plan','prompt':prompt,'decision':{'name':'create_design','args':{}},
++           'interpreted_brief':brief,'observations':[]}
++    result=await w.dispatch(state)
++    assert result['control_outcome']=='finish' and boundary['engine']==0
++    assert boundary['checkpoints'][-1]['agent_result']['goalStatus']=='unsupported_scope'
++
++
++@pytest.mark.asyncio
++async def test_missing_brief_fails_closed_before_engine(boundary):
++    state={'run_id':'r','owner':'o','mode':'plan','decision':{'name':'create_design','args':{}},'observations':[]}
++    with pytest.raises(RuntimeError,match='BRIEF_CONTEXT_MISSING'): await w.dispatch(state)
++    assert boundary['engine']==0
++
++
++@pytest.mark.asyncio
++async def test_versioned_old_grouped_receipt_rebuilds_before_design(boundary,monkeypatch):
++    prompt='Create a home.'
++    initial=b.build_brief([source(prompt)])
++    question=question_record(b.questions(initial),'q',2)
++    body=SimpleNamespace(answer=None,question_version=2,answers=[
++        SimpleNamespace(question_id='dimensions',option_id=None,value='10 m wide by 8 m deep'),
++        SimpleNamespace(question_id='entry',option_id=None,value='South')])
++    _,answers=resolve_answers(question,body)
++    state={'run_id':'r','owner':'o','mode':'plan','prompt':prompt,'model':'test',
++           'brief_context':{'taskId':'t','sources':[source(prompt)]},'interpreted_brief':initial,
++           'brief_interpreted':True,'observations':[{'kind':'user_answer','answers':answers,'questionVersion':2}]}
++    rebuilt=await w.interpret_brief_node(state)
++    assert not rebuilt['needs_input'] and not rebuilt['interpreted_brief']['unresolved']
++    state.update(rebuilt,decision={'name':'create_design','args':{
++        'site':{'widthMm':10000,'depthMm':8000,'entry':'south'},'siteSource':'provided',
++        'requirements':[{'key':'room','kind':'bedroom','minimumAreaMm2':5000000,'adjacentTo':[]}]}})
++    with pytest.raises(AssertionError,match='engine must not run'): await w.dispatch(state)
++    assert boundary['engine']==1
++
++
++@pytest.mark.asyncio
++async def test_cancelled_run_stops_before_question_or_engine(boundary,monkeypatch):
++    async def cancelled(*a,**k): raise RuntimeError('CANCELLED')
++    monkeypatch.setattr(w,'_active',cancelled)
++    state={'run_id':'r','owner':'o','mode':'plan','decision':{'name':'create_design','args':{}},
++           'interpreted_brief':b.build_brief([source('Create a home.')]),'observations':[]}
++    with pytest.raises(RuntimeError,match='CANCELLED'): await w.dispatch(state)
++    assert not boundary['questions'] and boundary['engine']==0
++
++
++@pytest.mark.parametrize('prompt,expected',[
++    ('Plan construction stages; do not generate a drawing.',True),
++    ('Explain "do not generate a drawing" and then generate a design.',False),
++    ('Do not generate a design until I answer.',True),
++    ('Do not generate a design until I approve.',True),
++    ('Do not generate or create a floor plan.',True),
++    ('Do not generate a drawing. Now generate a design.',False),
++    ('Do not generate a design. Explain the steps.',True),
++    ('Example: do not generate a drawing.',False),
++    ('Plan the renovation; no floor plan or geometry.',True),
++])
++def test_explicit_current_turn_generation_refusal(prompt,expected):
++    assert w.explicit_generation_veto(prompt)==expected
++
++
++@pytest.mark.asyncio
++async def test_explicit_refusal_blocks_model_proposed_create(boundary):
++    prompt='Plan construction stages for a 3BHK on a 10 m wide by 8 m deep building footprint, south entrance, one bathroom; do not generate a drawing.'
++    state={'run_id':'r','owner':'o','mode':'plan','prompt':prompt,'model_context_requirement':'none',
++        'decision':{'name':'create_design','args':{}},'interpreted_brief':b.build_brief([source(prompt)]),
++        'task_plan':{'steps':[{'action':'create_design'}]},'observations':[]}
++    assert w.first_concept_policy(state) is None
++    result=await w.dispatch(state)
++    assert result['control_outcome']=='continue' and result['observations'][-1]['kind']=='design_feedback'
++    assert not boundary['questions'] and boundary['engine']==0
++
++
++@pytest.mark.asyncio
++async def test_repeated_model_create_after_refusal_stops_partial(boundary,monkeypatch):
++    prompt='Plan stages for a 3BHK on a 10 m wide by 8 m deep footprint, south entrance, one bathroom; do not generate a drawing.'
++    async def discover(state): return {'model_context_requirement':'none','observations':[]}
++    async def decide(state): return {'decision':{'name':'create_design','args':{}},'offered_actions':['create_design']}
++    monkeypatch.setattr(w,'discover',discover); monkeypatch.setattr(w,'decide',decide)
++    state=w.initial_agent_state(run_id='r',owner='o',mode='plan',prompt=prompt,model='test',
++        device_id=None,brief_context={'taskId':'t','sources':[source(prompt)]})
++    result=await w.build_agent_graph(MemorySaver()).ainvoke(state,{'configurable':{'thread_id':'refusal'}})
++    assert result['control_outcome']=='finish' and 'No design was generated' in result['answer']
++    assert boundary['checkpoints'][-1]['agent_result']['status']=='partial'
++    assert not boundary['questions'] and boundary['engine']==0
++
++
++@pytest.mark.asyncio
++async def test_real_graph_versioned_question_answer_then_design(boundary,monkeypatch):
++    prompt=RESUMED_HOME
++    async def discover(state): return {'model_context_requirement':'none','observations':[]}
++    args={'site':{'widthMm':12000,'depthMm':9000,'entry':'south'},'siteSource':'provided',
++          'requirements':[{'key':'b1','kind':'bedroom','minimumAreaMm2':5000000,'adjacentTo':[]},
++                          {'key':'b2','kind':'bedroom','minimumAreaMm2':5000000,'adjacentTo':[]},
++                          {'key':'bath','kind':'bathroom','minimumAreaMm2':3000000,'adjacentTo':[]}]}
++    async def decide(state): return {'decision':{'name':'create_design','args':deepcopy(args)},'offered_actions':['create_design']}
++    async def record_wait(*a,**k): pass
++    record={'data':{'agent_question_version':1},'task_id':'t'}
++    async def find(query,*a,**k): return deepcopy(record) if query.get('owner','o')=='o' else None
++    monkeypatch.setattr(w,'discover',discover); monkeypatch.setattr(w,'decide',decide)
++    monkeypatch.setattr(w,'pause_question',REAL_PAUSE); monkeypatch.setattr(task_scheduler,'record_wait',record_wait)
++    monkeypatch.setattr(w.storage,'db',SimpleNamespace(runs=SimpleNamespace(find_one=find)))
++    graph=w.build_agent_graph(MemorySaver()); cfg={'configurable':{'thread_id':'old-checkpoint'}}
++    state=w.initial_agent_state(run_id='r',owner='o',mode='plan',prompt=prompt,model='test',
++        device_id=None,brief_context={'taskId':'t','sources':[source(prompt)]})
++    result=await graph.ainvoke(state,cfg)
++    assert result['control_outcome']=='needs_input' and boundary['engine']==0
++    question=next(c['agent_question'] for c in boundary['checkpoints'] if 'agent_question' in c)
++    assert question['version']==2 and question['schemaVersion']==2
++    body=SimpleNamespace(answer=None,question_version=2,answers=[
++        SimpleNamespace(question_id='dimensions',option_id=None,value='12 m wide by 9 m deep'),
++        SimpleNamespace(question_id='entry',option_id=None,value='South')])
++    _,answers=resolve_answers(question,body)
++    receipt={'questionId':question['id'],'version':2,'answers':answers}
++    record['data'].update(agent_question_version=2,agent_reply_receipt=receipt,agent_answers=[deepcopy(receipt)])
++    await graph.aupdate_state(cfg,{'observations':[{'kind':'user_answer','answers':answers,'questionVersion':2}],
++        'answer':'','needs_input':False,'control_outcome':'continue','brief_status':'pending'},as_node='dispatch')
++    with pytest.raises(AssertionError,match='engine must not run'): await graph.ainvoke(None,cfg)
++    assert boundary['engine']==1
++
++
++@pytest.mark.asyncio
++async def test_condition_requires_exact_current_owner_receipt_and_source(boundary,monkeypatch):
++    initial=b.build_brief([source(RESUMED_HOME)])
++    question=question_record(b.questions(initial),'q',2)
++    body=SimpleNamespace(answer=None,question_version=2,answers=[
++        SimpleNamespace(question_id='dimensions',option_id=None,value='12 m wide by 9 m deep'),
++        SimpleNamespace(question_id='entry',option_id=None,value='South')])
++    _,answers=resolve_answers(question,body)
++    observation={'kind':'user_answer','answers':answers,'questionVersion':2}
++    sources=b.sources_from({'sources':[source(RESUMED_HOME)]},[observation])
++    receipt={'questionId':'q','version':2,'answers':deepcopy(answers)}
++    record={'data':{'agent_question_version':2,'agent_reply_receipt':receipt,'agent_answers':[deepcopy(receipt)]}}
++    state={'run_id':'r','owner':'o','prompt':RESUMED_HOME,'interpreted_brief':b.build_brief(sources),'observations':[observation]}
++    async def find(query,*a,**k): return deepcopy(record) if query=={'_id':'r','owner':'o'} else None
++    monkeypatch.setattr(w.storage,'db',SimpleNamespace(runs=SimpleNamespace(find_one=find)))
++    assert await w._answered_footprint_condition(state)
++    for mutation in ('foreign','missing','unversioned','stale','wrong_question','missing_field','wrong_source','wrong_observation'):
++        altered=deepcopy(state); saved=deepcopy(record)
++        if mutation=='foreign': altered['owner']='other'
++        elif mutation=='missing': record['data']['agent_answers']=[]
++        elif mutation=='unversioned': record['data']['agent_reply_receipt']['version']=None
++        elif mutation=='stale': record['data']['agent_question_version']=3
++        elif mutation=='wrong_question': record['data']['agent_reply_receipt']['answers'][0]['question']='Different question?'
++        elif mutation=='missing_field': record['data']['agent_reply_receipt']['answers'].pop()
++        elif mutation=='wrong_source': altered['interpreted_brief']['sources'][-1]['text']='North'
++        else: altered['observations']=[]
++        assert not await w._answered_footprint_condition(altered), mutation
++        record.clear(); record.update(saved)
++    assert w.explicit_generation_veto('Do not generate a design until I approve.',True)
++    assert not w.explicit_generation_veto('Now generate a design.',False)
