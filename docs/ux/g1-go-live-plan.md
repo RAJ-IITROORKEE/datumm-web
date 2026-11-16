@@ -126,6 +126,21 @@ The stack has **no canary path**: one host, MongoDB inside the same task, `Minim
 | W3 | Operator | Promote that exact preview to production (or merge `main` and let Vercel build; D3) | Runtime smoke 18/18 against `datumm-web.vercel.app`; H-W repeated on production |
 | L1 | User | Q1 baseline window (≥ 7 days of traces with the flag off), then a separate approval to enable `ENTRY_RULES_ENABLED` (template change + restart) | Q1 hosted checks below |
 
+### B1 exact steps (prepared 17 Nov; nothing uploaded or built)
+
+The build kit is now in the backend repo (`infra/orchestrator/release-build/`, commits `d02f3dc`, `ae034ae`), copied from the 15 Nov `188ebc0` build zip, which was its only copy. A dry run made `g1-backend-70ce912.zip` (890 KB, 203 source files from `70ce912` plus 6 kit files); its manifest verified with 0 mismatches and it contains every file the 15 Nov zip had. Per D5 the first release is `70ce912` (C1 to Q1, without A3).
+
+```bash
+# 1. make the zip (local, read-only)
+python infra/orchestrator/release-build/make-source.py 70ce912 g1-backend /tmp/g1-backend.zip
+# 2. upload (WRITE: needs approval)
+aws s3 cp /tmp/g1-backend.zip s3://datumm-opencode-builder-buildartifactsbucket-dn8tlg264jr8/source/g1-backend-70ce912.zip
+# 3. build and push the image (WRITE: needs approval)
+aws codebuild start-build --project-name datumm-opencode-builder-hosted-opencode-builder   --source-location-override datumm-opencode-builder-buildartifactsbucket-dn8tlg264jr8/source/g1-backend-70ce912.zip   --buildspec-override infra/orchestrator/release-build/buildspec.yml
+```
+
+The build verifies the manifest, runs the packaged checks and smoke tests against a throwaway Mongo, then pushes `g1-backend-70ce912be324-<n>` and prints the digest used at B3.
+
 ### Checks at each gate
 
 **H-B, backend after B4** (old web still live):
