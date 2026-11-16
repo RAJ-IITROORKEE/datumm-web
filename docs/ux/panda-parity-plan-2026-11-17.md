@@ -1,6 +1,6 @@
 # Panda-agent parity plan (17 November 2026)
 
-Status: **proposed.** The user asked (17 Nov) to bring the whole Panda-agent experience into DATUMM:
+Status: **approved 17 Nov; H5 = option A (port Panda's harness behavior onto DATUMM's backend).** The user asked (17 Nov) to bring the whole Panda-agent experience into DATUMM:
 its design layout, references, harness tool calling and every feature, step by step, with each
 finished step committed, pushed to `main` and deployed live. This file is the feature list and the
 order. Source of the Panda facts: the 17 Nov research (Panda code at

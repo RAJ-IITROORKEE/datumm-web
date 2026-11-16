@@ -27,7 +27,7 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | G1 | Go-live: backend on AWS, web on Vercel (**live 17 Nov: backend `70ce912`, web `017bd0d`**; A3 backend release pending) | Plan approved 17 Nov with all recommended options (D1 to D12); nothing pushed or deployed. Each push, merge, deploy and AWS step needs its own approval; AWS steps are run by the user (D8 option A). [AWS checks runbook](docs/ux/g1-aws-checks.md) prepared, not yet run | [Go-live plan](docs/ux/g1-go-live-plan.md) |
 | H0 | Harness decision: keep the LangGraph backend, port Panda-agent features | Approved 17 Nov (H1 to H4, recommended options) | [Decision](docs/ux/harness-decision-2026-11-17.md) |
 | UI1 | Composer and sidebar: model picker, context-window meter, sidebar groups and Ctrl K | Approved 17 Nov (all option A); in progress | [Packet](docs/ux/ui1-composer-and-sidebar.md) |
-| P0 | Panda-agent parity plan: every Panda feature, step by step, live after each | Proposed 17 Nov; harness question H5 open | [Parity plan](docs/ux/panda-parity-plan-2026-11-17.md) |
+| P0 | Panda-agent parity plan: every Panda feature, step by step, live after each | Approved 17 Nov; H5 = A (port onto the LangGraph backend) | [Parity plan](docs/ux/panda-parity-plan-2026-11-17.md) |
 | T1 | Tavily web search with DATUMM's own key | Proposed (after H0) | Decision §5 |
 | A4a | Admin: tools and skills registry | Proposed (after H0) | Decision §5 |
 | A4b | Admin: MCP registry (official Python MCP SDK) | Proposed (after H0) | Decision §5 |
