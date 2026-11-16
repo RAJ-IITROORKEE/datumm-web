@@ -146,7 +146,18 @@ The build verifies the manifest, runs the packaged checks and smoke tests agains
 - First build (`bf711564`) failed at `image-verify`: three packaged checks were stale (e8cefa7's `BRIEF_CONTEXT_MISSING` guard, N1's `completion_proof`, N3's `OUTCOMES`/`PUBLIC_EVENT_KEYS`). Product code was not the cause. Repaired in backend `e40c30e`; `make-source.py` now takes `scripts/check-*.py` from HEAD. Nothing was pushed by the failed build.
 - Second build (`cce240cc`) **SUCCEEDED**: image identity (120 API files), 20 packaged checks including the real planner, and 5 real HTTP/Mongo smoke tests against a throwaway Mongo all passed.
 - **Image for B3:** tag `g1-backend-70ce912be324-49`, digest `sha256:bb926402325d1f9df22f1ef6356931e2cfa48fd37a0271de417e760250be5ee8`, in `datumm-opencode-builder-hosted-opencode` (same repository as the live image, so `RepositoryArn` does not change). `SOURCE_COMMIT` `70ce912be3249d0cfe277a1a5fd669ddff18707a`.
-- Not yet done: B2 (rehearsal on a dump copy), B3 change set, B4 cutover. The live service still runs `188ebc0`.
+- Not yet done: B3 change set, B4 cutover. The live service still runs `188ebc0`.
+
+### B2 result (17 Nov, approved by the user)
+
+The builder role cannot read the backup bucket or pull images, and its IAM was not changed. With the user's approval the newest dump (`20261116T203030Z`, 31.5 MiB) was bundled with the `70ce912` source into a zip in the builder bucket's `source/` folder; the local copies were deleted at once and the S3 copy right after the build. Kit: `infra/orchestrator/release-build/rehearse.sh` (backend `387e687`). The image was rebuilt from the same source (not the pushed digest, which the builder cannot pull). Build `bbbd8c66` **SUCCEEDED**:
+
+- Restored 35,909 documents (70 collections; `runs` 427, `task_events` 4,443, `admin_audit` 2) into a Mongo on an internal network with no egress.
+- API healthy against the copy in **3,629 ms** (ECS allows 60 s plus 3 x 30 s).
+- `/health` `sourceCommit` `70ce912…`, `single-uvicorn-worker`; `/v1/config`, `/v2/tasks` and `/v1/admin/config` refuse anonymous requests with 401.
+- New indexes built at startup: `runs (created_at, _id)`, `task_events (taskId, executionId, stage)`, `admin_audit (kind, at, _id)`. Two new collections appeared (72 total); document counts unchanged.
+- No traceback in the API log after a 20 s recovery and scheduler pass.
+- Restore of a production dump now tested once (it was never tested before; D12).
 
 ### Checks at each gate
 
