@@ -15,10 +15,8 @@ node_modules/
 artifacts/
 .DS_Store
 Thumbs.db
-
-.vercel
-
 .npm-cache/
+.pytest_cache/
 __pycache__/
 *.py[cod]
 .impeccable/config.local.json

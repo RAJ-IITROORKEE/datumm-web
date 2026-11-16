@@ -1,0 +1,3 @@
+# Keep LF in the repository and the working tree: recorded source hashes
+# (artifacts/ux/*/qualification.json) are computed over LF bytes.
+* text=auto eol=lf
