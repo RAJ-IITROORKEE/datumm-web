@@ -21,7 +21,7 @@ Updated 16 November 2026, end of N2.
 | N1 | Done 16 Nov: [packet and result](n1-durable-completion-proof.md) | Real-Mongo plan and index build checks belong to G1 |
 | N3 | Done 16 Nov: [packet and result](n3-tool-task-subagent-lifecycle.md) | Hosted verification belongs to G1 |
 | N2 | Done 16 Nov: [packet and result](n2-frontend-capabilities-reversible-actions.md) | Live-model and hosted checks belong to G1 |
-| Next | A1 (traces and feedback), A2 (versioned config and audit) or N4 | Write the next packet and get approval |
+| A1 | [Packet](a1-admin-traces-feedback.md) written, awaiting approval | User approves the packet and its eleven decisions; then build |
 
 Phase table: [PLAN.md](../../PLAN.md#phases). Packet format: [PACKET_TEMPLATE.md](PACKET_TEMPLATE.md).
 
