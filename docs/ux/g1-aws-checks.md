@@ -7,6 +7,16 @@ keys, and nothing here deploys, changes a stack, or starts a model run.
 Every command in sections 1 to 5 is **read-only**. Section 6 is the one write step and waits for your
 separate approval at deploy time. Commands are for Git Bash (`MSYS_NO_PATHCONV=1` stops path rewriting).
 
+## Option: a read-only profile for the agent
+
+If you want me to run sections 1, 2 and 4 myself instead of pasting, create a separate limited
+identity, never the root profile. [g1-aws-readonly-policy.json](g1-aws-readonly-policy.json) allows
+only describe, list and log reads on the stack, ECS, ECR, CodeBuild, CloudFront and the backup
+bucket listing. It cannot read secrets, object contents, run SSM commands, or change anything.
+Create the user or role in the IAM console, attach that policy, store its keys in a named profile
+on this machine (`aws configure --profile datumm-readonly`, typed by you), and tell me the profile
+name. Keys never go in chat. Remove the profile when G1 ends.
+
 ## Before you start
 
 ```bash

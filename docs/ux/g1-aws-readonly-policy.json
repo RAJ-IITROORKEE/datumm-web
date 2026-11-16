@@ -1,0 +1,46 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadStackAndService",
+      "Effect": "Allow",
+      "Action": [
+        "sts:GetCallerIdentity",
+        "cloudformation:DescribeStacks",
+        "cloudformation:DescribeStackEvents",
+        "cloudformation:ListStackResources",
+        "cloudformation:GetTemplate",
+        "ecs:DescribeClusters",
+        "ecs:DescribeServices",
+        "ecs:DescribeTaskDefinition",
+        "ecs:DescribeTasks",
+        "ecs:ListTasks",
+        "ecr:DescribeRepositories",
+        "ecr:DescribeImages",
+        "cloudfront:GetDistribution",
+        "codebuild:ListProjects",
+        "codebuild:BatchGetProjects",
+        "codebuild:ListBuildsForProject",
+        "codebuild:BatchGetBuilds"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ReadLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams",
+        "logs:FilterLogEvents",
+        "logs:GetLogEvents"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ListBackupsOnly",
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
+      "Resource": "arn:aws:s3:::datumm-orchestrator-*"
+    }
+  ]
+}
