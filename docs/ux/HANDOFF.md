@@ -18,7 +18,7 @@ Updated 16 November 2026, end of C1.
 | --- | --- | --- |
 | S0 | Done: [packet](s0-source-verification-and-baseline.md) | none |
 | C1 | Done 16 Nov: [packet and result](c1-capability-contract-and-config.md) | Decide `history/done` and the unused `organizeDone`; browser scenarios were not run |
-| N1 | [Packet](n1-durable-completion-proof.md) written, awaiting approval | User approves the packet and its five decisions; then build |
+| N1 | [Packet](n1-durable-completion-proof.md) approved 16 Nov (option A, recommended decisions); build in progress | Backend targeted proof read, web eviction test and dev fixture |
 
 Phase table: [PLAN.md](../../PLAN.md#phases). Packet format: [PACKET_TEMPLATE.md](PACKET_TEMPLATE.md).
 

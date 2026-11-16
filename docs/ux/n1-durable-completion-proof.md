@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **proposed, awaiting user approval** |
+| Status | **approved, build in progress** |
 | Depends on | C1 (done 16 Nov) |
-| Approved by / date | |
+| Approved by / date | User, 16 Nov ("Approve N1, option A"); decisions 2–5 take the recommended option |
 | Base commits | Web `codex/ui-ux-foundation-2026-11-12` (C1 checkpoint); backend `c188add` on `codex/web-ui-harness-20261116` |
 
 All `path:line` facts below were **observed** in source on 16 Nov (backend `c188add`, web working tree). Statements marked *inferred* were not run. Backend paths are under `datumm-orchestrator/apps/domain-api/`.
