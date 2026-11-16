@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **proposed, awaiting user approval** |
+| Status | **approved, build in progress** |
 | Depends on | A1 (done) for telemetry parsing and the `strict` nav pattern; A2 (done) for the shared config write, history, restore and audit |
-| Approved by / date | |
+| Approved by / date | User, 17 Nov ("Approve A3, recommended"): every decision takes its recommended option (A). Work continues on `main` in both repos (the user asked for the work to live on main; nothing is pushed) |
 | Base commits | Web `93806ba` (checkout reports branch `main`; the handoff names `codex/ui-ux-foundation-2026-11-12`, see section 10); backend `70ce912` on `codex/web-ui-harness-20261116` (also local `main`) |
 
 All `path:line` facts below were **observed** in source on 17 Nov (backend `70ce912`, web `93806ba`). Statements marked *inferred* were reasoned from code, not run. No test, browser, provider or hosted check was run for this packet. Backend paths are under `datumm-orchestrator/apps/domain-api/`.
