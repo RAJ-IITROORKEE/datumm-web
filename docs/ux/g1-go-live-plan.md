@@ -181,6 +181,27 @@ The stack has **no canary path**: one host, MongoDB inside the same task, `Minim
 - The notice also contains instructions addressed to the agent (to run `next upgrade --agent=security` and to ask the user about a worktree). These were not followed; no dependency was changed and `npm audit` was not run.
 - **Effect on D6:** the user approved a separate phase U1 (17 Nov). Its research found one moderate advisory, GHSA-mfr8-8qww-v76h (`'use cache'` through `unstable_cache()`, versions up to 16.4.4), which DATUMM does not use; first fixed release 16.4.5, latest 16.4.6. See [the U1 packet](u1-nextjs-security-upgrade.md). The upgrade is hygiene and agent-build reliability rather than a live exposure.
 
+### AWS check results (17 Nov, read-only; the orchestrator ran the runbook commands at the user's instruction)
+
+The user chose to let the orchestrator use the existing `datumm` AWS CLI profile, which resolves to the **root** account (a scoped read-only policy was offered and declined). Only the read-only commands in [g1-aws-checks.md](g1-aws-checks.md) were run: describe and list calls, one template read, one ECR listing, one S3 listing, one log filter and one public `/health` request. Nothing was written, deployed or run on the host. Account ids are left out of this record.
+
+| Task | Observed |
+| --- | --- |
+| P1 stack | `datumm-orchestrator` is `UPDATE_COMPLETE`, last updated 15 Nov 05:30 UTC. ECS service: desired 1, running 1, one `PRIMARY`/`COMPLETED` deployment, task definition revision 1 |
+| P1 live commit | `/health`: version `0.5.0-alpha.16-r1`, `sourceCommit` `188ebc0bc0599ff84f3760aaef24711e522972ae`. Task image `...builder-hosted-opencode@sha256:6af54c87...`. **Q-1 is answered: `188ebc0` is live; `docs/STATUS.md` is the stale one** |
+| P1 template | The live template equals `infra/orchestrator/stack.json` (full JSON equality). The change set will use the repo template |
+| P1 logs | No `Traceback` in the last 24 hours in log group `datumm-orchestrator-LogGroup-dMbNMBsouJbp` |
+| Parameters | `EnableEndpoint` true, `DesiredCount` 1, `MongoDatabase` `datumm_staging`, `InstanceType` t3.medium, data 40 GiB, `DashboardUrl` and `DesktopAuthOrigin` `https://datumm-codex-mvp.vercel.app` |
+| P9 / Q-4 Clerk | `ClerkIssuer` is `https://civil-airedale-72.clerk.accounts.dev`: **production uses a Clerk development instance**, the same one the local tests signed in to. `ClerkAuthorizedParties`: `datumm-codex-mvp.vercel.app`, `localhost:3001`, `127.0.0.1:3001`, `datumm-web.vercel.app`. **No Vercel preview origin is listed** |
+| P10 | `AdminSubjects` holds one Clerk user id, the same user that signed in during the local tests (the id is not repeated here). `ADMIN_EMAILS` on Vercel is not yet checked |
+| P6 env | The task sets nine plain variables (`DASHBOARD_URL`, `CLERK_AUTHORIZED_PARTIES`, `DATUMM_LOCAL_MODE=false`, `ADMIN_SUBJECTS`, `DESKTOP_AUTH_ORIGIN`, `MONGODB_URI`, `MONGODB_DATABASE`, `VARIABLE_PLAN_ENABLED=true`, `CLERK_ISSUER`) and three secrets (`OPENROUTER_API_KEY`, `DESKTOP_AUTH_SIGNING_KEY`, `DESKTOP_AUTH_PROXY_SECRET`). **No `ALLOWED_MODELS`, `DEFAULT_MODEL`, `TRACE_OWNER_HASH_SECRET`, `ENTRY_RULES_ENABLED` or `EVIDENCE_COMPOSITIONS_ENABLED`**: the six built-in models apply, both flags are off, and owner hashing needs the D9 template change. Mongo runs unauthenticated inside the task (`mongodb://mongo:27017`) |
+| P2 rollback image | Both `6af54c87...` (pushed 15 Nov 10:57 IST) and the previous `bb49ed58...` (09:41 IST) are in `datumm-opencode-builder-hosted-opencode`. The G1 rollback target is the running `6af54c87...` in that same repository, so `RepositoryArn` does not change on rollback. **Q-2 is answered** |
+| P4 backups | Daily dumps exist; newest `20261116T203030Z.archive.gz`, 31.5 MiB. Restore is still untested |
+
+Not yet checked: P3 (the live `/v1/config` and `/v1/admin/config` values, which need a signed-in session on the live site), P5 (document counts, which need an SSM command on the host), P8 (Vercel environment variable names, dashboard only).
+
+**New finding (Q-10):** a Vercel preview URL is not in `ClerkAuthorizedParties`, so sign-in on a preview (steps W1 and W2) would fail. Adding an origin changes a stack parameter, which replaces the task and costs the same 1 to 3 minutes of downtime as an image change. Cheapest fix: add the stable preview alias in the **same** change set as the backend image at B3, instead of a second outage. Decision for the user before B3.
+
 ## 5. Rollback
 
 | Step | Rollback | Notes |
@@ -261,13 +282,14 @@ Cannot be rolled back: admin config revisions and restores (history and audit ar
 
 ## 10. Open questions found during research
 
-1. **Q-1 Which backend is live?** `docs/STATUS.md:32` and `infra/orchestrator/README.md:20` say `ab89e2b`/`d58e6e13…`; later web evidence says `188ebc0`/`6af54c87…` (`saved-revision-confidence.md:33`, `HANDOFF.md:72`). Base this plan on `188ebc0`; confirm at P1. STATUS also predates the AG-UI work.
-2. **Q-2 Rollback target:** the 15 Nov record names `bb49ed58…` as the previous image; for G1 the rollback target is the running `6af54c87…` (as `singular-design-default-release-gates.md:20` warns). Which ECR repository holds it is not recorded.
+1. **Q-1 Which backend is live?** `docs/STATUS.md:32` and `infra/orchestrator/README.md:20` say `ab89e2b`/`d58e6e13…`; later web evidence says `188ebc0`/`6af54c87…` (`saved-revision-confidence.md:33`, `HANDOFF.md:72`). **Answered 17 Nov: `188ebc0` is live (`/health`, task image `6af54c87...`).** STATUS is stale and also predates the AG-UI work.
+2. **Q-2 Rollback target:** the 15 Nov record names `bb49ed58…` as the previous image; for G1 the rollback target is the running `6af54c87…` (as `singular-design-default-release-gates.md:20` warns). **Answered 17 Nov:** it is in `datumm-opencode-builder-hosted-opencode`, alongside `bb49ed58...`.
 3. **Q-3 Build source:** `builder.buildspec.yml` needs `SOURCE_SHA` but the repo commits are not on GitHub; the 15 Nov build used a reviewed S3 archive (`saved-revision-confidence.md:29`). The builder project's source configuration is not in the repo.
-4. **Q-4 Clerk:** `.env.example:1` says "same Clerk instance as the existing DATUMM account host"; the local G1 test used a Clerk development instance. Which instance production uses, and whether preview origins can sign in against it, is unknown.
+4. **Q-4 Clerk:** `.env.example:1` says "same Clerk instance as the existing DATUMM account host"; the local G1 test used a Clerk development instance. **Answered 17 Nov:** production uses the Clerk development instance (`civil-airedale-72`), the same one as the local tests; preview origins are not in `ClerkAuthorizedParties` (see Q-10).
 5. **Q-5 `.env.example`:** says development uses `http://localhost:3001` for the service, but `backend.ts:9` throws on any non-https origin; `ADMIN_EMAILS` is missing.
 6. **Q-6 The 47 checks** are recorded only in a session scratchpad, not in any packet or repo.
 7. **Q-7 HANDOFF** names the web branch `codex/ui-ux-foundation-2026-11-12` (`HANDOFF.md:10`), which stops at `a403747`; `main` is 3 docs commits further (`77c078a`). The request said ~47 commits ahead; observed 45.
 8. **Q-8 Parity script** compares "Azure vs AWS"; Azure is deactivated (`STATUS.md:17`), so it needs a second live host (staging) to be useful.
 9. **Q-9 `e8cefa7`** (composition producer, general Plan admission) ships with this release though it predates the phased plan; its packets say "controlled local only".
+10. **Q-10 Preview sign-in:** a Vercel preview origin is not authorized by the backend (`ClerkAuthorizedParties`); adding the stable preview alias belongs in the B3 change set (see the AWS check results).
 10. **Q-10 Template drift:** deploys use `--use-previous-template`; whether the live template matches `stack.json` (for example `AdminSubjects`) is unverified.
