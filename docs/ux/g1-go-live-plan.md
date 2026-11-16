@@ -163,7 +163,15 @@ The builder role cannot read the backup bucket or pull images, and its IAM was n
 
 Change set `g1-backend-70ce912` on stack `datumm-orchestrator`: `--use-previous-template`, `ImageUri` = `…/datumm-opencode-builder-hosted-opencode@sha256:bb926402…`, every other parameter `UsePreviousValue`. Status `CREATE_COMPLETE`. Changes: `Task` (`AWS::ECS::TaskDefinition`) Modify with **replacement** (container definitions); `Service` (`AWS::ECS::Service`) Modify, no replacement (task definition). Nothing touches the host, data volume, distribution or IAM, so the gate passes.
 
-B4 (execute) still needs: the user's go-ahead, a quiet window with no running or queued runs (D7), and a fresh dump just before (D12). Rollback: same update with `ImageUri` = `sha256:6af54c87…`.
+### B4 and B5 result (16 Nov 23:07–23:11 UTC = 17 Nov IST, approved by the user: "Yes, switch now")
+
+- Quiet check (read-only): no run `running`, `queued`, `pending`, `claimed` or `paused`; last run completed 15 Nov 22:30 UTC. 118 task documents carry status `queued` with no run behind them; the B2 rehearsal recovered the same data with no change or error, so they were treated as idle records.
+- Fresh backup: `mongodump/20261116T230736Z.archive.gz`, 31.5 MiB, service `Result=success`.
+- Executed change set `g1-backend-70ce912` at 23:07:53 UTC. `/health` showed `188ebc0` at 23:08:06, down at 23:08:18, `70ce912` at 23:09:07: **about one minute of downtime**. Stack `UPDATE_COMPLETE`; ECS rollout `COMPLETED` at 23:10:53; desired 1, running 1; task image `sha256:bb926402…`.
+- **Live backend is now `70ce912be3249d0cfe277a1a5fd669ddff18707a`** (C1, N1, N3, N2, A1, A2, N4, Q1; A3 not yet).
+- Anonymous `/v1/config`, `/v2/tasks`, `/v1/admin/config`, `/v1/admin/traces` return 401 (traces existed only as 404 before). No `Traceback` in the API log in the 20 minutes after the switch.
+- Not yet run: the signed-in checks H-B3 to H-B5 (capabilities, old-web smoke, read-only admin), which need the user's session; the old web (`7495879`) is still live and is expected to keep working (section 2.4).
+- Rollback, if needed: same update with `ImageUri` = `sha256:6af54c87…` (still in ECR); backup above.
 
 ### Checks at each gate
 
