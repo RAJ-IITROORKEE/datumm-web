@@ -195,3 +195,13 @@ test('malformed upstream frame closes the observer without retrying the command'
   assert.equal(result.at(-1).code,'DATUMM_STREAM_INTERRUPTED');
   assert.equal(cancelled,true);assert.equal(posts,1);
 });
+
+test('lifecycle fields on task events reach the client unchanged and an approval resume is rejected',async()=>{
+  const record={taskId:'task-1',sequence:1,stage:'agent_stage_complete',detail:'Step complete',activityId:'a',controlOutcome:'continue',outcome:'failed',durationMs:420,callId:'c',failureCode:'ACTION_FAILED'};
+  const backend=async(path)=>path.includes('active=true')?Response.json([]):path==='/v2/tasks'?Response.json(receipt):streamed(frame(record)+frame({stage:'snapshot',run:snapshot('completed',{agent_result:{status:'completed',answer:'Done'}})}));
+  const result=await events(await openAgui(input(),backend,parseStart));
+  assert.deepEqual(result.filter(e=>e.type==='ACTIVITY_SNAPSHOT').map(e=>e.content.event).find(e=>e?.stage==='agent_stage_complete'),record);
+  const approval={threadId:'task-1',runId:'r',messages:[],forwardedProps:{taskId:'task-1',idempotencyKey:'k',expectedTaskVersion:2,expectedPlanVersion:0}};
+  for(const payload of [undefined,{approved:true},{questionId:'q',questionVersion:3,answer:'one'}])
+    assert.throws(()=>prepareInput({...approval,resume:[{interruptId:`approval:${'a'.repeat(64)}`,status:'resolved',...(payload?{payload}:{})}]}));
+});

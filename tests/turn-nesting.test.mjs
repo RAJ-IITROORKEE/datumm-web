@@ -73,3 +73,21 @@ test('parented phase events remain together and correlate by exact activity iden
  const {rest,steps}=nestProcess(events);assert.equal(steps.length,0);assert.equal(rest.length,3);assert.equal(stageSpans(rest)[0].done,true);
  assert.equal(stageSpans(nestProcess([events[0],events[1],{...events[2],turnId:'other'}]).rest)[0].done,false);
 });
+
+// @lat: [[contracts#Hosted contract tests#Stage spans]]
+test('hosted outcome decides the span status, carries duration and counts retries of its own action',()=>{
+ const scope={executionId:'e',turnId:'t',taskId:'task'};
+ const span=(activityId,complete,extra=[])=>[{index:0,stage:'agent_stage_start'},{index:1,stage:'agent_action',activityId,...scope},...extra,{index:9,stage:'agent_stage_complete',activityId,...scope,...complete}];
+ const one=complete=>stageSpans(span('a',complete))[0];
+ assert.deepEqual([one({outcome:'succeeded'}),one({outcome:'failed'}),one({outcome:'skipped'}),one({outcome:'stopped'})].map(s=>[s.outcome,s.done]),[['success',true],['failed',false],['skipped',false],['cancelled',false]]);
+ assert.equal(one({outcome:'failed',controlOutcome:'needs_input'}).outcome,'needs_input');
+ assert.equal(one({outcome:'succeeded',controlOutcome:'finish',durationMs:1200}).durationMs,1200);
+ assert.equal(one({outcome:'succeeded',durationMs:-5}).durationMs,undefined);
+ const retry=(index,stage,activityId)=>({index,stage,activityId,...scope});
+ const retried=stageSpans(span('a',{outcome:'succeeded'},[retry(2,'read_retry','a'),retry(3,'read_retry_succeeded','a'),retry(4,'read_retry','other')]))[0];
+ assert.equal(retried.retries,1);
+ assert.equal(one({outcome:'succeeded'}).retries,0);
+ // Without outcome the routing value is still never a success.
+ assert.equal(one({controlOutcome:'finish'}).done,false);
+ assert.equal(one({controlOutcome:'finish'}).outcome,'finish');
+});

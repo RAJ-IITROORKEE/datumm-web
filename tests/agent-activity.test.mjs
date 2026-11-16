@@ -285,6 +285,24 @@ test('compact activity keeps event details, types and timestamps without changin
  const normal=expand(exports.ActivitySummary({events,eventDetail:row=>row.detail}));assert.match(text(normal),/Tool failed/);assert.match(text(normal),/read failed/);
 });
 
+test('hosted native calls read as tool call, observation and stopped, and a stop is not a failed batch',()=>{
+ const callId='b9dd7c06-4fef-4405-a2d7-a9c4cfa71386';
+ const events=[{...event('tool_start',0,'get_walls'),callId},{...event('tool_returned',1,'get_walls'),callId},{...event('tool_stopped',2,'get_walls'),callId}];
+ const value=text(expand(exports.ActivitySummary({events})));
+ for(const expected of ['Tool call','Observation','Tool stopped'])assert.match(value,new RegExp(expected));
+ assert.doesNotMatch(value,/Tool failed/);
+ // Pre-N3 relay events carry no callId and stay hidden, as before N3.
+ const old=[event('tool_start',0,'get_walls'),event('tool_returned',1,'get_walls'),event('tool_stopped',2,'get_walls')];
+ assert.doesNotMatch(text(expand(exports.ActivitySummary({events:old}))),/Tool call|Observation|Tool stopped|get_walls/);
+ assert.equal(exports.activityBatches(old).length,0);
+ // tool_stopped is a stop or a failure; the outcome decides the label and icon.
+ const failedCall={...event('tool_stopped',4,'get_walls'),callId,outcome:'failed'};
+ assert.match(text(expand(exports.ActivitySummary({events:[failedCall]}))),/Tool failed/);
+ assert.equal(exports.stageIcon(failedCall).displayName,'X');
+ assert.equal(exports.stageIcon({...failedCall,outcome:'stopped'}).displayName,'Wrench');
+ assert.deepEqual([exports.stageIcon(events[2]).displayName,exports.stageIcon(event('tool_failed',3,'get_walls')).displayName],['Wrench','X']);
+});
+
 test('compact known process steps have readable names while raw records and default labels remain intact',()=>{
  const events=[event('agent_stage_complete',0,'create_design'),event('agent_stage_complete',1,'finish_answer'),event('agent_action',2,'create_design'),event('agent_stage_complete',3,'unknown_step')];
  const compact=text(expand(exports.ActivitySummary({events,compact:true})));

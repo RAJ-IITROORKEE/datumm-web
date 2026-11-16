@@ -1,7 +1,7 @@
 import {admissionMessage, serviceErrorMessage} from './chat-start';
 
 /** Shared chat/inspector projection. A gap waits for replay or a full snapshot. */
-export type TaskEvent = {schemaVersion?:2;eventId?:string;sequence?:number;taskId?:string;turnId?:string;executionId?:string;activityId?:string;sessionId?:string;callId?:string;toolCallId?:string;index:number;stage:string;detail:string;note?:string;failureCode?:string;at:string;agent?:{id:string;role?:string;name?:string};parentStepId?:string};
+export type TaskEvent = {schemaVersion?:2;eventId?:string;sequence?:number;taskId?:string;turnId?:string;executionId?:string;activityId?:string;sessionId?:string;callId?:string;toolCallId?:string;tool?:string;index:number;stage:string;detail:string;note?:string;failureCode?:string;controlOutcome?:string;outcome?:string;durationMs?:number;at:string;agent?:{id:string;role?:string;name?:string};parentStepId?:string};
 export type TaskSnapshot = {id:string;taskVersion?:number;eventCursor?:number;events:TaskEvent[]};
 export type Projection<T extends TaskSnapshot> = {snapshot:T|null;events:TaskEvent[];cursor:number;pending:TaskEvent[]};
 // Live and reloaded failed details can carry upstream HTML; show the safe copy, keep the source event.

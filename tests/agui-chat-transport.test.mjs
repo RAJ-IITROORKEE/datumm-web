@@ -116,3 +116,10 @@ test('question errors display safe plain messages while preserving HTTP status',
   await assert.rejects(client.resumeQuestion({taskId:'task-1'},'q',3,{questionId:'q',questionVersion:3,answer:'one'},'client'),error=>error.status===status&&error.message.includes(expected)&&!error.message.includes('<html>')&&!error.message.includes('DATUMM_CHAT_COMMAND'));
  }
 });
+
+test('a run error carries its code to the chat error',async()=>{
+ const client=transport(async(_url,request)=>{const input=JSON.parse(request.body),all=frames(input);return response(wire([all[0],all[1],event('RUN_ERROR',{message:'Task stopped',code:'DATUMM_COMMAND_STOPPED'})]));});
+ await assert.rejects(read(await client.sendMessages(options)),error=>error.message==='Task stopped'&&error.code==='DATUMM_COMMAND_STOPPED');
+ const bare=transport(async(_url,request)=>{const input=JSON.parse(request.body),all=frames(input);return response(wire([all[0],all[1],event('RUN_ERROR',{message:'No code'})]));});
+ await assert.rejects(read(await bare.sendMessages(options)),error=>error.code===undefined);
+});

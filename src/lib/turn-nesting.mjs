@@ -28,6 +28,9 @@ export function nestProcess(events) {
 
 const CHILD = /^(agent_action|research|evidence_lookup\w*)$/;
 
+const RETRY = new Set(['read_retry', 'action_schema_repair', 'provider_retry']);
+const SPAN_OUTCOME = { succeeded: 'success', failed: 'failed', skipped: 'skipped', stopped: 'cancelled', partial: 'partial' };
+
 const clip = (text, max = 80) => {
   const value = typeof text === 'string' ? text.trim().replace(/\s+/g, ' ') : '';
   return value.length > max ? `${value.slice(0, max - 1).trimEnd()}…` : value;
@@ -39,9 +42,13 @@ const clip = (text, max = 80) => {
  * research / evidence-lookup events as child rows. Title: the first `note` inside the
  * span (80 chars), else the start event's detail. `summary`: the span's last note when
  * it differs from the first. Completion requires a unique action and explicit success outcome.
+ * A hosted `outcome` (succeeded, failed, skipped, stopped, partial) on the completion decides the
+ * status instead, and `durationMs` and the action's retry-event count ride along; `controlOutcome`
+ * `needs_input` still means waiting. Without `outcome` the rule above is unchanged.
+ * `end` is the index of the completion that settled the span.
  * @template {{ index: number; stage: string; detail?: string; note?: string; at?: string; agent?: { name?: string } }} E
  * @param {E[]} events
- * @returns {{ id: string; title: string; summary: string; done: boolean; children: E[] }[]}
+ * @returns {{ id: string; title: string; summary: string; done: boolean; outcome?: string; durationMs?: number; retries: number; end?: number; children: E[] }[]}
  */
 export function stageSpans(events) {
   const spans = [];
@@ -57,15 +64,19 @@ export function stageSpans(events) {
     if (event.stage === 'agent_stage_start') {
       close();
       notes = [];
-      open = { id: String(event.index), title: clip(event.detail) || `Step ${spans.length + 1}`, summary: '', done: false, outcome: undefined, children: [] };
+      open = { id: String(event.index), title: clip(event.detail) || `Step ${spans.length + 1}`, summary: '', done: false, outcome: undefined, durationMs: undefined, retries: 0, children: [] };
       spans.push(open);
     } else if (event.stage === 'agent_stage_complete') {
       const sameActivity = row => Boolean(event.activityId && event.executionId && event.turnId) && row.activityId === event.activityId && row.executionId === event.executionId && row.turnId === event.turnId && row.taskId === event.taskId;
       const actions = events.filter(row => row.stage === 'agent_action' && sameActivity(row));
       const completions = events.filter(row => row.stage === 'agent_stage_complete' && sameActivity(row));
       if (open && actions.length === 1 && completions.length === 1 && open.children.includes(actions[0])) {
-        open.outcome = typeof event.controlOutcome === 'string' ? event.controlOutcome : undefined;
+        const routed = typeof event.controlOutcome === 'string' ? event.controlOutcome : undefined;
+        open.outcome = routed !== 'needs_input' && SPAN_OUTCOME[event.outcome] || routed;
         open.done = ['success','completed'].includes(open.outcome);
+        if (Number.isFinite(event.durationMs) && event.durationMs >= 0) open.durationMs = event.durationMs;
+        open.retries = events.filter(row => RETRY.has(row.stage) && sameActivity(row)).length;
+        open.end = event.index;
       }
       close();
     } else if (open) {

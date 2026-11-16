@@ -9,7 +9,7 @@ import type { SchedulerView } from '../agent-scheduler';
 import type { SpecialistResult } from '../agent-specialists';
 import type { TaskEvent } from '@/lib/task-projection';
 import { latestNote, nestProcess, stageSpans } from '@/lib/turn-nesting.mjs';
-import { activityStateLabel, aggregateStatus, processRows, processStatus, settledStatus, type ProcessStatus, type ProcessRow } from '@/lib/process-activity.mjs';
+import { HOSTED_TOOL_STAGES, activityStateLabel, aggregateStatus, processRows, processStatus, settledStatus, type ProcessStatus, type ProcessRow } from '@/lib/process-activity.mjs';
 import styles from './turn-process.module.css';
 
 type Status = ProcessStatus;
@@ -31,12 +31,13 @@ function Rows({ rows, evidence = [] }: { rows: Row[]; evidence?: ToolEvidence[] 
   return (
     <ul className={styles.rows}>
       {rows.map((row) => {
-        const elapsed = row.callId ? recordedDuration(evidence.find(call => call.callId === row.callId)) : null;
+        const elapsed = recordedDuration({ elapsedMs: row.durationMs }) ?? (row.callId ? recordedDuration(evidence.find(call => call.callId === row.callId)) : null);
         return (
         <li key={row.key} data-status={row.status}>
           <StatusIcon status={row.status} team={row.team} />
           <span className={styles.rowName}>{row.name}</span>
-          {elapsed && <small className={styles.metadata} title="Recorded tool duration">{elapsed.text}</small>}
+          {row.retries ? <small className={styles.metadata}>{row.retries === 1 ? 'Retried once' : `Retried ${row.retries} times`}</small> : null}
+          {elapsed && <small className={styles.metadata} title="Recorded duration">{elapsed.text}</small>}
           <small className={row.status === 'done' ? styles.srOnly : styles.rowState}>{rowLabel(row.status)}</small>
         </li>
       );})}
@@ -99,7 +100,7 @@ function summarize(props: Props) {
   }).sort((a, b) => a.index - b.index);
   evidence = [...new Map((evidence ?? manifest?.tools ?? []).map(call => [call.callId, call])).values()];
   const nested = nestProcess(events);
-  const batches = activityBatches(nested.rest).map((batch) => ({ batch, rows: processRows(batch, active, waiting) })).filter((step) => step.rows.length > 0);
+  const batches = activityBatches(nested.rest.map(event => event.callId && HOSTED_TOOL_STAGES[event.stage] ? { ...event, stage: HOSTED_TOOL_STAGES[event.stage] } : event)).map((batch) => ({ batch, rows: processRows(batch, active, waiting) })).filter((step) => step.rows.length > 0);
   const children = manifest?.children ?? [];
   // Scheduler checklist rows are not evidence that a worker ran.
   const jobs = (scheduler?.steps ?? []).filter(job => job.status !== 'pending' && job.status !== 'queued');
@@ -159,13 +160,12 @@ export function TurnProcess(props: Props) {
   if (!hasDetails && !active && !waiting && !props.status) return <>{public_}</>;
   const elapsed = recordedDuration(manifest);
   const eventRows = processRows(events, active, waiting);
-  const failed = eventRows.some(row => row.status === 'failed') || evidence.some(call => processStatus(call.status) === 'failed') || children.some(child => processStatus(child.state) === 'failed') || team.some(result => result.status === 'failed');
   const unconfirmedTools = eventRows.some(row => row.status === 'unconfirmed') || evidence.some(call => settledStatus(processStatus(call.status), active, waiting) === 'unconfirmed') || children.some(child => settledStatus(processStatus(child.state), active, waiting) === 'unconfirmed');
   const stateLabel = props.status === 'unknown' && hasDetails ? 'Recorded activity' : lifecycle(props);
   const summaryStatus = live ? 'running' : waiting ? 'waiting' : settledStatus(processStatus(props.status ?? 'recorded'), active, waiting);
   const spanRows: StageRow[] = [];
   for (const span of spans) {
-    const status: Status = span.done ? 'done' : span.outcome==='needs_input' ? 'waiting' : span.outcome==='failed' ? 'failed' : span.outcome==='cancelled' ? 'cancelled' : span.outcome==='partial' ? 'partial' : settledStatus('running', active, waiting);
+    const status: Status = span.done ? 'done' : span.outcome==='needs_input' ? 'waiting' : span.outcome==='failed' ? 'failed' : span.outcome==='cancelled' ? 'cancelled' : span.outcome==='skipped' ? 'skipped' : span.outcome==='partial' ? 'partial' : settledStatus('running', active, waiting);
     const actions = span.children.map(publicAction).filter(Boolean);
     const names = actions.length ? [...(!genericStage.test(span.title) && !actions.includes(span.title) ? [span.title] : []), ...actions] : [span.title];
     if (span.summary && !names.includes(span.summary)) names.push(span.summary);
@@ -177,9 +177,13 @@ export function TurnProcess(props: Props) {
       const action=matching.length===1?matching[0]:undefined;
       const attempt=action?.eventId&&action.taskId&&action.turnId&&action.executionId&&action.activityId
         ? {taskId:action.taskId,turnId:action.turnId,executionId:action.executionId,activityId:action.activityId} : undefined;
-      spanRows.push({ key: `s-${span.id}-${index}`, name, status, attempt });
+      const own = action || names.length === 1;
+      spanRows.push({ key: `s-${span.id}-${index}`, name, status, attempt, ...(own ? { durationMs: span.durationMs, retries: span.retries } : {}) });
     }
   }
+  // A failed call inside an action that retried and then succeeded did not fail the turn.
+  const recovered = new Set(events.filter(event => event.callId && spans.some(span => span.done && span.retries && event.index > Number(span.id) && event.index < (span.end ?? -1))).map(event => event.callId));
+  const failed = eventRows.some(row => row.status === 'failed' && !(row.callId && recovered.has(row.callId))) || evidence.some(call => processStatus(call.status) === 'failed') || children.some(child => processStatus(child.state) === 'failed') || team.some(result => result.status === 'failed') || spanRows.some(row => row.status === 'failed');
   const stageGroups:StageRow[][]=[];
   for(const row of spanRows){
     const group=stageGroups.at(-1), first=group?.[0], attempt=row.attempt;
@@ -203,7 +207,11 @@ export function TurnProcess(props: Props) {
   const eventCallIds = new Set(eventRows.map(row => row.callId).filter(Boolean));
   const agents: { key: string; title: string; status: Status; tools: Row[] }[] = [
     ...children.map((child) => ({ key: `c-${child.sessionId}`, title: `${label(child.role)}`, status: settledStatus(processStatus(child.state), active, waiting), tools: evidence.filter((call) => call.sessionId === child.sessionId && !eventCallIds.has(call.callId)).map((call) => ({ key: call.callId, callId: call.callId, name: label(call.tool.replace(/^datumm_revit_/, '')), status: settledStatus(processStatus(call.status), active, waiting) })) })),
-    ...team.map((result, i) => ({ key: `s-${result.role}-${i}`, title: `${label(result.role)} review`, status: processStatus(result.status), tools: [] })),
+    ...team.map((result, i) => {
+      // One job, one status: a new-style event row (it has an activityId) outranks the checkpoint copy.
+      const paired = eventRows.filter(row => row.team && row.activityId && row.role === result.role);
+      return { key: `s-${result.role}-${i}`, title: `${label(result.role)} review`, status: paired.length === 1 ? paired[0].status : processStatus(result.status), tools: [] };
+    }),
   ];
   const extraTools: Row[] = evidence.filter(call => !eventCallIds.has(call.callId) && !children.some(child => call.sessionId === child.sessionId)).map(call => ({ key: call.callId, callId: call.callId, name: label(call.tool.replace(/^datumm_revit_/, '')), status: settledStatus(processStatus(call.status), active, waiting) }));
   return (

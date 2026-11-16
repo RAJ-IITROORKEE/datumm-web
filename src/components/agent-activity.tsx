@@ -17,12 +17,17 @@ export type RunManifest={taskId:string;sessionId?:string;model:string;mode:strin
 
 export type ActivityTodo={content:string;status:string;priority:string};
 
-const stages:Record<string,string>={assistant_update:'Progress update',specialist_started:'Specialist started',specialist_complete:'Specialist completed',specialist_completed:'Specialist completed',skill_loaded:'Local skill',workflow_command:'Workflow command',compaction_started:'Compressing context',compaction_completed:'Compression',model_turn:'Thought',tool_running:'Tool call',tool_completed:'Observation',tool_failed:'Tool failed',session_recovered:'Chat restored',question_pending:'Waiting for your input',question_answered:'Your input received',agent_stage_start:'Planning',agent_stage_complete:'Step complete',agent_action:'Agent action',inspection:'Inspection',validate:'Validation',preview:'Review exact changes',approved:'Approved',execute:'Applying approved changes',verify:'Verification',batch_verified:'Batch verified',failed:'Failed',cancel_requested:'Stop requested',cancelled:'Stopped',interrupted:'Interrupted',paused_limit:'Limit reached'};
+const stages:Record<string,string>={assistant_update:'Progress update',specialist_started:'Specialist started',specialist_complete:'Specialist completed',specialist_completed:'Specialist completed',skill_loaded:'Local skill',workflow_command:'Workflow command',compaction_started:'Compressing context',compaction_completed:'Compression',model_turn:'Thought',tool_running:'Tool call',tool_completed:'Observation',tool_failed:'Tool failed',tool_start:'Tool call',tool_returned:'Observation',tool_stopped:'Tool stopped',session_recovered:'Chat restored',question_pending:'Waiting for your input',question_answered:'Your input received',agent_stage_start:'Planning',agent_stage_complete:'Step complete',agent_action:'Agent action',inspection:'Inspection',validate:'Validation',preview:'Review exact changes',approved:'Approved',execute:'Applying approved changes',verify:'Verification',batch_verified:'Batch verified',failed:'Failed',cancel_requested:'Stop requested',cancelled:'Stopped',interrupted:'Interrupted',paused_limit:'Limit reached'};
+// Pre-N3 hosted relay events have no callId and stay hidden, as before N3.
+const hostedTool=new Set(['tool_start','tool_returned','tool_stopped']);
+const known=(event:TaskEvent)=>Boolean(stages[event.stage])&&(!hostedTool.has(event.stage)||Boolean(event.callId));
+// tool_stopped covers both a failure and a user stop; the outcome says which.
+const stageLabel=(event:TaskEvent)=>event.stage==='tool_stopped'&&event.outcome==='failed'?'Tool failed':stages[event.stage];
 
 export function activityBatches(events:TaskEvent[]){
  const batches:TaskEvent[][]=[];
  for(const event of [...events].sort((a,b)=>a.index-b.index)){
-  if(!stages[event.stage])continue;
+  if(!known(event))continue;
   if(!batches.length||event.stage==='model_turn'&&!/^(vision|evidence)\s*·/.test(event.detail))batches.push([]);
   batches.at(-1)!.push(event);
  }
@@ -33,7 +38,7 @@ const unavailable=(event:TaskEvent)=>event.stage==='tool_failed'&&/\bNO_PLAN_GEO
 export const toolName=(event:TaskEvent)=>event.detail.replace(/^(Reading|Calling|Executing)\s+/,'').split(/[\s:{]/)[0].replace(/^datumm_revit_/,'');
 export function stageIcon(event:TaskEvent){
  if(unavailable(event))return CircleHelp;
- if(['tool_failed','failed','interrupted','cancelled'].includes(event.stage))return X;
+ if(['tool_failed','failed','interrupted','cancelled'].includes(event.stage)||stageLabel(event)==='Tool failed')return X;
  if(event.stage.startsWith('question_'))return CircleHelp;
  if(event.stage.startsWith('compaction_'))return FileArchive;
  if(event.stage.startsWith('specialist_'))return Users;
@@ -46,12 +51,12 @@ export function stageIcon(event:TaskEvent){
 }
 
 export function ActivitySummary({events,eventDetail,compact=false}:{events:TaskEvent[];eventDetail?:(event:TaskEvent)=>string;compact?:boolean}){
- const rows=events.filter(event=>stages[event.stage]||['queued','running','answer','completed'].includes(event.stage));
+ const rows=events.filter(event=>known(event)||['queued','running','answer','completed'].includes(event.stage));
  return <ol className={`${styles.activitySummary} ${compact ? styles.activitySummaryCompact : ''}`} aria-label="Task activity">{rows.map(event=>{
   const structural:Record<string,string>={queued:'Task queued',running:'Task started',answer:'Response saved',completed:'Model response finished'};
   const action:Record<string,string>={capture_intent:'Understand request',finish_answer:'Prepare answer'};
   const compactAction:Record<string,string>={...action,create_design:'Create design',plan_task:'Record checklist',revise_task_plan:'Update checklist'};
-  const Icon=stageIcon(event),label=event.stage==='completed'?'Turn settled':event.stage==='answer'?'Answer ready':event.stage==='model_turn'?'Model step':stages[event.stage]??event.stage.replaceAll('_',' '),detail=event.stage==='model_turn'?event.detail.match(/step \d+/)?.[0]??'Step number not recorded':structural[event.stage]??(event.stage==='agent_action'&&/^[a-z][a-z0-9_]*$/.test(event.detail)?action[event.detail]??event.detail.replaceAll('_',' '):eventDetail?eventDetail(event):event.detail);
+  const Icon=stageIcon(event),label=event.stage==='completed'?'Turn settled':event.stage==='answer'?'Answer ready':event.stage==='model_turn'?'Model step':stageLabel(event)??event.stage.replaceAll('_',' '),detail=event.stage==='model_turn'?event.detail.match(/step \d+/)?.[0]??'Step number not recorded':structural[event.stage]??(event.stage==='agent_action'&&/^[a-z][a-z0-9_]*$/.test(event.detail)?action[event.detail]??event.detail.replaceAll('_',' '):eventDetail?eventDetail(event):event.detail);
   const compactDetail = compact && ['agent_action','agent_stage_complete'].includes(event.stage) && compactAction[event.detail] ? compactAction[event.detail] : detail;
   return <li key={event.eventId??event.index} data-stage={event.stage}><Icon size={15} aria-hidden="true"/><span>{compact ? <><strong>{compactDetail || label}</strong>{compactDetail && compactDetail !== label && <small>{label}</small>}</> : <><strong>{label}</strong><small>{detail}</small></>}</span>{event.at&&Number.isFinite(Date.parse(event.at))&&<time dateTime={event.at}>{new Date(event.at).toLocaleTimeString()}</time>}</li>;
  })}</ol>;
@@ -60,7 +65,7 @@ export function ActivityFeed({events,active,waiting,compact=false}:{events:TaskE
  const batches=activityBatches(events).filter((batch,index,all)=>batch.some(row=>!['model_turn','assistant_update'].includes(row.stage))||active&&index===all.length-1);
  const latestUpdate=compact?batches.flatMap(batch=>batch.filter(row=>row.stage==='assistant_update')).at(-1):undefined;
  return <ol className="activity-feed" aria-label="Recorded work batches">{batches.map((batch,index)=>{
-  const completed=batch.filter(row=>row.stage==='tool_completed'),unavailableReads=batch.filter(unavailable),failed=batch.filter(row=>['tool_failed','failed','interrupted','cancelled'].includes(row.stage)&&!unavailable(row)),step=batch.find(row=>row.stage==='model_turn')?.detail.match(/step \d+/)?.[0];
+  const completed=batch.filter(row=>row.stage==='tool_completed'),unavailableReads=batch.filter(unavailable),failed=batch.filter(row=>(['tool_failed','failed','interrupted','cancelled'].includes(row.stage)||stageLabel(row)==='Tool failed')&&!unavailable(row)),step=batch.find(row=>row.stage==='model_turn')?.detail.match(/step \d+/)?.[0];
   const calls=batch.filter(row=>row.stage.startsWith('tool_')),runningCalls=calls.filter(row=>row.stage==='tool_running'),latest=batch.at(-1)!,Icon=stageIcon(failed.at(-1)??calls.at(-1)??batch.findLast(row=>row.stage!=='assistant_update')??latest),live=active&&index===batches.length-1&&!waiting;
   const labels=Array.from(new Set(completed.map(row=>toolName(row).replaceAll('_',' '))));
   const description=failed.length?(compact?'':failed.at(-1)!.detail||'Some recorded work stopped or failed. Review the details before continuing.'):unavailableReads.length?'No visible wall geometry in this view. The agent can continue with inventory or your supplied dimensions.':waiting&&index===batches.length-1?'Waiting for your answer.':'';
@@ -114,7 +119,7 @@ const stateNames:Record<string,string>={
 };
 const duration=(value:number|null|undefined)=>typeof value==='number'&&Number.isFinite(value)&&value>=0?`${(value/1000).toFixed(1)}s`:undefined;
 const amount=(value:number|undefined)=>typeof value==='number'&&Number.isFinite(value)?`$${value.toFixed(4)}`:'Not recorded';
-const safeEventDetail=(event:TaskEvent)=>event.stage==='model_turn'?`Model step · ${event.detail.match(/step \d+/)?.[0]??'step number not recorded'}`:event.detail||stages[event.stage];
+const safeEventDetail=(event:TaskEvent)=>event.stage==='model_turn'?`Model step · ${event.detail.match(/step \d+/)?.[0]??'step number not recorded'}`:event.detail||stageLabel(event);
 /** A recorded tool state does not become a success when the containing task stops. */
 function recordedState(state:string|undefined,active:boolean){
  const pending=['running','in_progress','pending','queued'].includes(state??'');
@@ -157,7 +162,7 @@ export function OpenCodeTodos({todos}:{todos:ActivityTodo[]}){
  return <ol className={styles.todos} aria-label="Recorded task progress">{todos.map((todo,index)=><li key={index} data-status={todo.status}>{todo.status==='completed'?<Check size={15} aria-hidden="true"/>:<Square size={15} aria-hidden="true"/>}<span>{todo.content}<small>{stateNames[todo.status]??'Unknown status'} · {todo.priority} priority</small></span></li>)}</ol>;
 }
 export function AgentActivity({events,nativeMessages=[],active=false,waiting=false,mode,model,evidence=[],todos=[],manifest,status:taskStatus,showFeed=true,compact=false}:{events:TaskEvent[];nativeMessages?:{id:string;text:string;finish:string|null}[];active?:boolean;waiting?:boolean;mode:string;model:string;evidence?:ToolEvidence[];todos?:ActivityTodo[];manifest?:RunManifest;status?:string;showFeed?:boolean;compact?:boolean}){
- const rows=events.filter(event=>stages[event.stage]);
+ const rows=events.filter(known);
  const lifecycle=taskStatus??manifest?.state,ended=['completed','failed','error','cancelled','interrupted','paused_limit','paused_recovery','partial','stale','blocked'].includes(lifecycle??'');
  const isActive=active&&!ended,isWaiting=waiting&&!ended;
  const publicMessages=nativeMessages.filter(row=>isActive||row.finish!=='stop');

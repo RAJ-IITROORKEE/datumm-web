@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **approved, build in progress** |
+| Status | **done 16 Nov 2026** (local; not pushed or deployed) |
 | Depends on | N1 (done 16 Nov) |
 | Approved by / date | User, 16 Nov ("Approve N3, recommended"): every decision takes its recommended option |
 | Base commits | Web `aa71966` on `codex/ui-ux-foundation-2026-11-12`; backend `34fcf67` on `codex/web-ui-harness-20261116` |
@@ -193,4 +193,15 @@ Revert the backend and web commits. Events already written keep the extra fields
 
 ## 12. Result
 
-Not started.
+| Item | Outcome |
+| --- | --- |
+| Commit | Backend and web N3 commits on their branches (see `git log`); not pushed |
+| Backend change | `storage.py` `PUBLIC_EVENT_KEYS` and validation of `outcome`, `durationMs`, `callId`; `PublicEvent` fields; `import_run` uses the shared keys; `agent_workflow.dispatch` wrapper times each action and records `outcome` (succeeded, failed, skipped for a schema repair that continues or a previously failed read, stopped for a user stop or pause); one best-effort failed completion on an unrecoverable error, never after a lease loss, never twice, never for `CancelledError`; retry events carry the action's `activityId`; `relay.py` `callId`, `durationMs`, `outcome`; `specialist_jobs.py` `specialist_started`, job `activityId`/`startedAt`/`finishedAt`, fields on `specialist_complete`; `test_lifecycle_events.py` |
+| Web change | `stageSpans` outcome, duration and retry count; `processRows` pairs hosted tool stages by `callId` (only when present) and specialists by `activityId`, status from `outcome`; `TurnProcess` durations, "Retried once", one status per specialist, a recovered retry does not flag the turn as failed; Activity panel labels hosted tool stages only when they carry a `callId`, and a `tool_stopped` with outcome failed reads "Tool failed"; `RUN_ERROR` errors carry `code`, used only for notice copy; dev `/dev/ux` hosted scenarios; fixture rebuilt in the real projected shape |
+| Gates run (16 Nov, Node 24.18.0, Python 3.12.10, orchestrator after all changes) | Backend `uv run --frozen pytest`: 216 passed + 26 subtests (baseline 197 + 26); `lat check` passed. Web `npm run typecheck`, `npm run build`, `npm test` 629 / 629 (baseline 613), `lat check` passed; runtime smoke `--production` 18 / 18 on a fresh `next start` (port 3100) |
+| Failing-first evidence | 13 of 15 new backend tests failed on `34fcf67` (the other 2 are invariants); each review fix had a test that failed first, on both sides |
+| Browser evidence | Built-in browser, local dev server, `/dev/ux` activity preview. 1 failure: header "Failed · Recorded work failed", native call 0.4 s failed, action 0.9 s failed, inspector "Tool failed". 2 retry: "Retried once", 2 s, Completed, failed attempt visible, no failure flag. 3 specialists: both running live; settled 3 s Completed and 5 s partial, each once. 4 resume: attempt 1 waiting 0.6 s, attempt 2 Completed 1 s; stop: "Stopped · Some work unconfirmed", native call and action cancelled, open specialist "Not confirmed". 5 old events: "Not confirmed" kept. 390 px dark: no horizontal overflow in any hosted scenario. Screen-reader reading not separately checked |
+| Independent review | 12 findings. Fixed: old relay events changed rendering (now aliased only with `callId`), stop or pause recorded as failed, stopped native call shown as failed, schema repair shown as failure, recovered retry flagged the turn as failed, double completion and lease-loss writes, retry success check, order-dependent print test, Activity panel labels; fixture reconciled with real projected events |
+| Not run or not verified | Hosted behavior, deployed specialist flag values, real Mongo event volume (G1); AI SDK preservation of the thrown error object (the `code` falls back to the generic notice if lost) |
+| Limits found | `provider_retry` events carry no `activityId` (they fire before the next action exists), so they are not counted as retries. `flexible_retry` and `intent_fallback` decisions have no `agent_action`, so those steps still show "Not confirmed". A stopped row reads "cancelled" (existing label). "Skipped" rarely appears because its only paths pause for input, which wins |
+| Next step | Write the N2 packet (frontend capability awareness and reversible actions) for approval |

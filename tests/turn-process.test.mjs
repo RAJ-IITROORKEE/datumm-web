@@ -348,3 +348,129 @@ test('unknown historical process with evidence has a neutral compact label',()=>
  assert.ok(content(tree).includes('Not confirmed'));
  assert.ok(content(header(h.render(props({status:'unknown'})))).includes('Status unavailable'));
 });
+
+// @lat: [[contracts#Hosted contract tests#Stage spans]]
+const lifecycle = JSON.parse(readFileSync(new URL('./fixtures/hosted-lifecycle-events.json', import.meta.url), 'utf8'));
+const rowsOf = (tree, text) => flatten(tree).filter(node => node.type === 'li' && content(node).includes(text));
+
+test('hosted native calls pair by call id, take their outcome and keep the recorded duration', () => {
+  const row = (index, stage, extra = {}) => ({ index, stage, detail: 'datumm_revit_get_rooms', tool: 'datumm_revit_get_rooms', callId: 'c', turnId: 't', ...extra });
+  const project = events => processActivity.processRows(events, false, false).map(r => [r.name, r.status, r.durationMs]);
+  assert.deepEqual(project([row(0, 'tool_start'), row(1, 'tool_returned', { outcome: 'succeeded', durationMs: 300 })]), [['get rooms', 'done', 300]]);
+  assert.deepEqual(project([row(0, 'tool_start'), row(1, 'tool_returned', { outcome: 'partial' })]), [['get rooms', 'partial', undefined]]);
+  assert.deepEqual(project([row(0, 'tool_start'), row(1, 'tool_stopped', { outcome: 'failed', durationMs: 20 })]), [['get rooms', 'failed', 20]]);
+  assert.deepEqual(project([row(0, 'tool_start')]), [['get rooms', 'unconfirmed', undefined]]);
+  assert.deepEqual(project([row(0, 'tool_start'), row(1, 'tool_returned', { durationMs: -1 })]), [['get rooms', 'done', undefined]]);
+  // A call the user stopped is stopped, not failed; an unknown outcome on a stop stays failed.
+  assert.deepEqual(project([row(0, 'tool_start'), row(1, 'tool_stopped', { outcome: 'stopped', durationMs: 40 })]), [['get rooms', 'cancelled', 40]]);
+  assert.deepEqual(project([row(0, 'tool_start'), row(1, 'tool_stopped')]), [['get rooms', 'failed', undefined]]);
+});
+
+test('specialist rows pair by activity id and take the job outcome', () => {
+  const row = (index, stage, extra = {}) => ({ index, stage, detail: 'Report preparer', agent: { id: 'report_preparer' }, activityId: 'j1', ...extra });
+  const project = events => processActivity.processRows(events, false, false).map(r => [r.status, r.durationMs]);
+  assert.deepEqual(project([row(0, 'specialist_started'), row(1, 'specialist_complete', { outcome: 'partial', durationMs: 9 })]), [['partial', 9]]);
+  assert.deepEqual(project([row(0, 'specialist_started'), row(1, 'specialist_complete')]), [['done', undefined]]);
+  assert.deepEqual(project([row(0, 'specialist_started')]), [['unconfirmed', undefined]]);
+  assert.deepEqual(project([row(1, 'specialist_complete', { outcome: 'failed' })]), [['failed', undefined]]);
+  // Without an activity id (old events) a completion is a plain done row, as before.
+  assert.deepEqual(project([row(0, 'specialist_complete', { activityId: undefined, outcome: undefined })]), [['done', undefined]]);
+  assert.equal(project([row(0, 'specialist_started'), row(1, 'specialist_complete'), row(2, 'specialist_complete')]).length, 3);
+});
+
+test('old hosted events keep every step Not confirmed and show no lifecycle detail', () => {
+  const tree = harness().render(props({ status: 'completed', events: lifecycle.old }));
+  const text = content(tree);
+  assert.ok(text.includes('Not confirmed'));
+  assert.ok(content(header(tree)).includes('Some work unconfirmed'));
+  assert.ok(!text.includes('Retried') && !/[0-9] s/.test(text) && !content(header(tree)).includes('Recorded work failed'));
+  assert.equal(rowsOf(tree, 'Report preparer').length, 1);
+});
+
+test('new hosted events show done, retried, timed native calls and each specialist once', () => {
+  const h = harness();
+  const tree = h.render(props({ status: 'completed', events: lifecycle.completed, specialists: [{ role: 'report_preparer', status: 'completed' }, { role: 'layout_critic', status: 'completed' }] }));
+  const text = content(tree);
+  assert.ok(!text.includes('Not confirmed') && !content(header(tree)).includes('unconfirmed'));
+  const [capture] = rowsOf(tree, 'Capture request'), [lookup] = rowsOf(tree, 'Look up evidence');
+  assert.equal(capture.props['data-status'], 'done');
+  assert.ok(content(capture).includes('0.9 s'));
+  assert.equal(lookup.props['data-status'], 'done');
+  assert.ok(content(lookup).includes('Retried once') && content(lookup).includes('2 s'));
+  assert.ok(!content(capture).includes('Retried'));
+  const [call] = rowsOf(tree, 'get rooms');
+  assert.ok(call && call.props['data-status'] === 'done' && content(call).includes('0.3 s'));
+  const [prep] = rowsOf(tree, 'Report preparer'), [critic] = rowsOf(tree, 'Layout critic');
+  assert.equal(rowsOf(tree, 'Report preparer:').length, 1);
+  assert.equal(prep.props['data-status'], 'done');
+  assert.equal(critic.props['data-status'], 'partial');
+  assert.ok(content(critic).includes('partial') && content(critic).includes('5 s'));
+  // The checkpoint copy of the job takes the paired row's status, never its own.
+  const nodes = flatten(tree).filter(node => node.props?.className === 'leaf' && content(node).includes('layout critic review'));
+  assert.ok(nodes.length && nodes.every(node => node.props['data-status'] === 'partial'));
+});
+
+test('two specialists run side by side while live', () => {
+  const tree = harness().render(props({ active: true, status: 'running', events: lifecycle.completed.filter(e => e.stage !== 'specialist_complete' && e.stage !== 'completed') }));
+  assert.deepEqual([rowsOf(tree, 'Report preparer')[0], rowsOf(tree, 'Layout critic')[0]].map(r => r.props['data-status']), ['running', 'running']);
+});
+
+test('a failed action and native call show Failed with durations and the header keeps the failure', () => {
+  const tree = harness().render(props({ status: 'failed', events: lifecycle.failed }));
+  const [action] = rowsOf(tree, 'Create design'), [call] = rowsOf(tree, 'get walls');
+  assert.equal(action.props['data-status'], 'failed');
+  assert.equal(call.props['data-status'], 'failed');
+  assert.ok(content(action).includes('0.9 s') && content(call).includes('0.4 s'));
+  assert.ok(content(header(tree)).includes('Recorded work failed'));
+});
+
+test('an open specialist settles to Not confirmed when the run is stopped', () => {
+  const tree = harness().render(props({ status: 'cancelled', events: lifecycle.stopped }));
+  const [job] = rowsOf(tree, 'Report preparer');
+  assert.equal(job.props['data-status'], 'unconfirmed');
+  assert.ok(content(job).includes('Not confirmed'));
+  assert.equal(rowsOf(tree, 'Create design')[0].props['data-status'], 'cancelled');
+});
+
+test('a native call the user stopped shows Stopped and never Recorded work failed', () => {
+  const tree = harness().render(props({ status: 'cancelled', events: lifecycle.stopped }));
+  const [call] = rowsOf(tree, 'get walls');
+  assert.equal(call.props['data-status'], 'cancelled');
+  assert.ok(!content(call).includes('failed'));
+  assert.ok(content(header(tree)).startsWith('Stopped'));
+  assert.ok(!content(header(tree)).includes('Recorded work failed'));
+});
+
+test('a read retry that succeeds reads Completed while the failed attempt stays visible', () => {
+  const tree = harness().render(props({ status: 'completed', events: lifecycle.completed }));
+  assert.ok(!content(header(tree)).includes('Recorded work failed'));
+  assert.deepEqual(rowsOf(tree, 'get model views').map(row => row.props['data-status']), ['failed', 'done']);
+  // The same failed call without the action's retry still fails the turn.
+  const unretried = lifecycle.completed.filter(event => !event.stage.startsWith('read_retry'));
+  assert.ok(content(header(harness().render(props({ status: 'completed', events: unretried })))).includes('Recorded work failed'));
+});
+
+test('a schema repair that continues is skipped, not a failure', () => {
+  const tree = harness().render(props({ status: 'completed', events: lifecycle.repaired }));
+  assert.deepEqual(rowsOf(tree, 'Attempt ').map(row => row.props['data-status']), ['skipped', 'done']);
+  assert.ok(!content(header(tree)).includes('Recorded work failed'));
+});
+
+test('old relay tool events without a call id render exactly as before N3', () => {
+  assert.deepEqual(processActivity.processRows(lifecycle.old_relay, false, false), []);
+  // Recorded from the pre-N3 renderer (HEAD) on this fixture.
+  for (const [status, label] of [['completed', 'Completed'], ['cancelled', 'Stopped']]) {
+    const tree = harness().render(props({ status, events: lifecycle.old_relay }));
+    assert.equal(content(header(tree)), `${label} · Some work unconfirmedinspect model`);
+    assert.deepEqual(flatten(tree).filter(node => node.type === 'li').map(row => [row.props['data-status'], content(row)]), [['unconfirmed', 'inspect modelNot confirmed']]);
+  }
+});
+
+test('a needs_input pause stays waiting even when its outcome is failed, and a later attempt completes', () => {
+  const scope = { taskId: 'task-1', turnId: 'turn-1', executionId: 'execution-1' };
+  const phase = (n, activityId, complete) => [event(n, 'agent_stage_start', { ...scope, detail: 'Planning the next step' }), event(n + 1, 'agent_action', { ...scope, activityId, detail: 'create_design' }), event(n + 2, 'agent_stage_complete', { ...scope, activityId, ...complete })];
+  const tree = harness().render(props({ status: 'completed', events: [...phase(1, 'a1', { controlOutcome: 'needs_input', outcome: 'failed', durationMs: 500 }), ...phase(4, 'a2', { controlOutcome: 'continue', outcome: 'succeeded', durationMs: 700 })] }));
+  const attempts = rowsOf(tree, 'Attempt ');
+  assert.deepEqual(attempts.map(r => r.props['data-status']), ['waiting', 'done']);
+  assert.ok(content(attempts[0]).includes('0.5 s') && content(attempts[1]).includes('0.7 s'));
+});

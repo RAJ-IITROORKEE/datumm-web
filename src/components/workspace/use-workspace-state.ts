@@ -440,7 +440,7 @@ const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacem
   const result=store.confirm(key,text,revision);
   if(promptDrafts.current===store&&draftOwner.current.source===key){setDraftSaveStatus(result);if(promptValue.current===text)displayPrompt(store.get(key));}
  };
- const recoverLiveView=(taskId?:string)=>{const epoch=recoveryEpoch.current;setError('');setConnectionNotice('Checking the saved task after the live stream ended…');if(taskId)void api<Run>('tasks/'+encodeURIComponent(taskId)).then(task=>{if(recoveryEpoch.current===epoch){setRun(task);setConnectionNotice(savedTaskConnectionNotice(task));}}).catch(()=>{if(recoveryEpoch.current===epoch)setConnectionNotice('Saved task updates are unavailable. Check the connection before retrying; this message was already admitted.');});};
+ const recoverLiveView=(taskId?:string,code?:string)=>{const epoch=recoveryEpoch.current;setError('');setConnectionNotice(code&&code!=='DATUMM_STREAM_INTERRUPTED'?'Checking the saved task after the run stopped or paused…':'Checking the saved task after the live stream ended…');if(taskId)void api<Run>('tasks/'+encodeURIComponent(taskId)).then(task=>{if(recoveryEpoch.current===epoch){setRun(task);setConnectionNotice(savedTaskConnectionNotice(task));}}).catch(()=>{if(recoveryEpoch.current===epoch)setConnectionNotice('Saved task updates are unavailable. Check the connection before retrying; this message was already admitted.');});};
  // History rows are a useful immediate preview, not an authoritative task read.
  const refreshSelectedTask=async(taskId:string,epoch=recoveryEpoch.current)=>{
   try{const value=await api<Run>('tasks/'+encodeURIComponent(taskId));if(epoch===recoveryEpoch.current&&value.id===taskId)setRun(value);}
@@ -602,7 +602,7 @@ const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacem
   if(pending&&!pending.runStarted){setPrompt(current=>current||pending.text);if(!currentRun.current)dropOptimistic(pending.text);}
   pendingSubmission.current=null;setAdmissionPending(false);
   if(pending?.runStarted){
-   recoverLiveView(pending.taskId||currentRun.current?.id);return;
+   recoverLiveView(pending.taskId||currentRun.current?.id,(chatError as {code?:string}).code);return;
   }
   const failure=chatStartFailure(chatError);
   if(failure){

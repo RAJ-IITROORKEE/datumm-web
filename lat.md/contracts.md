@@ -44,6 +44,8 @@ Process events carrying a parent step and an agent nest step, agent, tool calls;
 
 Hosted stage events group into flat steps: each stage start to complete span is a step, and its actions, research and lookups are child rows. See `stageSpans` in `src/lib/turn-nesting.mjs`.
 
+A hosted step's status comes from the completion's `outcome` when present (succeeded is done, failed is failed, skipped is skipped, stopped is stopped), and `controlOutcome` `needs_input` still means waiting; `controlOutcome` is a routing value and never a result. Its `durationMs` and the retry events that carry the action's `activityId` ride on the step. Hosted tool and specialist events pair by `callId` and `activityId` and take their own `outcome` and `durationMs`; a call the user stopped is stopped, not failed. Relay tool events without a `callId` are not tool rows. A failed call inside a step that retried and then succeeded stays visible but does not mark the turn "Recorded work failed"; neither does a skipped or stopped step. Events without `outcome` keep the older rule, so old hosted steps stay "Not confirmed".
+
 ## Step notes
 
 A hosted step is titled by the first progress note inside its stage span (80 characters) and summarised by its last note; the running line shows the latest note, else the latest step title. See `latestNote` in `src/lib/turn-nesting.mjs`.

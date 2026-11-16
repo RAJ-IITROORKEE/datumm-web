@@ -63,7 +63,7 @@ export class AguiChatTransport implements ChatTransport<UIMessage> {
           if (!parsed.success) throw new Error('Invalid activity stream. Check the saved task before retrying.');
           const event = parsed.data;
           if (finished) throw new Error('Activity arrived after the run ended.');
-          if (event.type === EventType.RUN_ERROR) throw new Error(event.message);
+          if (event.type === EventType.RUN_ERROR) throw Object.assign(new Error(event.message), { code: event.code });
           if (event.type === EventType.RUN_STARTED) {
             if (started || event.runId !== input.runId || event.threadId !== input.threadId || event.protocolVersion !== PROTOCOL_VERSION) throw new Error('The activity stream did not match this request.');
             started = true; emit({ type: 'start', messageId: event.runId }); return output;
