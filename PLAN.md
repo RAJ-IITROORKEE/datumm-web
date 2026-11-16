@@ -25,7 +25,7 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | A3 | Admin: model registry | Done 17 Nov (local, not pushed) | [Packet](docs/ux/a3-admin-model-registry.md) |
 | U1 | Next.js security upgrade (16.4.3 to 16.4.6) | Done 17 Nov (local, not pushed); `next` pinned at 16.4.6, 5 of 5 builds exit 0 | [Packet](docs/ux/u1-nextjs-security-upgrade.md) |
 | G1 | Go-live: backend on AWS, web on Vercel | Plan approved 17 Nov with all recommended options (D1 to D12); nothing pushed or deployed. Each push, merge, deploy and AWS step needs its own approval; AWS steps are run by the user (D8 option A). [AWS checks runbook](docs/ux/g1-aws-checks.md) prepared, not yet run | [Go-live plan](docs/ux/g1-go-live-plan.md) |
-| H0 | Harness decision: keep the LangGraph backend, port Panda-agent features | Proposed 17 Nov, awaiting approval (H1 to H4) | [Decision](docs/ux/harness-decision-2026-11-17.md) |
+| H0 | Harness decision: keep the LangGraph backend, port Panda-agent features | Approved 17 Nov (H1 to H4, recommended options) | [Decision](docs/ux/harness-decision-2026-11-17.md) |
 | UI1 | Composer and sidebar: model picker, context-window meter, sidebar groups and Ctrl K | Proposed (after H0) | Decision §5 |
 | T1 | Tavily web search with DATUMM's own key | Proposed (after H0) | Decision §5 |
 | A4a | Admin: tools and skills registry | Proposed (after H0) | Decision §5 |

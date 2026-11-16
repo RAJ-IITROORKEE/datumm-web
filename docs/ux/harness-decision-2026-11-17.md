@@ -1,6 +1,6 @@
 # Harness decision and revised plan (17 November 2026)
 
-Status: **proposed, awaiting user approval.** Research: two read-only Opus agents on 17 Nov; the
+Status: **approved by the user on 17 Nov ("Approve all": H1 to H4, every recommended option).** Research: two read-only Opus agents on 17 Nov; the
 orchestrator re-checked the load-bearing claims in source (marked ✔). Nothing was changed in code.
 
 ## 1. The question
