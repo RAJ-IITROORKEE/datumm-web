@@ -1,4 +1,27 @@
-# Implementation review — 12 November 2026
+# Current migration implementation review — 13 November 2026
+
+M0–M8 source migration is implemented on `codex/ui-ux-foundation-2026-11-12`; M9 qualification is open. The actual application uses affectUI colors/Inter, 22 pinned MIT vendor components and independently reconstructed Pro previews. Option A keeps stable navigation/chat/composer/canvas beside the larger Design / Activity / Assets / Exports work area. The latest exact Assistant Home sidebar and two-layer input refinement is implemented. See [current checkpoints](implementation-checkpoints.md), [reference measurements](affectui-reference-contract.md), [work-area](work-area-contracts.md), [adapter/caller boundaries](affectui-adapter-contracts.md) and [vendor hashes/provenance](../../src/components/vendor/affectui/PROVENANCE.md).
+
+Actual browser checks passed search/focus, mode changes with retained drafts, Add/model/account menus, Settings heading/return focus and 390px keyboard/navigation with no horizontal overflow. Real Google sign-in and approved BIM coordination / management, 2D/3D review, annotation and BOQ profile persistence passed; reload resumed the optional connector step, Skip reached the workspace and another reload returned there. Browser-found profile PUT whitelist, empty secondary-tab navigation, canvas flex collapse, Radix portal child and Settings/navigation focus issues were corrected. Baseline dirty audit fixes remain preserved.
+
+Final checks pass: **289/289 tests**, **production build**, **standalone TypeScript** and **13/13 production runtime checks**, including production `/dev/ux` 404. Independent Sol review has no required source findings. The temporary port-3100 production server was stopped; development port 3000 remains available. Actual-route final captures are ignored `artifacts/ux/final-home-exact.png` (1323px) and `artifacts/ux/final-home-phone.png` (390px). This document records the integrator's evidence and scoped reviews; the hosted 401 still prevents full connected/native qualification.
+
+Existing AWS public health returns 200 (`v0.5.0-alpha.16-r1`), but authenticated config/devices/history return 401, “Session expired or unauthorized.” Only ignored local `ORCHESTRATOR_URL` changed from retired Azure to that existing origin. The deployed cause remains unqualified; backend auth stays intact. Hosted streaming/reconnect/task acceptance, native execution/read-back, immutable D9 BOQ history and paid billing remain open. Free is current; planned Pro $20/month and Max $99/month actions remain disabled. Further Revit reconstruction awaits the user's screenshot. No device/native approval, payment, merge, push or deployment occurred.
+
+## Historical early M0–M7 review — superseded
+
+The bullets below preserve the initial package results. Their active/pending statements and counts are historical; use the current summary for present status.
+
+- M0 preserved the pre-existing dirty patch/tests and confirmed168/168 baseline tests plus all24 source hashes. M1 imported22 MIT sources and changed actual global appearance/wrappers, with194/194 tests, production build and standalone TypeScript passing before later packages.
+- Independent M1 source review found icon/text label stacking and unconstrained portalled menu scrolling. Both were repaired in vendor Button/Badge/Menu CSS and hashes refreshed. Installed Clerk appearance API names were corrected after the initial build type error; the subsequent build passed.
+- M2's32 focused tests cover all seven safe configuration callers, each partial/missing configuration, actual unavailable entry and account recovery. Real localhost Google sign-in opens onboarding. Blank-domain validation marks/focuses the actual domain field and does not save choices. Actual profile save/resume remains pending the user's test preferences.
+- M4's13 focused tests cover loaded-record search, actual mutation recovery, account boundaries and keyboard/focus/IME behavior. Browser comparison remains pending shell integration.
+- M7's43 focused tests pass. Actual pricing heading and prices use24px/32px/500, cards20px/radius12 and328px width at1280px. Shared details collapse all three regions; paid controls are disabled. Actual390px viewport has348px stacked cards/no horizontal overflow. Correct screenshot uses the browser viewport capability; the first mismatched CDP raster is excluded. Actual onboarding form/checklist measure600px/248px with22px/30px/500 heading.
+- Root's first four M6 vendor semantic cases passed as part of15 activity tests before caller integration: exact string/structured payload preservation, extended neutral statuses/no recorded stopwatch, actual awaited copy and obsolete text/disabled/unmount rejection. M6 caller work and broad revalidation remain active.
+
+Evidence: ignored artifacts/ux/m0-*.json, m1-{tests,typecheck,build}.log, m7-pricing-{desktop,phone}.jpg and m7-real-onboarding-desktop.jpg. Tests, actual browser behavior, reference fidelity, connected-service acceptance and native qualification remain separate. No native/device approval or payment occurred.
+
+# Historical implementation review — 12 November 2026
 
 Disposition: **ship for the scoped local UI slice, subject to the integrator's final checks**. Both reported regressions are resolved in source, with focused test and browser evidence recorded below. This is a review of the working tree, not merge, deployment or production authorization. The subsequently requested pricing section received the separate scoped review below.
 

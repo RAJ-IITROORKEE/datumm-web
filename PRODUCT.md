@@ -32,7 +32,8 @@ The web workspace can be used before connecting Revit. Onboarding explicitly all
 - Ask / Plan / Build through one composer with selected room/view context.
 - Compact agent activity with expandable details grounded in real execution.
 - First viewer release supports review and annotation; edits are agent-driven.
-- Structured reports, tables with CSV export and Mermaid diagrams; large outputs open beside chat.
+- Revit drawings/model views, structured reports and tables with CSV export; large outputs open beside chat. Mermaid is optional for explicitly requested diagrams, not a default answer format.
+- Minimal conversation: compact public progress, a brief completion result and useful next steps, with a clear clarification panel. M6 uses concise answers with full-result access, grouped questions and draft-only suggestions; implementation and backend rollout limits are recorded in docs/ux/minimal-revit-chat.md.
 - Reviewable schedules and BOQs from designs or Revit exports. The agent updates them; spreadsheet formulas and direct cell editing are outside this release.
 - First-run onboarding: Google sign-in, name and professional domain, multiple use cases, optional Revit connector download/connection with Skip for now, then the workspace.
 - Keep native execution approval explicit and bound to the reviewed proposal.

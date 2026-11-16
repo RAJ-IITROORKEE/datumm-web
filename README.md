@@ -6,6 +6,12 @@ DATUMM's Studio interface for the browser, backed by the existing hosted DATUMM 
 
 Copy `.env.example` to an ignored `.env.local`, configure the existing Clerk instance and HTTPS orchestrator origin, then run `npm ci`, `npm run dev`. Validate with `npm test`, `npm run typecheck`, `npm run build`, and `lat check`.
 
+Development defaults to `http://localhost:3001`, an origin currently authorized by the hosted service. Open that exact origin: `http://localhost:3000` is not currently authorized and authenticated service requests will return 401. If port 3001 is occupied, free it or use an origin already authorized by the service; changing the port alone does not authorize that origin.
+
+Both Clerk keys must be nonblank before the account provider, sign-in or setup can open. Missing or partial configuration shows “Account sign-in is unavailable”; it never opens an anonymous workspace. The server derives only safe configuration reasons. These presence checks do not establish credential health.
+
+The task service is configured separately: `ORCHESTRATOR_URL` must be an HTTPS root origin without credentials, query or fragment. A configured origin is not a reachability check. Account profile/setup remains available when the task service is unavailable. Configure the exact web origin with the existing Clerk/service allowlists; never widen those allowlists for local testing. Keep real values in ignored environment files or the deployment secret store, then restart development after changes.
+
 After starting the production build with `npm start`, run `npm run check:runtime` for anonymous browser/API boundary checks. A different running origin can be passed after `--`. These checks do not prove authenticated backend or live Revit acceptance.
 
 ## Code map

@@ -1,376 +1,186 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-12T16:19:29.236032Z",
+  "generatedAt": "2026-11-12T20:32:34.730Z",
   "title": "Design System: DATUMM",
   "extensions": {
     "colorMeta": {
-      "background-dark": {
+      "page-dark": {
         "role": "neutral",
-        "displayName": "background dark",
-        "tonalRamp": [
-          "oklch(15.00% 0.0014 286.09)",
-          "oklch(26.43% 0.0025 286.09)",
-          "oklch(37.86% 0.0036 286.09)",
-          "oklch(49.29% 0.0038 286.09)",
-          "oklch(60.71% 0.0038 286.09)",
-          "oklch(72.14% 0.0036 286.09)",
-          "oklch(83.57% 0.0021 286.09)",
-          "oklch(95.00% 0.0006 286.09)"
-        ]
+        "displayName": "page dark"
       },
-      "card-dark": {
+      "panel-dark": {
         "role": "neutral",
-        "displayName": "card dark",
-        "tonalRamp": [
-          "oklch(15.00% 0.0021 285.97)",
-          "oklch(26.43% 0.0037 285.97)",
-          "oklch(37.86% 0.0054 285.97)",
-          "oklch(49.29% 0.0057 285.97)",
-          "oklch(60.71% 0.0057 285.97)",
-          "oklch(72.14% 0.0053 285.97)",
-          "oklch(83.57% 0.0031 285.97)",
-          "oklch(95.00% 0.0009 285.97)"
-        ]
+        "displayName": "panel dark"
       },
-      "secondary-dark": {
+      "tray-dark": {
         "role": "neutral",
-        "displayName": "secondary dark",
-        "tonalRamp": [
-          "oklch(15.00% 0.0014 286.15)",
-          "oklch(26.43% 0.0024 286.15)",
-          "oklch(37.86% 0.0035 286.15)",
-          "oklch(49.29% 0.0037 286.15)",
-          "oklch(60.71% 0.0037 286.15)",
-          "oklch(72.14% 0.0034 286.15)",
-          "oklch(83.57% 0.0020 286.15)",
-          "oklch(95.00% 0.0006 286.15)"
-        ]
+        "displayName": "tray dark"
       },
-      "foreground-dark": {
+      "composer-dark": {
         "role": "neutral",
-        "displayName": "foreground dark",
-        "tonalRamp": [
-          "oklch(15.00% 0.0005 286.37)",
-          "oklch(26.43% 0.0009 286.37)",
-          "oklch(37.86% 0.0013 286.37)",
-          "oklch(49.29% 0.0013 286.37)",
-          "oklch(60.71% 0.0013 286.37)",
-          "oklch(72.14% 0.0012 286.37)",
-          "oklch(83.57% 0.0007 286.37)",
-          "oklch(95.00% 0.0002 286.37)"
-        ]
+        "displayName": "composer dark"
       },
-      "muted-foreground-dark": {
+      "ink-dark": {
         "role": "neutral",
-        "displayName": "muted foreground dark",
-        "tonalRamp": [
-          "oklch(15.00% 0.0027 286.22)",
-          "oklch(26.43% 0.0047 286.22)",
-          "oklch(37.86% 0.0068 286.22)",
-          "oklch(49.29% 0.0072 286.22)",
-          "oklch(60.71% 0.0072 286.22)",
-          "oklch(72.14% 0.0067 286.22)",
-          "oklch(83.57% 0.0039 286.22)",
-          "oklch(95.00% 0.0012 286.22)"
-        ]
+        "displayName": "ink dark"
       },
-      "separator-dark": {
+      "text-dark": {
         "role": "neutral",
-        "displayName": "separator dark",
-        "tonalRamp": [
-          "oklch(15.00% 0.0013 286.23)",
-          "oklch(26.43% 0.0023 286.23)",
-          "oklch(37.86% 0.0032 286.23)",
-          "oklch(49.29% 0.0034 286.23)",
-          "oklch(60.71% 0.0034 286.23)",
-          "oklch(72.14% 0.0032 286.23)",
-          "oklch(83.57% 0.0019 286.23)",
-          "oklch(95.00% 0.0006 286.23)"
-        ]
+        "displayName": "text dark"
       },
-      "control-border-dark": {
+      "muted-dark": {
         "role": "neutral",
-        "displayName": "control border dark",
-        "tonalRamp": [
-          "oklch(15.00% 0.0006 286.35)",
-          "oklch(26.43% 0.0010 286.35)",
-          "oklch(37.86% 0.0015 286.35)",
-          "oklch(49.29% 0.0015 286.35)",
-          "oklch(60.71% 0.0015 286.35)",
-          "oklch(72.14% 0.0014 286.35)",
-          "oklch(83.57% 0.0008 286.35)",
-          "oklch(95.00% 0.0003 286.35)"
-        ]
+        "displayName": "muted dark"
+      },
+      "faint-dark": {
+        "role": "neutral",
+        "displayName": "faint dark"
+      },
+      "line-dark": {
+        "role": "neutral",
+        "displayName": "line dark"
+      },
+      "line-strong-dark": {
+        "role": "neutral",
+        "displayName": "line-strong dark"
       },
       "accent-dark": {
-        "role": "primary",
-        "displayName": "accent dark",
-        "tonalRamp": [
-          "oklch(15.00% 0.0545 245.96)",
-          "oklch(26.43% 0.0960 245.96)",
-          "oklch(37.86% 0.1376 245.96)",
-          "oklch(49.29% 0.1453 245.96)",
-          "oklch(60.71% 0.1453 245.96)",
-          "oklch(72.14% 0.1350 245.96)",
-          "oklch(83.57% 0.0796 245.96)",
-          "oklch(95.00% 0.0242 245.96)"
-        ]
+        "role": "neutral",
+        "displayName": "accent dark"
       },
-      "warning-dark": {
-        "role": "semantic",
-        "displayName": "warning dark",
-        "tonalRamp": [
-          "oklch(15.00% 0.0509 67.56)",
-          "oklch(26.43% 0.0896 67.56)",
-          "oklch(37.86% 0.1284 67.56)",
-          "oklch(49.29% 0.1356 67.56)",
-          "oklch(60.71% 0.1356 67.56)",
-          "oklch(72.14% 0.1259 67.56)",
-          "oklch(83.57% 0.0743 67.56)",
-          "oklch(95.00% 0.0226 67.56)"
-        ]
+      "primary-dark": {
+        "role": "neutral",
+        "displayName": "primary dark"
       },
-      "error-dark": {
-        "role": "semantic",
-        "displayName": "error dark",
-        "tonalRamp": [
-          "oklch(15.00% 0.0543 29.02)",
-          "oklch(26.43% 0.0957 29.02)",
-          "oklch(37.86% 0.1370 29.02)",
-          "oklch(49.29% 0.1448 29.02)",
-          "oklch(60.71% 0.1448 29.02)",
-          "oklch(72.14% 0.1344 29.02)",
-          "oklch(83.57% 0.0793 29.02)",
-          "oklch(95.00% 0.0241 29.02)"
-        ]
+      "primary-fg-dark": {
+        "role": "neutral",
+        "displayName": "primary-fg dark"
       },
       "success-dark": {
-        "role": "semantic",
-        "displayName": "success dark",
-        "tonalRamp": [
-          "oklch(15.00% 0.0399 157.17)",
-          "oklch(26.43% 0.0703 157.17)",
-          "oklch(37.86% 0.1007 157.17)",
-          "oklch(49.29% 0.1064 157.17)",
-          "oklch(60.71% 0.1064 157.17)",
-          "oklch(72.14% 0.0988 157.17)",
-          "oklch(83.57% 0.0583 157.17)",
-          "oklch(95.00% 0.0177 157.17)"
-        ]
-      },
-      "background-light": {
         "role": "neutral",
-        "displayName": "background light",
-        "tonalRamp": [
-          "oklch(15.00% 0.0000 89.88)",
-          "oklch(26.43% 0.0000 89.88)",
-          "oklch(37.86% 0.0000 89.88)",
-          "oklch(49.29% 0.0000 89.88)",
-          "oklch(60.71% 0.0000 89.88)",
-          "oklch(72.14% 0.0000 89.88)",
-          "oklch(83.57% 0.0000 89.88)",
-          "oklch(95.00% 0.0000 89.88)"
-        ]
+        "displayName": "success dark"
       },
-      "secondary-light": {
+      "warning-dark": {
         "role": "neutral",
-        "displayName": "secondary light",
-        "tonalRamp": [
-          "oklch(15.00% 0.0000 89.88)",
-          "oklch(26.43% 0.0000 89.88)",
-          "oklch(37.86% 0.0000 89.88)",
-          "oklch(49.29% 0.0000 89.88)",
-          "oklch(60.71% 0.0000 89.88)",
-          "oklch(72.14% 0.0000 89.88)",
-          "oklch(83.57% 0.0000 89.88)",
-          "oklch(95.00% 0.0000 89.88)"
-        ]
+        "displayName": "warning dark"
       },
-      "foreground-light": {
+      "danger-dark": {
         "role": "neutral",
-        "displayName": "foreground light",
-        "tonalRamp": [
-          "oklch(15.00% 0.0000 89.88)",
-          "oklch(26.43% 0.0000 89.88)",
-          "oklch(37.86% 0.0000 89.88)",
-          "oklch(49.29% 0.0000 89.88)",
-          "oklch(60.71% 0.0000 89.88)",
-          "oklch(72.14% 0.0000 89.88)",
-          "oklch(83.57% 0.0000 89.88)",
-          "oklch(95.00% 0.0000 89.88)"
-        ]
+        "displayName": "danger dark"
       },
-      "muted-foreground-light": {
+      "page-light": {
         "role": "neutral",
-        "displayName": "muted foreground light",
-        "tonalRamp": [
-          "oklch(15.00% 0.0000 89.88)",
-          "oklch(26.43% 0.0000 89.88)",
-          "oklch(37.86% 0.0000 89.88)",
-          "oklch(49.29% 0.0000 89.88)",
-          "oklch(60.71% 0.0000 89.88)",
-          "oklch(72.14% 0.0000 89.88)",
-          "oklch(83.57% 0.0000 89.88)",
-          "oklch(95.00% 0.0000 89.88)"
-        ]
+        "displayName": "page light"
       },
-      "separator-light": {
+      "panel-light": {
         "role": "neutral",
-        "displayName": "separator light",
-        "tonalRamp": [
-          "oklch(15.00% 0.0000 89.88)",
-          "oklch(26.43% 0.0000 89.88)",
-          "oklch(37.86% 0.0000 89.88)",
-          "oklch(49.29% 0.0000 89.88)",
-          "oklch(60.71% 0.0000 89.88)",
-          "oklch(72.14% 0.0000 89.88)",
-          "oklch(83.57% 0.0000 89.88)",
-          "oklch(95.00% 0.0000 89.88)"
-        ]
+        "displayName": "panel light"
       },
-      "control-border-light": {
+      "tray-light": {
         "role": "neutral",
-        "displayName": "control border light",
-        "tonalRamp": [
-          "oklch(15.00% 0.0000 89.88)",
-          "oklch(26.43% 0.0000 89.88)",
-          "oklch(37.86% 0.0000 89.88)",
-          "oklch(49.29% 0.0000 89.88)",
-          "oklch(60.71% 0.0000 89.88)",
-          "oklch(72.14% 0.0000 89.88)",
-          "oklch(83.57% 0.0000 89.88)",
-          "oklch(95.00% 0.0000 89.88)"
-        ]
+        "displayName": "tray light"
+      },
+      "composer-light": {
+        "role": "neutral",
+        "displayName": "composer light"
+      },
+      "ink-light": {
+        "role": "neutral",
+        "displayName": "ink light"
+      },
+      "text-light": {
+        "role": "neutral",
+        "displayName": "text light"
+      },
+      "muted-light": {
+        "role": "neutral",
+        "displayName": "muted light"
+      },
+      "faint-light": {
+        "role": "neutral",
+        "displayName": "faint light"
+      },
+      "line-light": {
+        "role": "neutral",
+        "displayName": "line light"
+      },
+      "line-strong-light": {
+        "role": "neutral",
+        "displayName": "line-strong light"
       },
       "accent-light": {
-        "role": "primary",
-        "displayName": "accent light",
-        "tonalRamp": [
-          "oklch(15.00% 0.0668 254.44)",
-          "oklch(26.43% 0.1177 254.44)",
-          "oklch(37.86% 0.1686 254.44)",
-          "oklch(49.29% 0.1781 254.44)",
-          "oklch(60.71% 0.1781 254.44)",
-          "oklch(72.14% 0.1654 254.44)",
-          "oklch(83.57% 0.0975 254.44)",
-          "oklch(95.00% 0.0297 254.44)"
-        ]
+        "role": "neutral",
+        "displayName": "accent light"
       },
-      "warning-light": {
-        "role": "semantic",
-        "displayName": "warning light",
-        "tonalRamp": [
-          "oklch(15.00% 0.0508 57.22)",
-          "oklch(26.43% 0.0894 57.22)",
-          "oklch(37.86% 0.1281 57.22)",
-          "oklch(49.29% 0.1354 57.22)",
-          "oklch(60.71% 0.1354 57.22)",
-          "oklch(72.14% 0.1257 57.22)",
-          "oklch(83.57% 0.0741 57.22)",
-          "oklch(95.00% 0.0226 57.22)"
-        ]
+      "primary-light": {
+        "role": "neutral",
+        "displayName": "primary light"
       },
-      "error-light": {
-        "role": "semantic",
-        "displayName": "error light",
-        "tonalRamp": [
-          "oklch(15.00% 0.0705 34.24)",
-          "oklch(26.43% 0.1242 34.24)",
-          "oklch(37.86% 0.1779 34.24)",
-          "oklch(49.29% 0.1879 34.24)",
-          "oklch(60.71% 0.1879 34.24)",
-          "oklch(72.14% 0.1745 34.24)",
-          "oklch(83.57% 0.1029 34.24)",
-          "oklch(95.00% 0.0313 34.24)"
-        ]
+      "primary-fg-light": {
+        "role": "neutral",
+        "displayName": "primary-fg light"
       },
       "success-light": {
-        "role": "semantic",
-        "displayName": "success light",
-        "tonalRamp": [
-          "oklch(15.00% 0.0470 153.68)",
-          "oklch(26.43% 0.0828 153.68)",
-          "oklch(37.86% 0.1187 153.68)",
-          "oklch(49.29% 0.1254 153.68)",
-          "oklch(60.71% 0.1254 153.68)",
-          "oklch(72.14% 0.1164 153.68)",
-          "oklch(83.57% 0.0687 153.68)",
-          "oklch(95.00% 0.0209 153.68)"
-        ]
+        "role": "neutral",
+        "displayName": "success light"
+      },
+      "warning-light": {
+        "role": "neutral",
+        "displayName": "warning light"
+      },
+      "danger-light": {
+        "role": "neutral",
+        "displayName": "danger light"
       }
     },
     "typographyMeta": {
       "body": {
-        "displayName": "Body",
-        "purpose": "Global interface foundation."
+        "displayName": "body",
+        "purpose": "Implemented 13px/20px."
       },
-      "chat-body": {
-        "displayName": "Chat body",
-        "purpose": "Scoped workspace Markdown."
+      "answer": {
+        "displayName": "answer",
+        "purpose": "Implemented 14px/22.4px."
       },
-      "workspace-title": {
-        "displayName": "Workspace title",
-        "purpose": "Compact work-area heading."
+      "home-title": {
+        "displayName": "home-title",
+        "purpose": "Implemented 28px/34px."
+      },
+      "home-title-narrow": {
+        "displayName": "home-title-narrow",
+        "purpose": "Implemented 23px/29px."
+      },
+      "settings-title": {
+        "displayName": "settings-title",
+        "purpose": "Implemented 24px/32px."
+      },
+      "section-title": {
+        "displayName": "section-title",
+        "purpose": "Implemented 14px/20px."
       },
       "label": {
-        "displayName": "Label",
-        "purpose": "Compact mode controls."
+        "displayName": "label",
+        "purpose": "Implemented 13px/20px."
       },
-      "mono": {
-        "displayName": "Mono",
-        "purpose": "Code and numeric context; system fallbacks only."
-      },
-      "pricing-heading": {
-        "displayName": "Pricing heading",
-        "purpose": "Centered public introduction, fluid 28–32px; fixed 32px at viewport widths up to 800px."
-      },
-      "pricing-heading-embedded": {
-        "displayName": "Embedded pricing heading",
-        "purpose": "Left-aligned settings introduction."
-      },
-      "pricing-description": {
-        "displayName": "Pricing introduction",
-        "purpose": "Public introduction; 14px on narrow viewports and 13px when embedded."
-      },
-      "pricing-plan-title": {
-        "displayName": "Plan title",
-        "purpose": "Public card heading; 16px when embedded."
+      "metadata": {
+        "displayName": "metadata",
+        "purpose": "Implemented 12px/16px."
       },
       "pricing-price": {
-        "displayName": "Price amount",
-        "purpose": "Public desktop amount with tabular numerals."
-      },
-      "pricing-price-embedded": {
-        "displayName": "Embedded price amount",
-        "purpose": "Settings amount; retains 34px through the container rule."
-      },
-      "pricing-price-stacked": {
-        "displayName": "Stacked public price amount",
-        "purpose": "Public amount when component container is at most 680px."
-      },
-      "pricing-metadata": {
-        "displayName": "Pricing metadata",
-        "purpose": "Badges, usage rows and price notes; details and action labels use 12px."
-      },
-      "review-title": {
-        "displayName": "Review title",
-        "purpose": "Current task, design and native review panel headings."
-      },
-      "review-body": {
-        "displayName": "Review body",
-        "purpose": "Compact facts, action and evidence context in review panels."
+        "displayName": "pricing-price",
+        "purpose": "Implemented 24px/32px."
       }
     },
     "shadows": [
       {
-        "name": "inspector-overlay",
-        "value": "-8px 0 28px #0002",
-        "purpose": "Lateral workspace inspector."
+        "name": "composer-dark",
+        "value": "rgba(255, 255, 255, 0.1) 0px 0px 0px 0.5px, rgba(0, 0, 0, 0.4) 0px 1px 2px 0px",
+        "purpose": "Measured composer shadow."
       },
       {
-        "name": "composer-focus",
-        "value": "0 0 0 3px color-mix(in srgb,var(--trace-accent) 12%,transparent)",
-        "purpose": "Existing focus-within halo; composer is flat at rest."
+        "name": "composer-light",
+        "value": "rgba(0, 0, 0, 0.06) 0px 0px 0px 0.5px, rgba(0, 0, 0, 0.1) 0px 1px 1px -1px, rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
+        "purpose": "Measured light composer shadow."
       }
     ],
     "motion": [
@@ -425,93 +235,39 @@
       "name": "Primary action",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Inverse neutral onboarding action.",
-      "html": "<button class=\"ds-primary\">Continue</button>",
-      "css": ".ds-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:8px;min-height:39px;padding:9px 15px;font-size:13px;font-weight:550;text-decoration:none;cursor:pointer;transition:background .15s ease,color .15s ease;border:1px solid transparent;font-family:var(--font-sans,'Inter Variable',Inter,ui-sans-serif,system-ui,sans-serif);background:var(--foreground,#e8e8e9);color:var(--background,#1c1c1e)}.ds-primary:hover:not(:disabled){opacity:.86}.ds-primary:focus-visible{outline:2px solid var(--ring,var(--trace-accent,#4fb0fe));outline-offset:3px}.ds-primary:disabled{opacity:.45;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-primary,.ds-secondary,.ds-choice{transition:none}}"
+      "description": "Implemented role preview; behavior belongs to production owners.",
+      "html": "<button class=\"datum-preview\">Continue</button>",
+      "css": ".datum-preview{font:400 13px/20px \"Inter Variable\",Inter,sans-serif;background:var(--primary,#ededed);color:var(--primary-fg,#121213);border:1px solid var(--line,rgba(255,255,255,.08));border-radius:6px;padding:8px 12px}.datum-preview:focus-visible{outline:2px solid var(--ui-as-focus,#4fb0fe);outline-offset:2px}"
     },
     {
-      "name": "Secondary action",
-      "kind": "button",
-      "refersTo": "button-secondary",
-      "description": "Bordered neutral onboarding action.",
-      "html": "<button class=\"ds-secondary\">Back</button>",
-      "css": ".ds-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:8px;min-height:39px;padding:9px 15px;font-size:13px;font-weight:550;text-decoration:none;cursor:pointer;transition:background .15s ease,color .15s ease;border:1px solid transparent;font-family:var(--font-sans,'Inter Variable',Inter,ui-sans-serif,system-ui,sans-serif);border-color:var(--border,#6f6f70);color:var(--foreground,#e8e8e9);background:var(--background,#1c1c1e)}.ds-secondary:hover:not(:disabled){background:var(--muted,#252527)}.ds-secondary:focus-visible{outline:2px solid var(--ring,var(--trace-accent,#4fb0fe));outline-offset:3px}.ds-secondary:disabled{opacity:.45;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-primary,.ds-secondary,.ds-choice{transition:none}}"
+      "name": "Panel",
+      "kind": "container",
+      "refersTo": "panel",
+      "description": "Implemented role preview; behavior belongs to production owners.",
+      "html": "<div class=\"datum-preview\">DATUMM workspace</div>",
+      "css": ".datum-preview{font:400 13px/20px \"Inter Variable\",Inter,sans-serif;background:var(--panel,#141416);color:var(--text,rgba(255, 255, 255, 0.62));border:1px solid var(--line,rgba(255,255,255,.08));border-radius:12px;padding:8px 12px}.datum-preview:focus-visible{outline:2px solid var(--ui-as-focus,#4fb0fe);outline-offset:2px}"
     },
     {
-      "name": "Text field",
-      "kind": "input",
-      "refersTo": "input",
-      "description": "Onboarding field with a visible neutral border, invalid state and 16px narrow-screen text.",
-      "html": "<input class=\"ds-input\" aria-label=\"Name\" placeholder=\"Your name\">",
-      "css": ".ds-input{width:100%;height:43px;border:1px solid var(--border,#6f6f70);border-radius:8px;background:var(--background,#1c1c1e);color:var(--foreground,#e8e8e9);padding:0 12px;font-size:13px;font-family:var(--font-sans,'Inter Variable',Inter,ui-sans-serif,system-ui,sans-serif);caret-color:var(--foreground,#e8e8e9)}.ds-input::placeholder{color:var(--muted-foreground,#a1a1a6)}.ds-input:focus-visible{outline:2px solid var(--ring,var(--trace-accent,#4fb0fe));outline-offset:3px}.ds-input[aria-invalid=true]{border-color:var(--destructive,#ff8a7a)}@media(max-width:650px){.ds-input{font-size:16px}}"
-    },
-    {
-      "name": "Navigation row",
-      "kind": "nav",
-      "refersTo": "navigation",
-      "description": "Compact workspace row with current selection.",
-      "html": "<nav class=\"ds-navigation\" aria-label=\"Workspace\"><button aria-current=\"page\">Projects</button><button>Activity</button></nav>",
-      "css": ".ds-navigation{display:grid;gap:4px}.ds-navigation button{display:flex;align-items:center;gap:10px;padding:9px 10px;min-height:36px;background:none;border:0;border-radius:6px;color:var(--muted-foreground,#a1a1a6);font-size:12px;text-align:left;cursor:pointer;font-family:var(--font-sans,'Inter Variable',Inter,ui-sans-serif,system-ui,sans-serif);}.ds-navigation button:hover,.ds-navigation button[aria-current=page]{background:var(--secondary,#252527);color:var(--foreground,#e8e8e9)}.ds-navigation button:focus-visible{outline:2px solid var(--ring,var(--trace-accent,#4fb0fe));outline-offset:3px}"
-    },
-    {
-      "name": "Use-case choice",
-      "kind": "chip",
-      "refersTo": "choice-chip",
-      "description": "Wrapping onboarding selection with a real checkbox.",
-      "html": "<label class=\"ds-choice\" data-selected=\"true\"><input type=\"checkbox\" checked>Review drawings</label>",
-      "css": ".ds-choice{display:inline-flex;align-items:center;gap:7px;padding:8px 10px;font-size:12px;border:1px solid var(--border,#6f6f70);border-radius:7px;cursor:pointer;line-height:1.4;color:var(--foreground,#e8e8e9);transition:background .15s ease;font-family:var(--font-sans,'Inter Variable',Inter,ui-sans-serif,system-ui,sans-serif);}.ds-choice:hover{background:var(--muted,#252527)}.ds-choice[data-selected=true]{border-color:var(--foreground,#e8e8e9);background:var(--muted,#252527)}.ds-choice input{width:13px;height:13px;accent-color:var(--foreground,#e8e8e9);margin:0}.ds-choice input:focus-visible{outline:2px solid var(--ring,var(--trace-accent,#4fb0fe));outline-offset:3px}@media(prefers-reduced-motion:reduce){.ds-primary,.ds-secondary,.ds-choice{transition:none}}"
-    },
-    {
-      "name": "Review container",
-      "kind": "card",
-      "refersTo": "review-card",
-      "description": "Current review panel vocabulary with exact identity and a deliberately disabled preview action.",
-      "html": "<section class=\"ds-review\"><header><h3>Review room updates</h3><span>Approval required</span></header><p>Review the exact document and model revision before approving.</p><dl><div><dt>Document</dt><dd>preview-document</dd></div><div><dt>Revision</dt><dd>12</dd></div></dl><button disabled>Approve exact proposal and build</button></section>",
-      "css": ".ds-review{padding:20px;border:1px solid var(--border,#6f6f70);border-radius:10px;background:var(--card,#1f1f22);color:var(--foreground,#e8e8e9);font-family:var(--font-sans,Inter,sans-serif);font-size:13px;line-height:1.65}.ds-review header{display:flex;align-items:start;justify-content:space-between;gap:16px;flex-wrap:wrap}.ds-review h3{margin:0;font-size:15px;font-weight:600;line-height:1.45;letter-spacing:-.015em}.ds-review header span{font-size:11px;border:1px solid var(--border,#6f6f70);border-radius:5px;padding:4px 8px;color:var(--muted-foreground,#a1a1a6)}.ds-review p{color:var(--muted-foreground,#a1a1a6);font-size:12px}.ds-review dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:16px 0;border-top:1px solid var(--separator,#3c3c3e);border-bottom:1px solid var(--separator,#3c3c3e)}.ds-review dt{color:var(--muted-foreground,#a1a1a6);font-size:11px}.ds-review dd{margin:3px 0 0;font-size:12px}.ds-review button{padding:9px 12px;border:0;border-radius:7px;background:var(--foreground,#e8e8e9);color:var(--background,#1c1c1e);font-size:12px;opacity:.5;cursor:not-allowed}.ds-review button:focus-visible{outline:2px solid var(--ring,#4fb0fe);outline-offset:3px}"
-    },
-    {
-      "name": "Composer modes",
-      "kind": "custom",
-      "refersTo": "mode-segment",
-      "description": "Shared composer mode presentation; the preview has no DATUMM action handlers.",
-      "html": "<div class=\"ds-modes\" role=\"group\" aria-label=\"Mode\"><button aria-pressed=\"true\">Ask</button><button aria-pressed=\"false\">Plan</button><button aria-pressed=\"false\">Build</button></div>",
-      "css": ".ds-modes{display:inline-flex;flex-shrink:0;align-items:center;gap:2px;padding:3px;border-radius:7px;background:var(--background,#1c1c1e)}.ds-modes button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:32px;padding:5px 8px;border:0;border-radius:5px;background:transparent;color:var(--muted-foreground,#a1a1a6);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font-sans,'Inter Variable',Inter,ui-sans-serif,system-ui,sans-serif);}.ds-modes button[aria-pressed=true],.ds-modes button:hover:not(:disabled){background:var(--secondary,#252527);color:var(--foreground,#e8e8e9)}.ds-modes button:focus-visible{outline:2px solid var(--trace-accent,#4fb0fe);outline-offset:1px}@media(max-width:700px){.ds-modes button{min-height:40px}}"
-    },
-    {
-      "name": "Planned pricing card",
-      "kind": "card",
-      "refersTo": "pricing-card",
-      "description": "Approved planned Pro presentation; disabled purchase action and expandable source-backed details.",
-      "html": "<div class=\"ds-pricing-root\"><article class=\"ds-price-plan\" aria-label=\"Pro plan\"><div class=\"ds-price-heading\"><h2>Pro</h2><span class=\"ds-price-badge\">Planned</span></div><p class=\"ds-price-description\">For regular professional design work.</p><div class=\"ds-price-amount\"><strong>$20</strong><span>/ month</span></div><p class=\"ds-price-note\">Planned monthly price · USD</p><dl class=\"ds-price-usage\"><div><dt>Usage level</dt><dd>Higher <span>· planned</span></dd></div><div><dt>Account</dt><dd>Individual</dd></div></dl><button class=\"ds-price-soon\" disabled aria-label=\"Pro is coming soon\">Coming soon</button><details class=\"ds-price-details\"><summary><span>Plan details</span><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"m6 9 6 6 6-6\"/></svg></summary><div><p class=\"ds-price-feature-label\">Planned for Pro</p><p class=\"ds-price-feature\">Higher usage allowance for professional work</p><p class=\"ds-price-approval\">Revit changes require a connected model and explicit approval on every plan.</p></div></details></article></div>",
-      "css": ".ds-pricing-root{container-type:inline-size;width:100%;color:var(--foreground,#e8e8e9);font-family:var(--font-sans,'Inter Variable',Inter,ui-sans-serif,system-ui,sans-serif);font-size:14px;line-height:1.6}.ds-price-plan{min-width:0;overflow:hidden;padding:24px;border:1px solid color-mix(in srgb,var(--foreground,#e8e8e9) 72%,var(--border,#6f6f70));border-radius:10px;background:var(--secondary,#252527)}.ds-price-heading{display:flex;gap:10px;align-items:center;justify-content:space-between}.ds-price-heading h2{font-size:18px;font-weight:600;line-height:1.4;letter-spacing:-.02em;margin:0}.ds-price-badge{font-size:11px;line-height:1.5;border:1px solid var(--border,#6f6f70);border-radius:5px;padding:3px 7px;color:var(--muted-foreground,#a1a1a6);white-space:nowrap}.ds-price-description{font-size:12px;line-height:1.65;color:var(--muted-foreground,#a1a1a6);min-height:40px;max-width:27ch;margin:13px 0 24px}.ds-price-amount{display:flex;gap:7px;align-items:baseline;font-variant-numeric:tabular-nums}.ds-price-amount strong{font-size:42px;line-height:1.15;font-weight:600;letter-spacing:-.04em}.ds-price-amount>span{color:var(--muted-foreground,#a1a1a6);font-size:12px}.ds-price-note{font-size:11px;color:var(--muted-foreground,#a1a1a6);margin:7px 0 22px}.ds-price-usage{padding:15px 0;margin:0 0 20px;border-top:1px solid var(--border,#6f6f70);border-bottom:1px solid var(--border,#6f6f70);font-size:11px;display:grid;gap:7px}.ds-price-usage>div{display:flex;align-items:baseline;gap:8px;justify-content:space-between}.ds-price-usage dt,.ds-price-usage dd>span{color:var(--muted-foreground,#a1a1a6)}.ds-price-usage dd{margin:0;text-align:right;font-weight:500}.ds-price-usage dd>span{font-size:11px;font-weight:400}.ds-price-soon{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;min-height:38px;border:1px solid var(--border,#6f6f70);border-radius:6px;padding:8px 12px;font:500 12px/1.5 var(--font-sans,'Inter Variable',Inter,sans-serif);background:var(--secondary,#252527);color:var(--muted-foreground,#a1a1a6)}.ds-price-soon:disabled{opacity:1;cursor:not-allowed}.ds-price-details{margin-top:18px}.ds-price-details summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;padding:6px 0;color:var(--muted-foreground,#a1a1a6)}.ds-price-details summary::-webkit-details-marker{display:none}.ds-price-details summary svg{transition:transform 140ms ease}.ds-price-details[open] summary svg{transform:rotate(180deg)}.ds-price-details summary:hover{color:var(--foreground,#e8e8e9)}.ds-price-details>div{padding-top:12px}.ds-price-feature-label{font-size:11px;font-weight:500;margin:0 0 10px}.ds-price-feature{font-size:12px;line-height:1.6;color:var(--muted-foreground,#a1a1a6);margin:0 0 20px}.ds-price-approval{padding-top:14px;border-top:1px solid var(--border,#6f6f70);font-size:11px;line-height:1.65;color:var(--muted-foreground,#a1a1a6);margin:0}.ds-price-details summary:focus-visible{outline:2px solid var(--trace-accent,#4fb0fe);outline-offset:4px}@container(max-width:680px){.ds-price-description{min-height:0;max-width:none}.ds-price-plan{padding:22px}.ds-price-amount strong{font-size:36px}}@media(max-width:800px){.ds-price-plan{padding:22px}.ds-price-description{min-height:0;max-width:none}}@media(prefers-reduced-motion:reduce){.ds-price-details summary svg{transition:none}}"
-    },
-    {
-      "name": "Administrative setting",
-      "kind": "custom",
-      "description": "Compact label/help/control row; the preview is visual and does not save configuration.",
-      "html": "<div class=\"ds-admin-row\"><div><label for=\"ds-admin-parallel\">Parallel chats</label><p>1 to 5 chats running at once per owner.</p></div><input id=\"ds-admin-parallel\" type=\"number\" min=\"1\" max=\"5\" value=\"3\" readonly></div>",
-      "css": ".ds-admin-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(200px,1.2fr);gap:24px;padding:18px 0;border-top:1px solid var(--separator,#3c3c3e);font-family:var(--font-sans,Inter,sans-serif);color:var(--foreground,#e8e8e9)}.ds-admin-row label{font-size:13px;font-weight:500;line-height:1.5}.ds-admin-row p{font-size:12px;line-height:1.65;color:var(--muted-foreground,#a1a1a6);margin:4px 0 0}.ds-admin-row input{width:100%;min-width:0;height:36px;padding:4px 12px;border:1px solid var(--border,#6f6f70);border-radius:7px;background:var(--background,#1c1c1e);color:inherit;font-size:13px}.ds-admin-row input:focus-visible{outline:2px solid var(--ring,#4fb0fe);outline-offset:2px}@media(max-width:700px){.ds-admin-row{grid-template-columns:minmax(0,1fr);gap:10px}.ds-admin-row input{font-size:16px}}"
-    },
-    {
-      "name": "Compact activity",
-      "kind": "custom",
-      "description": "Flat public activity disclosure; synthetic display only. Expand without approving or executing anything.",
-      "html": "<details class=\"activity\"><summary>Recorded activity <span>12 s</span></summary><div class=\"row\"><span>Read room schedule</span><span>Completed</span></div><p>A recorded tool result does not verify native model changes.</p></details>",
-      "css": ".activity{font:400 12px/1.5 \"Inter Variable\",Inter,system-ui,sans-serif;color:#a1a1a6;max-width:420px}.activity summary{display:flex;align-items:center;gap:8px;min-height:32px;padding:4px;border-radius:5px;cursor:pointer;list-style:none}.activity summary span{margin-left:auto;font-variant-numeric:tabular-nums}.activity summary:hover{background:#252527;color:#e8e8e9}.activity summary:focus-visible{outline:2px solid #4fb0fe;outline-offset:2px}.activity .row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:10px 4px;border-top:1px solid #3c3c3e}.activity p{margin:8px 4px;font-size:12px} "
+      "name": "Composer",
+      "kind": "container",
+      "refersTo": "composer",
+      "description": "Implemented role preview; behavior belongs to production owners.",
+      "html": "<div class=\"datum-preview\">DATUMM workspace</div>",
+      "css": ".datum-preview{font:400 13px/20px \"Inter Variable\",Inter,sans-serif;background:var(--composer,#161618);color:var(--ink,rgba(255, 255, 255, 0.9));border:1px solid var(--line,rgba(255,255,255,.08));border-radius:16px;padding:8px 12px}.datum-preview:focus-visible{outline:2px solid var(--ui-as-focus,#4fb0fe);outline-offset:2px}"
     }
   ],
   "narrative": {
     "northStar": "affectUI's restrained working surfaces",
-    "overview": "The user selected affectUI's flat shell, initial colors and typography. DATUMM builds on that reference with neutral surfaces, hairline separators, compact rounded controls and stronger readable text. Brand expression stays quiet so architectural work and agent responses remain legible.\n\nThis is a code-first record of the built system on 12 November 2026, not a new identity proposal. The workspace is an Operate surface; its composition and authority boundaries live in [the surface contract](docs/ux/surface-contract.md), [PRODUCT.md](PRODUCT.md) and [PLAN.md](PLAN.md). Earlier planning-only status in those historical packets is superseded by the approved implementation recorded in the surface contract.",
+    "overview": "Implemented M1–M8 affectUI migration; browser, service and native qualification remain separate checkpoints.",
     "keyCharacteristics": [
-      "Neutral tonal layers with restrained semantic color.",
-      "Inter typography, compact controls and visible keyboard focus.",
-      "User appearance choices remain authoritative."
+      "Measured affectUI colors and Inter typography.",
+      "Compact controls, contained scrolling and visible keyboard focus.",
+      "Light/Dark/System, contrast and motion preferences preserved; previous palette recoverable from backup."
     ],
     "rules": [
       {
-        "name": "The Readable Color Rule",
-        "body": "Runtime appearance resolution adjusts foreground, muted text and semantic text toward the mode's ink until they reach a contrast ratio of at least 4.5 against the three main surfaces; control borders target 3. Hairline separators serve structure and do not replace control boundaries.",
+        "name": "Trusted reference roles",
+        "body": "Normal contrast preserves the frozen page/panel/tray and alpha ink/text/muted/line values from src/lib/themes/affectui.json. Explicit High contrast strengthens text and separators. Readable status labels and route-level accessibility still require qualification.",
         "section": "colors"
       }
     ],

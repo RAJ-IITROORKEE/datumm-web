@@ -1,0 +1,27 @@
+# Drawing deliverable and native intent clarity
+
+14 November 2026. Qualified after the [conversation result polish](conversation-result-polish.md). This implements the remaining export identity and optional permission-entry recommendations from [drafting requalification](drafting-requalification.md), using Terra 6.1 High workers and independent review. Preserve the current affectUI theme, Inter, stable work area, native approval and all existing service capabilities.
+
+## Reference and decisions
+
+Follow PLAN.md's Component reference map: [Agent / Permissions](https://www.affectui.com/screens/agent-permissions), [full preview](https://www.affectui.com/screens/agent-permissions/full), [permission request](https://www.affectui.com/components/permission-request), [Files](https://www.affectui.com/screens/files) and [data table](https://www.affectui.com/components/data-table). The public Permissions preview was inspected this turn. Its action menu distinguishes Asks first and Never, with an explicit explanation for locked actions. Its demo autonomy settings and sample integrations are not DATUMM capabilities and are not copied as permissions.
+
+1. Browser PNG/PDF names identify the exact captured plan, human concept when ownership is established, version and 2D/3D view. The white sheet carries readable identity. Native RVT rendering and server export fingerprint verification are not implied.
+2. The optional concept grant entry appears only when both the saved task and composer are in Build mode. Existing selected-device grants remain visible and revocable in an open task even if the current concept differs or cannot be identified. No permission is automatically granted, revoked or broadened.
+3. A fresh read-only connected Revit check verifies actual response, tool receipts and current document evidence. Native writes are outside this slice.
+
+## Acceptance gates
+
+Exact candidate and retained drawing identity, distinct plans with identical human labels, safe filenames, asynchronous task/drawing A–B–A and unmount guards; preserved white-sheet/3D geometry and export inclusion disclosures; initial grant hidden in Plan, explicit Build entry, existing grants still revocable, no grant action during browser tests. Test desktop and 390/320 CSS pixels, downloaded PNG/PDF, focused and full frontend tests, build, standalone types and production runtime checks. Record actual browser observations separately from controlled tests.
+
+## Qualification evidence and limits
+
+Final frontend gates passed: 500 tests, production build, standalone TypeScript and 13 runtime checks. An earlier full-test failure was traced to a mock import and corrected to use the actual namespace; the final run supersedes it. Controlled tests cover task/drawing A–B–A, unmount and task-epoch guards, nonstandard IDs, integer revisions beyond version 1, and existing grant visibility and revocation for matching, different, missing-binding and offline cases. These grant cases are fixtures; there was no live grant to inspect or revoke.
+
+Actual browser checks used saved task `144…`, Concept 1 `621d…`, version 1: desktop 2D PNG and one-page PDF (visually rendered), 3D PNG, 390 px PNG and 320 px PDF downloads. Both narrow pages remained bounded. A different task's Concept 1 `3af4…` and Concept 2 `0095…` produced distinct names despite the repeated human label. The QA task's Concept 2 was selected for export and Concept 1 restored; the original task's selection stayed unchanged. No new revision beyond generated version 1 was exercised in the browser. White sheets use “Drawing reference”: sanitized nonstandard identifiers are not an exact-identity claim, and bounded filenames for nonstandard identifiers may collide. Normal UUIDs in these checks were distinct. Existing server exports were unchanged and their response fingerprint was not verified.
+
+The Build menu saved Build mode and opened the review dialog, which was closed without acceptance, placement, preview or grant. The initial access entry counted zero in Plan, one in Build, and zero after returning to Plan with both mode checks. At 320 px the page stayed bounded and the button was reachable by keyboard Tab; Enable was not clicked. No automatic grant or revocation was made.
+
+Fresh actual native task `4483ff70-54b2-5a8c-aebe-3ea7a055b1a6` completed in three model calls and retained its answer on reload. Read-tool receipts covered capabilities, Revit sessions, document context and inventory twice: Project1 revision 0, L1 - Architectural, and complete zero host wall, door, window and room counts. Links were not inspected. No native write, grant, save or sync occurred. This does not qualify populated models, other categories, document/session switching or native write/read-back.
+
+Actual QA concept task `b592fd19-ac00-525e-b88b-ac9cdc62c0b8` produced two 10 × 8 m alternatives after asking for a footprint already supplied. That redundant clarification remains an orchestration follow-up. Evidence logs, JSON, screenshots and downloads are under `artifacts/ux/deliverable-review-clarity/`. Backend `b79f2c99228b26d607973a0f158f32b7a25d6582` was unchanged; no new deployment, merge or full product release occurred. Temporary reference and duplicate drawing tabs were closed, device emulation was cleared, and response inspection was disabled. The verified read and concept tabs remain available; the temporary production server on 3100 was stopped and localhost development on 3001 remains available.

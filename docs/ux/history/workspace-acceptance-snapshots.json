@@ -1,0 +1,18 @@
+{
+  "PLAN.md": {
+    "originalTextSha256": "1faa16af2e5603c00a6f95e97af1d6c99c3c08fe2d79697204163b724f42d656",
+    "snapshot": "docs/ux/history/plan-before-workspace-acceptance-2026-11-15.md"
+  },
+  "PROJECT.md": {
+    "originalTextSha256": "fd3a88236dbd68cf1529f663dc3b316d55343af4870673a553c2b0165aa6d45f",
+    "snapshot": "docs/ux/history/project-before-workspace-acceptance-2026-11-15.md"
+  },
+  "docs/ux/HANDOFF.md": {
+    "originalTextSha256": "a52c74e11ad5bcaef72026515c5784db1e3a25f333bfd2b86a3eba4517192d12",
+    "snapshot": "docs/ux/history/handoff-before-workspace-acceptance-2026-11-15.md"
+  },
+  "docs/ux/full-migration-gap-register.md": {
+    "originalTextSha256": "e93875a746e0b0f9d5d41c2583e0552305414e7212d49f6a3e7e4f6e744829b7",
+    "snapshot": "docs/ux/history/full-migration-gap-register-before-workspace-acceptance-2026-11-15.md"
+  }
+}
