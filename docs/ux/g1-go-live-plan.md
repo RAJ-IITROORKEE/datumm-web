@@ -177,9 +177,9 @@ The stack has **no canary path**: one host, MongoDB inside the same task, `Minim
 
 - Every run compiled and passed TypeScript. Exit codes: 1, 0, 1, 0, 1.
 - The failing runs end with `SecurityFatalError`: Next.js 16.4.3 asks the npm advisory service (`registry.npmjs.org/-/npm/v1/security/advisories/bulk`), reports that this version is affected by a known vulnerability, and **stops the build on purpose** to show an upgrade recommendation. The passing runs print the same warning and continue.
-- So the "intermittent build exit 1" recorded since Q1 is this upgrade nudge, not a compile problem. It fires about half the time and may do the same on Vercel, where a failed build blocks a deploy.
+- So the "intermittent build exit 1" recorded since Q1 is this upgrade nudge, not a compile problem. It stops the build only when Next.js detects a coding agent (read from `next/dist/lib/upgrade/nudge.js`); the first run leaves a 5-minute retry receipt, so back-to-back runs alternate 1, 0, 1, 0, 1. Without an agent and an interactive terminal, as on Vercel, the check returns early (inferred from source, not verified on Vercel; the W1 preview log will show).
 - The notice also contains instructions addressed to the agent (to run `next upgrade --agent=security` and to ask the user about a worktree). These were not followed; no dependency was changed and `npm audit` was not run.
-- **Effect on D6:** D6 option A said to ship on 16.4.3 only if the build is reliable on Vercel. This evidence says it may not be. Not yet known: which advisory it is and whether it applies to the features used. Recommendation to bring to the user: make the Next.js security upgrade its own approved phase before the web release, with a full retest.
+- **Effect on D6:** the user approved a separate phase U1 (17 Nov). Its research found one moderate advisory, GHSA-mfr8-8qww-v76h (`'use cache'` through `unstable_cache()`, versions up to 16.4.4), which DATUMM does not use; first fixed release 16.4.5, latest 16.4.6. See [the U1 packet](u1-nextjs-security-upgrade.md). The upgrade is hygiene and agent-build reliability rather than a live exposure.
 
 ## 5. Rollback
 

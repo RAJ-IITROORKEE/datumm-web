@@ -26,6 +26,7 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | W1 | Right work area on AG-UI state | Proposed; separate go or no-go | Roadmap |
 | A4 | Admin: MCP and skills registry | Proposed | Roadmap |
 | N5 | Provider streaming and measured performance | Proposed | Roadmap |
+| U1 | Next.js security upgrade (build stops on the 16.4.3 advisory) | Phase approved 17 Nov; packet written (proposed 16.4.3 to 16.4.6, exact pin), awaiting approval; no dependency changed | [Packet](docs/ux/u1-nextjs-security-upgrade.md) |
 | G1 | Go-live: backend on AWS, web on Vercel | Plan approved 17 Nov with all recommended options (D1 to D12); nothing pushed or deployed. Each push, merge, deploy and AWS step needs its own approval; AWS steps are run by the user (D8 option A) | [Go-live plan](docs/ux/g1-go-live-plan.md) |
 
 ## Confirmed decisions
