@@ -159,6 +159,12 @@ The builder role cannot read the backup bucket or pull images, and its IAM was n
 - No traceback in the API log after a 20 s recovery and scheduler pass.
 - Restore of a production dump now tested once (it was never tested before; D12).
 
+### B3 result (17 Nov, approved by the user; created, **not executed**)
+
+Change set `g1-backend-70ce912` on stack `datumm-orchestrator`: `--use-previous-template`, `ImageUri` = `…/datumm-opencode-builder-hosted-opencode@sha256:bb926402…`, every other parameter `UsePreviousValue`. Status `CREATE_COMPLETE`. Changes: `Task` (`AWS::ECS::TaskDefinition`) Modify with **replacement** (container definitions); `Service` (`AWS::ECS::Service`) Modify, no replacement (task definition). Nothing touches the host, data volume, distribution or IAM, so the gate passes.
+
+B4 (execute) still needs: the user's go-ahead, a quiet window with no running or queued runs (D7), and a fresh dump just before (D12). Rollback: same update with `ImageUri` = `sha256:6af54c87…`.
+
 ### Checks at each gate
 
 **H-B, backend after B4** (old web still live):
