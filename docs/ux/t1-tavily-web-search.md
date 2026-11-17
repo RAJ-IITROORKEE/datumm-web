@@ -266,3 +266,16 @@ results, one history row.
 4. **Plan-limit status codes** (432/433) are assumed; confirm from Tavily docs at build time.
 5. **Same change set as another template change?** If `TRACE_OWNER_HASH_SECRET` (G1 D9) is still
    pending, both `Secrets` entries could go in one change set (one outage) once both keys exist.
+
+## Result (17 Nov)
+
+Code built on `main` (Sonnet implementers, independent Opus review, Opus fixes). Backend `e89d52c` (local; ships with the template change once the key exists). Web `649b29f` live: the provider choice shows "Tavily key not configured on the server" until then.
+
+| Item | Outcome |
+| --- | --- |
+| Review | 1 HIGH fixed: `answer_links` corrupted Markdown on every answer; now only inline `[text](url)` links outside code, only in runs that searched the web, URLs normalised; other answers byte-for-byte unchanged. 4 MEDIUM fixed or ruled: composition dropped with a recorded reason when the answer is rewritten; 25 s total Tavily deadline; other Markdown forms untouched; links the model knows kept unless a web search ran. LOW: `remainingPlanNote` uses the final text; daily-cap behaviour documented; query rules apply to outbound web queries only (13+ digits, cards, `+` phones, emails, key tokens) |
+| Gates (orchestrator) | Backend 636 passed + 26 subtests, `lat check` passed. Web typecheck clean, `npm test` 833 / 833, `lat check` passed, `npm run build` exit 0, live smoke 18 / 18 |
+| Browser (built-in, signed-in localhost on the T1 backend without a key) | Admin Web search shows "Search provider: OpenRouter (Exa)" with "Tavily key not configured on the server"; theme unchanged |
+| Not run | Any real Tavily call (no key), live Tavily answers, the template change and its deploy |
+| User action needed | Add `TAVILY_API_KEY` (and optionally `TRACE_OWNER_HASH_SECRET`) to the runtime secret, then approve the stack-template change; backend image, rehearsal and switch follow in one change set |
+
