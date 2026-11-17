@@ -1,7 +1,7 @@
 import type {ATTACHMENT_LIMITS, validateAttachments, kindOf} from '../composer-attachments.mjs';
 
 export type HostSurface = 'auth' | 'tasks' | 'native' | 'attachments' | 'settings' | 'window' | 'capabilities';
-export type HostCapabilityFlag = 'hostedTasks' | 'attachments' | 'nativeBridge' | 'localSettings' | 'windowControls';
+export type HostCapabilityFlag = 'hostedTasks' | 'attachments' | 'nativeBridge' | 'localSettings' | 'windowControls' | 'runTrace';
 export const HOST_SURFACES: HostSurface[];
 export const HOST_CAPABILITY_FLAGS: HostCapabilityFlag[];
 

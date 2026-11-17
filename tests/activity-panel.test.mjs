@@ -8,8 +8,9 @@ import ts from 'typescript';
 import { activityStateLabel } from '../src/lib/process-activity.mjs';
 import { deriveTodos } from '../src/lib/agent-todos.mjs';
 import { stopRequested } from '../src/lib/stop-requested.mjs';
+import { createWebHost } from '../src/lib/host/web.mjs';
 
-function harness() {
+function harness(host = { capabilities: { has: flag => flag === 'runTrace' } }) {
   const slots = []; let cursor = 0;
   const hooks = { ...React, useId: () => 'activity-test', useState(initial) {
     const i = cursor++;
@@ -32,6 +33,7 @@ function harness() {
     if (module === '../agent-specialists') return { AgentSpecialists: 'agent-specialists' };
     if (module === '../vendor/affectui/empty-state-clean') return { EmptyState: 'empty-state' };
     if (module === '../pipeline-trace') return { PipelineTrace: 'pipeline-trace' };
+    if (module === '../host-provider') return { useHost: () => host };
     if (module.endsWith('.module.css')) return { default: {} };
     return new Proxy({}, { get: () => () => null });
   } });
@@ -44,7 +46,7 @@ function elements(tree) {
 const words = tree => tree.map(el => React.Children.toArray(el.props.children).filter(child => typeof child === 'string' || typeof child === 'number').join('')).join(' ');
 const event = (index, stage = 'tool_completed', detail = `Reading result ${index}`) => ({ index, stage, detail, at: '2026-11-12T12:00:00Z', taskId: 'task-a' });
 const props = changes => ({ run: { id: 'task-a', title: 'Inspect model', taskVersion: 7, mode: 'ask', model: 'reported/model-a', status: 'completed', data: {} }, runId: 'task-a',
-  currentActivity: { index: 0, events: [event(0)], waiting: false, evidence: [], todos: [] }, executing: false, desktopAvailable: true, mode: 'build', model: 'fallback/model', eventDetail: row => row.detail, ...changes });
+  currentActivity: { index: 0, events: [event(0)], waiting: false, evidence: [], todos: [] }, executing: false, mode: 'build', model: 'fallback/model', eventDetail: row => row.detail, ...changes });
 const summary = tree => tree.find(row => row.type === 'activity-summary');
 const input = tree => tree.find(row => row.type === 'input');
 const toggle = (tree, name) => {
@@ -245,4 +247,11 @@ test('bound hosted plans and normalized shared usage require exact selected iden
  let tree=render('turn-a'); assert.equal(tree.find(n=>n.type==='plan-dock').props.title,'Latest turn checklist'); assert.equal(tree.find(n=>n.type==='plan-dock').props.items[1].status,'unconfirmed'); assert.equal(tree.find(n=>n.type==='context-usage').props.usage,usage);
  tree=render('turn-b'); assert.equal(tree.find(n=>n.type==='plan-dock'),undefined);
  for(const record of [{...usage,ownerTaskId:'task-b'},{...usage,ownerTaskId:undefined},{...usage,ledgerExecutionId:undefined}]) assert.equal(render('turn-a',record).find(n=>n.type==='context-usage').props.usage,undefined);
+});
+
+test('the trace disclosure is hidden on the web host and shown when the host turns runTrace on', () => {
+  const traceRows = tree => tree.filter(row => row.type === 'details' && words(elements(row.props.children[0])).includes('Local pipeline trace'));
+  const rows = host => { const h = harness(host); toggle(h.render(props()), 'Task diagnostics'); return traceRows(h.render(props())); };
+  assert.equal(rows(createWebHost()).length, 0);
+  assert.equal(rows({ capabilities: { has: flag => flag === 'runTrace' } }).length, 1);
 });

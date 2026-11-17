@@ -1,7 +1,7 @@
 // The host adapter contract: the only seam through which shared UI reaches its host (web or desktop).
 // The UI holds no approval authority: there is deliberately no approve method on `native`.
 export const HOST_SURFACES = ['auth', 'tasks', 'native', 'attachments', 'settings', 'window', 'capabilities'];
-export const HOST_CAPABILITY_FLAGS = ['hostedTasks', 'attachments', 'nativeBridge', 'localSettings', 'windowControls'];
+export const HOST_CAPABILITY_FLAGS = ['hostedTasks', 'attachments', 'nativeBridge', 'localSettings', 'windowControls', 'runTrace'];
 
 export const notAvailable = reason => Object.freeze({available: false, reason});
 

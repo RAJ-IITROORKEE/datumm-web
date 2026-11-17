@@ -32,6 +32,7 @@ test('capabilities: web hides desktop-only features and an unknown flag is off',
   const {capabilities} = createWebHost();
   assert.deepEqual(HOST_CAPABILITY_FLAGS.filter(flag => capabilities.has(flag)), ['hostedTasks', 'attachments']);
   assert.equal(capabilities.has('somethingNew'), false);
+  assert.equal(capabilities.has('runTrace'), false);
 });
 
 test('attachments delegate to the existing composer rules', () => {

@@ -2,6 +2,7 @@
 
 import { useId, useState } from 'react';
 import { ChevronDown, Search, Workflow } from 'lucide-react';
+import { useHost } from '../host-provider';
 import type { TaskEvent } from '@/lib/task-projection';
 import { activityStateLabel } from '@/lib/process-activity.mjs';
 import { deriveTodos } from '@/lib/agent-todos.mjs';
@@ -21,7 +22,6 @@ export type ActivityPanelProps = {
   runId: string | null;
   currentActivity: ReturnType<typeof latestTaskActivity> | null;
   executing: boolean;
-  desktopAvailable: boolean;
   mode: Mode;
   model: string;
   eventDetail: (event: TaskEvent) => string;
@@ -42,7 +42,7 @@ const publicDetail = (event: TaskEvent, detail: ActivityPanelProps['eventDetail'
   ? event.detail.match(/step \d+/i)?.[0] ?? 'Model step'
   : detail(event);
 
-export function ActivityPanel({ run, runId, currentActivity, executing, desktopAvailable, mode, model, eventDetail }: ActivityPanelProps) {
+export function ActivityPanel({ run, runId, currentActivity, executing, mode, model, eventDetail }: ActivityPanelProps) {
   const selectedRun = run && (!runId || run.id === runId) ? run : null;
   const identity = `${runId || selectedRun?.id || 'no-task'}:${currentActivity?.index ?? 0}`;
   const emptyView = { identity, query: '', stage: '', reviews: false, diagnostics: false, runtime: false, trace: false, memory: false };
@@ -52,6 +52,8 @@ export function ActivityPanel({ run, runId, currentActivity, executing, desktopA
   if (storedView.identity !== identity) setView(emptyView);
   const update = (patch: Partial<typeof emptyView>) => setView({ ...view, ...patch });
   const id = useId();
+  // The trace is a host feature; the web host reports it off until hosted run traces exist (TR1).
+  const showTrace = useHost().capabilities.has('runTrace');
 
   if (!selectedRun) return <section className={styles.panel} aria-label="Task activity">
     <h2 className={styles.title}>Task activity</h2>
@@ -174,7 +176,7 @@ export function ActivityPanel({ run, runId, currentActivity, executing, desktopA
           {view.memory && <AgentMemory memory={selectedRun.data.agent_memory} metrics={selectedRun.data.agent_context} runId={selectedRun.id} />}
         </details>}
 
-        {desktopAvailable && <details className={styles.disclosure} open={view.trace} onToggle={event => {
+        {showTrace && <details className={styles.disclosure} open={view.trace} onToggle={event => {
           if (event.currentTarget.open !== view.trace) update({ trace: event.currentTarget.open });
         }}>
           <summary>Local pipeline trace<ChevronDown size={14} aria-hidden="true" /></summary>

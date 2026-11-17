@@ -79,7 +79,7 @@ export function ActivityPreview({onClose}:{onClose:()=>void}) {
         {scenario==='completed'&&<p>The retained schedule has been reviewed. This fixture does not measure or modify a model.</p>}
       </section>
       <section className={styles.inspector} data-visible={pane==='inspector'} aria-label="Synthetic activity inspector">
-        <ActivityPanel key={id} run={run} runId={id} currentActivity={currentActivity} executing={active} desktopAvailable={false} mode="ask" model="Synthetic model" eventDetail={eventDetail}/>
+        <ActivityPanel key={id} run={run} runId={id} currentActivity={currentActivity} executing={active} mode="ask" model="Synthetic model" eventDetail={eventDetail}/>
       </section>
     </div>
   </section>;

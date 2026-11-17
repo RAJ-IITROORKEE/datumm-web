@@ -1151,7 +1151,6 @@ const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacem
 
  const setControl=async(device:Device)=>{if(!scopeCurrent(actionScope)||!device.fullControl&&selectionBlocked())return;setActionBusy(true);setError('');try{await api('devices/'+device.id+'/control',device.fullControl?'DELETE':'POST');await refresh();}catch(e){setError((e as Error).message);}finally{setActionBusy(false);}};
 
- const organizeDone=async(item:Run)=>{try{const saved=await api<Run>(`tasks/${item.id}/history/done`,item.data.organized_done?'DELETE':'POST',{expectedTaskVersion:item.taskVersion});if(runId===item.id)setRun(saved);await refresh();}catch(e){setError((e as Error).message);}};
  // A feature counts as unsupported (until reload) only when its own route answers 404/405; any other failure is an error.
  const guarded=async(feature:string,route:RegExp,action:()=>Promise<unknown>,waitForRefresh=true)=>{setActionBusy(true);setError('');try{await action();if(waitForRefresh)await refresh();else void refresh();return true;}catch(failure){if(notSupported(failure)&&route.test((failure as {path?:string}).path??''))setChatMenuUnsupported(previous=>previous.includes(feature)?previous:[...previous,feature]);else setError((failure as Error).message);return false;}finally{setActionBusy(false);}};
  const renameChat=async(item:Run,title:string)=>{
