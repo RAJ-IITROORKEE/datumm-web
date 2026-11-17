@@ -1006,7 +1006,7 @@ const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacem
   const scope={...workspaceGuard.current},epoch=++reviewEpoch.current,taskId=run?.id,briefId=run?.data.agent_design?.briefId;
   const drawing=drawingIdentity(designVersion),ref=drawingIdentity(run?.currentPlanRef),candidateKey=drawingIdentity(candidate);
   const owned=()=>scopeCurrent(scope)&&reviewEpoch.current===epoch&&currentRun.current?.id===taskId;
-  const current=()=>{const selected=currentRun.current,design=selected?.data.agent_design;return owned()&&design?.briefId===briefId&&drawingIdentity(currentDrawing.current)===drawing&&drawingIdentity(selected?.currentPlanRef)===ref&&(!candidateKey||Boolean(design?.candidates.some(row=>drawingIdentity(row)===candidateKey)));};
+  const current=()=>{const selected=currentRun.current,design=selected?.data.agent_design;return owned()&&design?.briefId===briefId&&drawingIdentity(currentDrawing.current)===drawing&&drawingIdentity(selected?.currentPlanRef)===ref&&(!candidateKey||candidateKey===ref||Boolean(design?.candidates.some(row=>drawingIdentity(row)===candidateKey)));};
   return {owned,current};
  };
  const compareDrawing=async(requested?:'previous'|'alternative')=>{
