@@ -160,6 +160,38 @@ Resvg.
 - Its scene-as-data and MCP pattern (build, preview, inspect) is a reference for the agent's own 3D preview tool.
 - It shares Three.js with our web viewer (it uses 0.187, we use 0.186.1); see the viewer-engines doc.
 
+## Added 17 Nov: tangency-labs/solidcraft (Apache-2.0 / MIT, brand licence separate; 16.8k stars, 30 contributors; Rust)
+
+Read by the orchestrator: the README, `docs/mcp.md` and `docs/oracle.md`. SolidCraft is open-source parametric
+**mechanical** CAD: a B-rep kernel and a constraint solver in Rust. It has sketches, a feature timeline, assemblies
+with interference checks, STEP/IGES/glTF, and a desktop app, browser (WASM) app, headless CLI and MCP server that
+all run the same commands. Created October 2026 and "early but usable for simple parts".
+
+**As our product engine: no.** It has no architecture semantics (walls, rooms, levels, openings, IFC), and our
+plan geometry is extrusions that our own code already handles.
+
+**As a headless geometry kernel in the backend: maybe later, not now.** Its CLI is one Rust binary, much lighter
+than Crucible's Chrome. It could compute exact solids for clash and interference checks, clearances or volumes
+(M2, R1′), if our own maths falls short. Re-evaluate then; it would be a new dependency.
+
+**Ideas to take now:**
+- **The reference-test oracle** (`docs/oracle.md`). 90 recipe cases are replayed through the command engine and
+  compared with expected values. The expected values come from analytic formulas or from an independent kernel
+  (FreeCAD), never from the engine being tested. The cases cover volume, area, centre of mass, bounding box, face
+  count and surface distance, with stated tolerances.
+  For V1 and VW1: a set of golden plans with hand-computed room areas, clearances and travel distances, run on
+  every change.
+- **MCP tool annotations and access rules** (`docs/mcp.md`).
+  - Every tool is marked read-only, undoable, destructive or open-world.
+  - File access is limited to the folders named with `--allow-path`, and the server can refuse to start without
+    one.
+  - `check_parameters` changes the design and puts it back.
+  For the trust work (W0.3, T-f): mark each DATUMM tool the same way and show the marks in the see/touch table.
+- **Scripts are the same JSON command list the UI runs**, so a session can be replayed. This matches our durable
+  commands and receipts.
+- **Plugins are WebAssembly components with declared capabilities.** Nothing runs on install, and the host
+  refuses a plugin that needs a capability it lacks. This is a pattern for A4c (parked).
+
 ## Proposed changes to the revision-agent plan (awaiting the user, together with RV-a to RV-d)
 
 1. **V1:** freeze the finding schema first, using archlang's catalog shape plus mutinybim's dispositions with the

@@ -42,6 +42,7 @@ P-SEC is built, reviewed and pushed (`8bd8b8f`) but is **not live yet** (blocker
 | # | Item | Where | Size | Depends on |
 | --- | --- | --- | --- | --- |
 | V1 | Collect every finding instead of stopping at the first. Freeze the finding schema: code, severity, plain message, why, fix, expected vs actual, room keys, rule version, plus person dispositions (archlang + mutinybim shapes). Brief → intent file; each rule is either blocking or advisory | backend (planner + domain-api) | M | RV approval |
+| V1-O | Golden-plan oracle (SolidCraft idea): reference plans with hand-computed areas, clearances and travel distances, replayed on every change | backend tests | S | with V1 |
 | VW1 | 3D viewer fixes: curved walls, polygon rooms, wall selection, outline highlights, no full rebuild on each change | web | M | — (parallel with V1) |
 
 ### Wave 2: show the checks, then let the agent fix
