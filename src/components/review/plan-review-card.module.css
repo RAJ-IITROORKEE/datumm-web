@@ -15,3 +15,8 @@
 .more dl { margin: 8px 0 0; }
 .more dl div { display: flex; flex-wrap: wrap; gap: 4px 8px; }
 .more dd { margin: 0; overflow-wrap: anywhere; }
+.checks { display: flex; flex-direction: column; gap: 2px; margin: 8px 0 0; padding: 0; list-style: none; }
+.checks li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.checks li[data-status=pass] svg { color: var(--trace-success); }
+.checks li[data-status=warn] svg { color: var(--trace-thought); }
+.checks li[data-status=fail] svg { color: var(--trace-error); }

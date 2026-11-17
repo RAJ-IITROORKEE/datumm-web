@@ -39,6 +39,7 @@ import {
   Minimize2,
   MessageSquare,
   PanelRight,
+  ListChecks,
   PanelLeft,
   TableProperties,
 } from 'lucide-react';
@@ -54,6 +55,9 @@ import { ActivityPanel } from './workspace/activity-panel';
 import activityStyles from './workspace/activity-shell.module.css';
 import { AgentScheduler } from './agent-scheduler';
 import { PlanCanvas } from './plan-canvas';
+import { ChecksReport } from './checks-report';
+import { DesignSidePanel, type DesignSideTab } from './workspace/design-side-panel';
+import { parseFindings, refsToHighlights } from '@/lib/plan-checks.mjs';
 import installerRelease from '../../public/downloads/release.json';
 import { DesktopSettings } from './desktop-settings';
 import { ProjectContext } from './project-context';
@@ -348,6 +352,7 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
     selectedDesignElement,
     setDrawingStyle,
     designHighlights,
+    setDesignHighlights,
     setSelectedDesignElement,
     selectedSource,
     askFromCanvas,
@@ -383,6 +388,7 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
   } = w;
   const navigation = useRef<HTMLDivElement | null>(null);
   const [navigationNarrow, setNavigationNarrow] = useState(false);
+  const [designSideTab, setDesignSideTab] = useState<DesignSideTab>('details');
   useEffect(() => {
     const media = window.matchMedia('(max-width:899px)');
     const update = () => setNavigationNarrow(media.matches);
@@ -547,6 +553,11 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
         onRetry={() => void accountAction('status')}
       />
     );
+  // Findings ride on the plan-version response, so use the fetched version when it is the drawing on screen.
+  const sameDrawing = Boolean(activeDrawing && designVersion && activeDrawing.planId === designVersion.planId && activeDrawing.version === designVersion.version && activeDrawing.fingerprint === designVersion.fingerprint);
+  const checksSource = activeDrawing?.findings ?? (sameDrawing ? designVersion?.findings : undefined);
+  const planChecks = parseFindings(checksSource);
+  const showCheckKeys = (keys: string[]) => { setDesignHighlights(keys); if (keys.length) actions.openDrawing(); };
   return (
     <>
       {desktopAvailable && <DesktopTitlebar
@@ -1030,7 +1041,8 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
               <div className="studio-workarea-toolbar">
                 <button type="button" data-output-focus-fallback aria-pressed={canvasOpen||preview.kind==='drawing'} title={activeDrawing ? activeDrawingTitle : undefined} onClick={() => actions.openDrawing()}><PencilRuler size={15}/>Drawing{activeDrawing ? ` · v${activeDrawing.version}` : ''}</button>
                 <span className="studio-workarea-tools"/>
-                <button type="button" aria-label="Open properties" onClick={()=>actions.openProperties()}><PanelRight size={15}/><span>Properties</span></button>
+                <button type="button" aria-label="Open properties" onClick={()=>{setDesignSideTab('details');actions.openProperties();}}><PanelRight size={15}/><span>Properties</span></button>
+                <button type="button" aria-label="Open plan checks" onClick={()=>{setDesignSideTab('checks');actions.openProperties();}}><ListChecks size={15}/><span>Checks</span></button>
                 <button type="button" aria-label={canvasOpen ? 'Exit focus drawing' : 'Focus drawing'} aria-pressed={canvasOpen} disabled={!hasRenderablePlan && !canvasOpen} onClick={event=>canvasOpen?exitFocus():enterFocus(event.currentTarget)}>{canvasOpen ? <Minimize2 size={15}/> : <Maximize2 size={15}/>}<span>{canvasOpen ? 'Exit focus' : 'Focus drawing'}</span></button>
               </div>
               <div className="studio-drawing-content">
@@ -1068,7 +1080,7 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
               <div className="studio-preview-output" hidden={!activeOutput} inert={!activeOutput}><OutputPanel/></div>
               <div className="studio-preview-output" hidden={!report} inert={!report}>{report&&scope.taskId&&<ReviewReportPanel key={JSON.stringify([scope.key,scope.epoch,report.openId])} scope={scope} taskId={scope.taskId} openId={report.openId} cited={report.revision} taskVersion={run?.taskVersion} taskStatus={run?.status} currentPlan={run?.currentPlanRef} onReport={onReport} onClose={closeReport}/>}</div>
             </>,
-            properties: <><BriefChips run={run}/>{activeDrawing?<StudioProperties drawing={activeDrawing} selected={selectedDesignElement} onSelect={setSelectedDesignElement} onRequest={askFromCanvas} onReview={!hasRenderablePlan||(run?.mode??mode)==='ask'?undefined:()=>actions.focusReview('[aria-label="Validated design preview"]')}/>:<div className="inspector-body"><h3>{w.contextTitle}</h3><p>{w.contextView}</p>{!selectedDevice?.online&&<Button variant="secondary" onClick={()=>setDeviceDialog(true)}>Connect Revit</Button>}</div>}<PlanDetails {...w} scope={scope} surface="design" onSelectAlternative={onSelectAlternative}/></>,
+            properties: <DesignSidePanel tab={designSideTab} onTab={setDesignSideTab} status={planChecks?.status} details={<><BriefChips run={run}/>{activeDrawing?<StudioProperties drawing={activeDrawing} selected={selectedDesignElement} onSelect={setSelectedDesignElement} onRequest={askFromCanvas} onReview={!hasRenderablePlan||(run?.mode??mode)==='ask'?undefined:()=>actions.focusReview('[aria-label="Validated design preview"]')}/>:<div className="inspector-body"><h3>{w.contextTitle}</h3><p>{w.contextView}</p>{!selectedDevice?.online&&<Button variant="secondary" onClick={()=>setDeviceDialog(true)}>Connect Revit</Button>}</div>}<PlanDetails {...w} scope={scope} surface="design" onSelectAlternative={onSelectAlternative}/></>} checks={activeDrawing?<ChecksReport findings={checksSource} loading={drawingLoading} roomNames={Object.fromEntries(activeDrawing.graph.rooms.map(room=>[room.key,room.name]))} activeKeys={designHighlights} onShow={showCheckKeys} onRetry={()=>setDrawingRetry(value=>value+1)}/>:<p>Open a plan to see its checks.</p>}/>,
             activity: <>{studioView === 'activity' ? (
             <div className="studio-page" tabIndex={-1}>
               <div className="studio-page-heading">

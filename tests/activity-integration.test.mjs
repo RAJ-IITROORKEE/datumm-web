@@ -5,6 +5,7 @@ import { runInNewContext } from 'node:vm';
 import * as React from 'react';
 import * as jsx from 'react/jsx-runtime';
 import ts from 'typescript';
+import { alternativeChecks } from '../src/lib/plan-checks.mjs';
 import { deriveTodos, todoSummary } from '../src/lib/agent-todos.mjs';
 import * as capabilities from '../src/lib/capabilities.mjs';
 import { conversationResult, failedTurnRecovery } from '../src/lib/conversation-result.mjs';
@@ -24,6 +25,7 @@ runInNewContext(ts.transpileModule(readFileSync(new URL('../src/components/works
   if (name === '@/lib/capabilities.mjs') return capabilities;
   if (name === '@/lib/conversation-result.mjs') return { conversationResult, failedTurnRecovery };
   if (name === '@/lib/drawing-presentation.mjs') return { drawingTitle };
+  if (name === '@/lib/plan-checks.mjs') return { alternativeChecks };
   if (name === '@/lib/conversation-turns.mjs') return conversationHelpers;
   if (name === '@/lib/turn-nesting.mjs') return { stageSpans };
   if (name === './use-workspace-state') return { api: unexpectedAction, terminal: new Set(['completed', 'failed', 'cancelled', 'interrupted']) };

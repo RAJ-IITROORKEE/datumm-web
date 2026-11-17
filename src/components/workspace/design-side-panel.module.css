@@ -1,0 +1,9 @@
+.panel{display:flex;flex-direction:column;gap:12px;min-width:0}
+.tabs{display:flex;gap:4px}
+.tabs button{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:6px 10px;border:0;border-radius:6px;background:transparent;color:var(--muted-foreground);font:inherit}
+.tabs button:hover,.tabs button[aria-selected=true]{background:var(--secondary);color:var(--foreground)}
+.tabs button:focus-visible{outline:2px solid var(--ui-as-focus);outline-offset:2px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--trace-success)}
+.dot[data-status=warn]{background:var(--trace-thought)}
+.dot[data-status=fail]{background:var(--trace-error)}
+.panel [hidden]{display:none!important}

@@ -92,6 +92,16 @@ Rooms with a `boundary` polygon render as that polygon, and walls with `curve.ki
 
 A click reports the nearest room, wall or opening through `onSelectElement`; `onSelect` still reports rooms only, and comment placement stays room-based. Each highlighted room, wall or opening also gets an accent outline drawn over its occluders. Selection, highlight and display changes only repaint; the scene is rebuilt when the graph fingerprint changes, and the old one is freed with [[src/components/plan-three.tsx#disposePlanScene]].
 
+### Plan checks
+
+The plan-version response carries `findings` (`datumm.findings.v1`); `parseFindings` in `src/lib/plan-checks.mjs` rejects unknown shapes with null.
+
+On null the Checks tab says checks are not available and offers Retry; nothing is guessed.
+
+The Design area shows the report as a **Checks** tab beside **Details** inside the Properties drawer (`workspace/design-side-panel.tsx`), so there is no new column. Rows are grouped Geometry, Brief, Circulation, Openings, Code with a text severity label, expected against found, and a Why and how-to-fix disclosure. **Show** passes `refsToHighlights` in `src/lib/plan-checks.mjs` to the same `highlights` array that 2D and 3D already read, opens the drawing, and announces the result in a polite live region. Ids are never printed; rooms appear by name.
+
+The review card reads optional `checks` on each candidate and `recommended` on `agent_design` through `alternativeChecks` in `src/lib/plan-checks.mjs` and shows a status line per alternative with a Recommended badge and the reason. Absent fields show nothing, and selection behaviour is unchanged. The `/dev/ux` "Plan checks fixture" shows the failing, warnings-only, pass and unavailable states.
+
 ## Admin console
 
 `/admin` is a dark-only console for runtime agent configuration, gated on the server by the signed-in primary email and enforced again by the backend by Clerk subject.

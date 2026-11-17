@@ -22,6 +22,7 @@ import { BuildComparisonCard } from '../build-comparison';
 import {DeletionClosureReview,NativeChangesPanel} from '../review/change-summary';
 import {ProposalApprovalPanel} from '../review/proposal-approval';
 import {PlanReviewCard} from '../review/plan-review-card';
+import {alternativeChecks} from '@/lib/plan-checks.mjs';
 import { ShieldCheck, Loader2, ArrowUpRight, Expand, Check } from 'lucide-react';
 import { AgentQuestions } from '../agent-questions';
 import { PlanCanvas } from '../plan-canvas';
@@ -1011,6 +1012,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                 <PlanReviewCard
                   key={[run.id,run.currentPlanRef?.planId,run.currentPlanRef?.version,run.currentPlanRef?.fingerprint].join(':')}
                   alternatives={run.data.agent_design.candidates.length}
+                  alternativeChecks={alternativeChecks(run.data.agent_design.candidates,run.data.agent_design.recommended)}
                   planVersion={run.currentPlanRef?.version??designVersion?.version??run.data.agent_design.candidates[0]?.version}
                   planTitle={drawingTitle(run.currentPlanRef??designVersion,run.data.agent_design.candidates)}
                   revisionBlockedReason={props.planRevisionBlockedReason}

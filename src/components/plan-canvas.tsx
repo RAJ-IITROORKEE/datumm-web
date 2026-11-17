@@ -14,7 +14,7 @@ export type {ViewportComment} from './plan-canvas-annotations';
 
 const PlanThree=dynamic(()=>import('./plan-three').then(module=>module.PlanThree),{ssr:false,loading:()=> <p role="status">Loading 3D preview…</p>});
 export type PlanGraph={site:{widthMm:number;depthMm:number};wallThicknessMm:number;wallHeightMm?:number;assumptions?:string[];spatialContext?:{northDegrees?:number|null};furnitureIntents?:{kind:string;rect:number[]}[];rooms:{key:string;name:string;kind?:string;areaMm2:number;rect:number[];boundary?:number[][]}[];walls?:{key:string;start:number[];end:number[];kind?:string;roomKeys?:string[];curve?:{kind:string;mid?:number[]}}[];openings?:{key:string;wallKey:string;kind:string;offsetMm:number;widthMm:number;heightMm:number;sillMm:number}[]};
-export type DrawingVersion={planId:string;version:number;fingerprint:string;svg:string;lineworkSvg?:string;graph:PlanGraph};
+export type DrawingVersion={planId:string;version:number;fingerprint:string;svg:string;lineworkSvg?:string;graph:PlanGraph;/** Raw `datumm.findings.v1` from the plan-version response; parsed by `parseFindings`. */findings?:unknown};
 export type ReferenceSource={id?:string;sha256?:string;name:string;image:string;page?:number};
 export type ReferenceRecord={source:{id:string;sha256:string;name:string;page?:number;crop?:{x:number;y:number;width:number;height:number}};region:{x:number;y:number;width:number;height:number};observations:{elementKey:string;label:string;state:string}[];confirmed:boolean;stale:boolean};
 type DisplayStyle='shaded'|'edges'|'hidden'|'wireframe';
