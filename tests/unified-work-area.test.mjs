@@ -137,6 +137,7 @@ function workspaceHarness(sharedStorage,sharedLocks){
   '@/lib/model-retry.mjs':{alternateModel,retryableFailure},
   '@/lib/prompt-queue.mjs':{queueAllowed},
   './use-prompt-queue':{usePromptQueue:env=>{queueEnv.current=env;return {active:false,items:[]};}},
+  './use-plan-edit':{usePlanEdit:()=>({busy:false,notice:null,apply:async()=>{},open:async()=>{},dismiss(){}})},
   '@/lib/agui/frontend-context.mjs':{buildFrontendContext},
   '@/lib/task-command':{replaceTerminalCommand:(type,state)=>state==='applied'||state==='rejected'||(state==='interrupted'&&['compare_result','inspect_result'].includes(type))},
   '@/lib/chat-start':{chatStartFailure:()=>null,savedTaskConnectionNotice:()=>'',admissionMessage:message=>message},

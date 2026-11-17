@@ -28,6 +28,8 @@ import { QueuePanel } from './queue-panel';
 import { AttachmentChips } from './attachment-chips';
 import { acceptSuggestion } from '@/lib/display-actions.mjs';
 import { ContextMeter } from './context-meter';
+import { useDailyUsage } from './use-daily-usage';
+import { dailyStatus, isDailyLimitMessage } from '@/lib/daily-usage.mjs';
 import { featureEnabled } from '@/lib/capabilities.mjs';
 import { queueAllowed } from '@/lib/prompt-queue.mjs';
 import { parseModelInfo } from '@/lib/model-display.mjs';
@@ -217,6 +219,9 @@ export function Composer(props: ComposerProps) {
     act,
     contextView,
   } = props;
+  const dailyUsage = useDailyUsage(featureEnabled(capabilities, 'dailyLimits'), `${run?.id ?? ''}:${run?.status ?? ''}:${messageError ? 1 : 0}`);
+  const dailyText = dailyStatus(dailyUsage, messageError);
+  const dailyLimitReached = isDailyLimitMessage(dailyText);
   // Invalidate callbacks on every observed change, including A → B → A.
   const starterAvailable=Boolean(!hasContent && workspaceReady && connected && !busy && !actionBusy && !mediaBusy && !executing && !cancelPending && scene!=='task-loading' && scene!=='submitting');
   const starterSnapshot=JSON.stringify([scope.key,scope.epoch,prompt,mode,useCurrentModel,sourceKey,sources,draftReferences,visiblePrompt?.references,selectedDevice?.id,selectedDevice?.online,revitSessions,starterAvailable]);
@@ -356,7 +361,8 @@ export function Composer(props: ComposerProps) {
           )
         )}
 
-        {messageError && (
+        {dailyLimitReached && <p className="connection-notice" role="status">{dailyText}</p>}
+        {messageError && !isDailyLimitMessage(messageError) && (
           <p className="error-banner" role="alert">
             {messageError}
             {blockedChat && messageError === blockedChat.message + ' Your prompt is preserved.' && (
@@ -598,6 +604,7 @@ export function Composer(props: ComposerProps) {
           </DropdownMenu>
 
           <div className="composer-right">
+            {dailyText && !dailyLimitReached && <span className="composer-daily-left" role="status">{dailyText}</span>}
             <ContextMeter usage={run?.data?.usage} taskId={run?.id}
               running={['queued', 'running'].includes(run?.status ?? '')}
               onOpenActivity={() => openStudioView('activity')} />

@@ -9,6 +9,8 @@ export type AdminConfig = {
   skills: AdminSkill[]; mcpServers: AdminMcp[];
   /** Present only when the backend reports `adminTools`; never added by the editor otherwise. */
   tools?: Record<string, { modes: Mode[] }>;
+  /** Present only when the backend reports `dailyLimits`; null means unlimited. */
+  dailyLimits?: { runs: number | null; modelCalls: number | null };
 };
 export const LIMIT_KEYS: string[];
 export const MODES: Mode[];

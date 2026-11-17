@@ -21,6 +21,14 @@ function validateTools(tools, e) {
     if (!ok) e[`tools.${id}`] = 'Modes are ask, plan or build, each at most once.';
   }
 }
+// U2: null means unlimited; the editor only holds the field when the backend reports `dailyLimits`.
+function validateDailyLimits(daily, e) {
+  if (!daily || typeof daily !== 'object' || Array.isArray(daily)) { e.dailyLimits = 'Daily limits must be an object.'; return; }
+  for (const key of ['runs', 'modelCalls']) {
+    const v = daily[key];
+    if (v != null && !(Number.isInteger(v) && v >= 1 && v <= 10000)) e[`dailyLimits.${key}`] = 'Whole number from 1 to 10000, or empty for no limit.';
+  }
+}
 const int =(v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
 const short = v => typeof v === 'string' && v.length >= 1 && v.length <= 120;
 
@@ -64,6 +72,7 @@ export function validateConfig(cfg) {
   });
   dupes(cfg.mcpServers ?? [], 'mcpServers');
   if (cfg.tools !== undefined) validateTools(cfg.tools, e);
+  if (cfg.dailyLimits !== undefined) validateDailyLimits(cfg.dailyLimits, e);
   return e;
 }
 

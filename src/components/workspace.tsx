@@ -59,6 +59,7 @@ import { AgentScheduler } from './agent-scheduler';
 import { PlanCanvas } from './plan-canvas';
 import { ChecksReport } from './checks-report';
 import { DesignSidePanel, type DesignSideTab } from './workspace/design-side-panel';
+import { PlanEditPanel } from './workspace/plan-edit-panel';
 import { parseFindings, refsToHighlights } from '@/lib/plan-checks.mjs';
 import installerRelease from '../../public/downloads/release.json';
 import { DesktopSettings } from './desktop-settings';
@@ -1092,7 +1093,7 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
               <div className="studio-preview-output" hidden={!activeOutput} inert={!activeOutput}><OutputPanel/></div>
               <div className="studio-preview-output" hidden={!report} inert={!report}>{report&&scope.taskId&&<ReviewReportPanel key={JSON.stringify([scope.key,scope.epoch,report.openId])} scope={scope} taskId={scope.taskId} openId={report.openId} cited={report.revision} taskVersion={run?.taskVersion} taskStatus={run?.status} currentPlan={run?.currentPlanRef} onReport={onReport} onClose={closeReport}/>}</div>
             </>,
-            properties: <DesignSidePanel tab={designSideTab} onTab={setDesignSideTab} status={planChecks?.status} details={<><BriefChips run={run}/>{activeDrawing?<StudioProperties drawing={activeDrawing} selected={selectedDesignElement} onSelect={setSelectedDesignElement} onRequest={askFromCanvas} onReview={!hasRenderablePlan||(run?.mode??mode)==='ask'?undefined:()=>actions.focusReview('[aria-label="Validated design preview"]')}/>:<div className="inspector-body"><h3>{w.contextTitle}</h3><p>{w.contextView}</p>{!selectedDevice?.online&&<Button variant="secondary" onClick={()=>setDeviceDialog(true)}>Connect Revit</Button>}</div>}<PlanDetails {...w} scope={scope} surface="design" onSelectAlternative={onSelectAlternative}/></>} checks={checksNode}/>,
+            properties: <DesignSidePanel tab={designSideTab} onTab={setDesignSideTab} status={planChecks?.status} details={<><BriefChips run={run}/>{activeDrawing?<StudioProperties drawing={activeDrawing} selected={selectedDesignElement} onSelect={setSelectedDesignElement} onRequest={askFromCanvas} onReview={!hasRenderablePlan||(run?.mode??mode)==='ask'?undefined:()=>actions.focusReview('[aria-label="Validated design preview"]')}/>:<div className="inspector-body"><h3>{w.contextTitle}</h3><p>{w.contextView}</p>{!selectedDevice?.online&&<Button variant="secondary" onClick={()=>setDeviceDialog(true)}>Connect Revit</Button>}</div>}{activeDrawing&&activeDrawing===w.designVersion&&w.planEdit.visible&&<PlanEditPanel drawing={activeDrawing} selected={selectedDesignElement} edit={w.planEdit}/>}<PlanDetails {...w} scope={scope} surface="design" onSelectAlternative={onSelectAlternative}/></>} checks={checksNode}/>,
             review: <ReviewScreen w={w} scope={scope} version={modes.version} locked={modes.reviewLocked} checks={checksNode} actions={actions}/>,
             technical: <TechnicalDetails run={scopedRun}/>,
             page: studioView === 'workspace' ? null : <>{studioView === 'activity' ? (

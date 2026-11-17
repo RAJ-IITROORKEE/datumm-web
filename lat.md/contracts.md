@@ -100,13 +100,19 @@ Dirty state compares configs independent of key order, and domain chips are norm
 
 The service proxy opens only the named admin routes, mapped to backend v1 admin paths, and rejects every other admin path.
 
-The open routes are config, config history (list, one numeric revision, restore), audit, overview, traces, model registry and knowledge sources; traces, history and model usage keep their query strings. The model routes are `admin/models`, `models/test`, `models/usage` and `models/{provider}/{model}/tests`: a model id contains one `/`, so the tests path has exactly two id segments, and `.` or `..` segments, a third segment or `models/x/y/z` are refused. The one non-admin addition is `me/permissions` (GET and PUT) for the approval mode; other `me/...` paths are refused. Paths such as `admin/traces/x`, `admin/config/history/x` and `admin/config/other` are refused.
+The open routes are config, config history (list, one numeric revision, restore), audit, overview, traces, feedback (the list and `feedback/{id}/case`, one id of letters, digits and `._:-`), model registry and knowledge sources; traces, feedback, history and model usage keep their query strings. The model routes are `admin/models`, `models/test`, `models/usage` and `models/{provider}/{model}/tests`: a model id contains one `/`, so the tests path has exactly two id segments, and `.` or `..` segments, a third segment or `models/x/y/z` are refused. The one non-admin addition is `me/permissions` (GET and PUT) for the approval mode; other `me/...` paths are refused. Paths such as `admin/traces/x`, `admin/feedback/x`, `admin/feedback/../case`, `admin/config/history/x` and `admin/config/other` are refused.
+
+## Daily limits
+
+The composer shows "N left today" only while a per-user daily limit exists, and the plain limit message once it is reached or a send is refused with 429.
+
+`src/lib/daily-usage.mjs` parses `GET me/usage/today` (a malformed body is null and shows nothing), picks the tighter of the tasks and model-call limits, and recognises the backend's 429 wording so the composer shows it once in the status area instead of the error banner. `dailyLimits` is validated in the admin config only when the backend returns it (1 to 10000 or empty), never added by `emptyConfig`, and the proxy opens only `me/usage/today` beside `me/permissions`.
 
 ## Capability parsing
 
 The backend config's `capabilities` object is read as a tri-state per feature; anything missing or malformed is unknown, never off, so older backends keep working.
 
-Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. `adminTraces`, `feedback`, `adminHistory`, `adminModels` and `modelInfo` are the exception: unknown is off, because no deployed backend serves them yet. See `src/lib/capabilities.mjs`.
+Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. `adminTraces`, `feedback`, `adminHistory`, `adminModels`, `modelInfo` and `planEditing` are the exception: unknown is off, because no deployed backend serves them yet. See `src/lib/capabilities.mjs`.
 
 ## Admin tools rows
 
@@ -171,6 +177,12 @@ The vectors in `tests/fixtures/chat-composition-vectors.json` are shared with th
 The traces page shows one text-free row per hosted turn, and the browser keeps only the allowlisted keys, so no later backend change can put a question, answer, note or owner id on screen.
 
 `src/lib/admin-traces.mjs` rebuilds every row, call, tool, specialist and stats object key by key. Unknown keys are dropped. Model ids, tool names and codes must match fixed patterns, enums fall back to `other` or null, and counts are clamped. Unreported call usage stays null instead of becoming 0. Row `phases` keep only exact integers (ms up to 86,400,000, bytes up to 2^31-1); anything else, or an absent object, is null, and the details show only present values. Row `route` is `{lane, rule, floor}` with lowercase token patterns and the `quick_reply` signal shows as "Answered directly". The owner is only a 16-hex keyed hash that the backend produces; with no server secret every `ownerHash` is null and the owner filter is simply unavailable. Traces and the `feedback` capability are admin-only conveniences: the backend 403 is the real gate. See `src/components/admin/traces-section.tsx`.
+
+## Admin feedback parsing
+
+The Feedback page lists ratings without any question, answer or note, and the browser keeps only the allowlisted keys, so no later backend change can put text in the list.
+
+`src/lib/admin-feedback.mjs` rebuilds each row (`id`, `vote`, `reason`, `createdAt`, `model`, `ownerHash`, `taskId`) key by key, drops unknown keys, and shows a reason only for a down vote. The one place text appears is "Copy as eval case": it fetches `admin/feedback/{id}/case`, rebuilds the case with `expected` always null and puts the JSON on the clipboard; nothing is sent anywhere. If the clipboard is blocked the JSON is shown in a read-only box to copy by hand. See `src/components/admin/feedback-section.tsx`.
 
 ## Answer feedback binding
 

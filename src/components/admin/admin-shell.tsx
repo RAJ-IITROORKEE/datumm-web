@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { ArrowLeft, BookOpen, Bot, ChevronRight, Globe, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen, Plug, Puzzle, ScrollText, Server, Activity, Cpu, History, UserRound, Wrench, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Bot, ChevronRight, Globe, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen, Plug, Puzzle, ScrollText, Server, Activity, Cpu, History, ThumbsDown, UserRound, Wrench, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -29,6 +29,7 @@ const groups: { label: string; items: Item[] }[] = [
   { label: 'Release', items: [{ href: '/admin/plugin', label: 'Plugin', icon: Plug }] },
   { label: 'System', items: [
     { href: '/admin/traces', label: 'Traces', icon: Activity, feature: 'adminTraces', strict: true },
+    { href: '/admin/feedback', label: 'Feedback', icon: ThumbsDown, feature: 'feedback' },
     { href: '/admin/audit', label: 'Audit log', icon: ScrollText, feature: 'adminAudit' },
     { href: '/admin/history', label: 'Config history', icon: History, feature: 'adminHistory', strict: true },
   ] },

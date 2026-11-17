@@ -1,0 +1,23 @@
+.panel{display:flex;flex-direction:column;gap:10px;min-width:0;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.panel form{display:flex;flex-direction:column;gap:6px;min-width:0}
+.panel button{align-self:flex-start}
+.label{margin:0;color:var(--text,var(--muted-foreground));font-size:12px;line-height:16px;font-weight:500}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0;margin-bottom:4px;color:var(--text,var(--muted-foreground));font-size:13px;line-height:20px}
+.field input,.field select{width:100%;min-height:32px;padding:5px 8px;border:1px solid var(--line-strong);border-radius:6px;background:var(--composer,var(--background));color:var(--ink,var(--foreground));font:inherit}
+.field input:focus-visible,.field select:focus-visible{outline:2px solid var(--ui-as-focus);outline-offset:1px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.problem{margin:0;padding:8px 10px;border-radius:6px;border:1px solid var(--trace-error);color:var(--foreground);font-size:13px;line-height:20px}
+@media (max-width:700px),(pointer:coarse){.field input,.field select{font-size:16px}}
+.muted{margin:0;color:var(--muted-foreground);font-size:12px;line-height:18px}
+.preview{margin:0;font-size:13px;line-height:20px;color:var(--foreground)}
+.row{display:flex;flex-direction:column;gap:6px}
+.buttons{display:flex;flex-wrap:wrap;gap:6px}
+.notice{position:sticky;bottom:8px;z-index:1;display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--line-strong);border-left-width:3px;border-radius:8px;background:var(--panel,var(--background));color:var(--foreground);font-size:13px;line-height:20px}
+.notice[data-tone=ok]{border-left-color:var(--trace-success)}
+.notice[data-tone=error]{border-left-color:var(--trace-error)}
+.noticeActions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.earlier{display:flex;flex-direction:column;gap:6px;align-items:flex-start;margin:0;font-size:13px;line-height:20px}
+.confirm{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--line-strong);border-radius:8px}
+.confirm p{margin:0;font-size:13px;line-height:20px}
+@media (prefers-reduced-motion:no-preference){.notice{animation:rise .16s ease-out}}
+@keyframes rise{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}

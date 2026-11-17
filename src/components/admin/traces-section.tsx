@@ -16,7 +16,7 @@ import data from './data-sections.module.css';
 import styles from './traces-section.module.css';
 
 type Chip = { value: string; label: string };
-function Chips({ label, options, value, onChange }: {
+export function Chips({ label, options, value, onChange }: {
   label: string; options: Chip[]; value?: string; onChange: (value?: string) => void;
 }) {
   return (

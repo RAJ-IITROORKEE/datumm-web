@@ -35,7 +35,9 @@ function ModelSummary({ values, errors }: { values: string[]; errors?: string })
 }
 
 export function AgentSection() {
-  const registry = featureEnabled(useCapabilities(), 'adminModels');
+  const capabilities = useCapabilities();
+  const registry = featureEnabled(capabilities, 'adminModels');
+  const daily = featureEnabled(capabilities, 'dailyLimits');
   return (
     <ConfigPage title="Agent" description="Models, budgets and concurrency applied to new runs. A run keeps the model and limits it started with. Skills and web search are read while a run works, so edits to them can reach chats already running within about 30 seconds.">
       {({ draft, update, errors, effective }) => (
@@ -66,6 +68,18 @@ export function AgentSection() {
                 </Field>
               ))}
           </SettingsGroup>
+          {daily && draft.dailyLimits && (() => {
+            const limits = draft.dailyLimits;
+            return (
+              <SettingsGroup title="Daily limits per user" description="Whole numbers from 1 to 10000, counted per UTC day and checked when a task starts. Empty means no limit. Admins are exempt, and a task already running is never stopped.">
+                {([['runs', 'Tasks per day'], ['modelCalls', 'Model calls per day']] as const).map(([k, label]) => (
+                  <Field layout="row" key={k} label={label} error={errors[`dailyLimits.${k}`]}>
+                    {p => <Input {...p} type="number" inputMode="numeric" min={1} max={10000} step={1} placeholder="No limit" value={limits[k] ?? ''} onChange={e => update({ dailyLimits: { ...limits, [k]: e.target.value === '' ? null : Number(e.target.value) } })} />}
+                  </Field>
+                ))}
+              </SettingsGroup>
+            );
+          })()}
         </>
       )}
     </ConfigPage>

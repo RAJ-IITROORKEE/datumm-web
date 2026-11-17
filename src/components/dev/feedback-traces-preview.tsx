@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { TracesSection } from '../admin/traces-section';
+import { FeedbackSection } from '../admin/feedback-section';
+import { fixtureCase, fixtureFeedback } from './admin-feedback-fixture';
 import { AdminClientProvider, type AdminClient, type Result } from '../admin/use-admin';
 import { OutputWorkspaceProvider } from '../workspace/output-workspace';
 import { ConversationAnswer } from '../workspace/conversation-answer';
@@ -152,6 +154,14 @@ export function FeedbackTracesPreview() {
   const client = useMemo<AdminClient>(() => async function <T>(path: string): Promise<Result<T>> {
     await new Promise(resolve => setTimeout(resolve, 150));
     const url = new URL(path, 'https://fixture.invalid/');
+    if (url.pathname === '/admin/feedback') {
+      return { ok: true, data: fixtureFeedback(url.searchParams, votes.current, TASK, TURN) as T };
+    }
+    if (url.pathname.startsWith('/admin/feedback/') && url.pathname.endsWith('/case')) {
+      const found = fixtureCase(decodeURIComponent(url.pathname.split('/')[3]), votes.current, TASK, TURN);
+      return found ? { ok: true, data: found as T }
+        : { ok: false, reason: 'missing', message: 'No such feedback.' };
+    }
     if (url.pathname !== '/admin/traces') {
       return { ok: false, reason: 'missing', message: 'Not in this fixture.' };
     }
@@ -191,6 +201,10 @@ export function FeedbackTracesPreview() {
       <section aria-label="Fixture traces" className="admin-root"
         style={{ minWidth: 0, position: 'static', inset: 'auto', overflow: 'visible' }}>
         <AdminClientProvider key={version} client={client}><TracesSection /></AdminClientProvider>
+      </section>
+      <section aria-label="Fixture feedback" className="admin-root"
+        style={{ minWidth: 0, position: 'static', inset: 'auto', overflow: 'visible' }}>
+        <AdminClientProvider key={`feedback-${version}`} client={client}><FeedbackSection /></AdminClientProvider>
       </section>
     </div>
   </main>;

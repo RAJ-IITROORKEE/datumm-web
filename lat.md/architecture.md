@@ -102,6 +102,14 @@ The Design area shows the report as a **Checks** tab beside **Details** inside t
 
 The review card reads optional `checks` on each candidate and `recommended` on `agent_design` through `alternativeChecks` in `src/lib/plan-checks.mjs` and shows a status line per alternative with a Recommended badge and the reason. Absent fields show nothing, and selection behaviour is unchanged. The `/dev/ux` "Plan checks fixture" shows the failing, warnings-only, pass and unavailable states.
 
+### Plan edits
+
+The Details tab of the Design side panel offers targeted edits of the selected room, wall or opening, only when the `planEditing` capability is on and the drawing is the task's current saved version.
+
+A room offers Rename, Swap with and Resize; a wall offers Move by N mm; an opening offers width, offset and Delete with a confirmation. The UI is `workspace/plan-edit-panel.tsx`. Controls are disabled while a request runs, and `use-plan-edit.ts` refuses a second request. Plans that are not generated schema 3 or 4 hide the actions.
+
+`src/lib/plan-edits.mjs` builds and checks each request (`{fingerprint, edit}` to `variable/plans/<id>/versions/<v>/edits`) and words the outcome. After a 200, `use-plan-edit.ts` selects the new version on the brief and reloads the task, the same path as choosing an alternative, then shows "Saved as Version N · changes · checks". A 409 `edit.stale` says the plan changed elsewhere, other refusals show the server's message, and the plan on screen stays as it was. An accepted version gets a note that the new one needs accepting again. Undo is "Back to Version N-1": it reads the earlier saved version and shows it as a retained reference, never deleting or selecting anything. The `/dev/ux` "Plan edits fixture" mocks the server's success and refusals.
+
 ## Admin console
 
 `/admin` is a dark-only console for runtime agent configuration, gated on the server by the signed-in primary email and enforced again by the backend by Clerk subject.
