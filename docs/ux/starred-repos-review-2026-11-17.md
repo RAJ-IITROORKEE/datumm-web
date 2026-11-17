@@ -136,6 +136,30 @@ The one relevant skill is **build-house-from-plan**: a floor plan becomes a phot
 
 MIT, so `plan_check.py`'s overlay scoring can be ported with attribution once V3 or RD1 starts.
 
+## Added 17 Nov: codepawl/crucible, for the backend? (MIT, 739 stars, JavaScript)
+
+Read by the orchestrator: the README, the guide's "render a PNG from a script" recipe, and `package.json`
+(version 0.20.0; depends on `three` 0.187.0 and `playwright-core`; 2 contributors).
+
+What it is: a 3D engine for agents. It has a real-time rasterizer, a path tracer, add-ons and an MCP server that
+drives a persistent browser renderer. A scene is plain data: parts, each with a geometry, a matrix and a material.
+
+**As a backend renderer: not now.**
+- Rendering always needs a browser. Server-side PNGs go through `playwright-core` driving an installed Chrome
+  with WebGL2 or WebGPU. Our ECS task is a CPU-only Python container: we would need to add Node, Chrome and a
+  software GL to the image, and that would be slow.
+- It is pre-1.0 and ships a minor version a week, and before 1.0 a minor version can change the API.
+- Two contributors.
+
+Our checks are deterministic geometry and need no rendering. The 2D SVG is already rendered on the server with
+Resvg.
+
+**Where it could fit later:**
+- A separate render worker for photoreal stills or film in the EV1 revision package. Put it behind a queue, not
+  in the API container.
+- Its scene-as-data and MCP pattern (build, preview, inspect) is a reference for the agent's own 3D preview tool.
+- It shares Three.js with our web viewer (it uses 0.187, we use 0.186.1); see the viewer-engines doc.
+
 ## Proposed changes to the revision-agent plan (awaiting the user, together with RV-a to RV-d)
 
 1. **V1:** freeze the finding schema first, using archlang's catalog shape plus mutinybim's dispositions with the
