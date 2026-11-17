@@ -113,7 +113,8 @@ query, *, max_results, domains)`:
   "not configured" check becomes per provider.
 - Tavily path reserves `agent_web_searches` and `agent_tool_calls` and USD (`TAVILY_SEARCH_USD`,
   one basic credit; price is open question 1). It reserves **no** model call and no tokens.
-  Then the daily cap (T1-f A), then the request.
+  Then the daily cap (T1-f A), then the request. A run that hits the daily cap has still spent that
+  search slot without sending a request, and will not retry that query in the same run.
 - `tavily_sources(results, retrieved, limit)`: each result needs string `url`, `title`, `content`;
   URL through `safe_source_url`; control characters removed; title ≤240, excerpt ≤1,500; dedupe by
   URL; same source shape and `source-<hash>` id as `web_sources` (item 10), so evidence index,

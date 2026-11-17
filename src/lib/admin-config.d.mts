@@ -5,11 +5,13 @@ export type AdminConfig = {
   models: string[]; defaultModel: string; defaultReasoningEffort: '' | 'low' | 'medium' | 'high'; runUsdLimit: number;
   limits: Record<string, number>; parallelChats: number;
   webSearch: { enabled: boolean; includeDomains: string[]; maxResults: number };
+  webSearchProvider?: 'openrouter' | 'tavily';
   skills: AdminSkill[]; mcpServers: AdminMcp[];
 };
 export const LIMIT_KEYS: string[];
 export const MODES: Mode[];
 export const EFFORTS: string[];
+export const SEARCH_PROVIDERS: string[];
 export const CORPORA: string[];
 export function emptyConfig(): AdminConfig;
 export function normalizeDomain(value: string): string;

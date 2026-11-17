@@ -2,6 +2,7 @@
 export const LIMIT_KEYS = ['agent_model_calls', 'agent_tool_calls', 'agent_research_calls', 'agent_web_searches', 'agent_knowledge_searches', 'continuation_segments'];
 export const MODES = ['ask', 'plan', 'build'];
 export const EFFORTS = ['', 'low', 'medium', 'high'];
+export const SEARCH_PROVIDERS = ['openrouter', 'tavily'];
 export const CORPORA = ['nbc', 'revit', 'pyrevit', 'other'];
 const ID = /^[a-z0-9-]{1,40}$/, DOMAIN = /^[a-z0-9.-]{3,100}$/, MCP_URL = /^https:\/\/[^\s]{4,300}$/;
 
@@ -34,6 +35,7 @@ export function validateConfig(cfg) {
   if (!int(ws.maxResults, 1, 10)) e['webSearch.maxResults'] = 'Whole number from 1 to 10.';
   if (!Array.isArray(ws.includeDomains) || ws.includeDomains.length > 30) e['webSearch.includeDomains'] = 'At most 30 domains.';
   else if (ws.includeDomains.some(d => !DOMAIN.test(d))) e['webSearch.includeDomains'] = 'Domains use a-z, 0-9, dot and dash (3 to 100 characters).';
+  if (cfg.webSearchProvider !== undefined && !SEARCH_PROVIDERS.includes(cfg.webSearchProvider)) e.webSearchProvider = 'OpenRouter or Tavily.';
   const dupes = (items, key) => items.forEach((item, i) => { if (items.findIndex(o => o.id === item.id) !== i) e[`${key}.${i}.id`] = 'Duplicate id.'; });
   list('skills', 30, (s, i) => {
     const p = `skills.${i}.`;

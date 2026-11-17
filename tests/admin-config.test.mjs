@@ -23,3 +23,10 @@ test('dirty state ignores key order and domains are normalised',()=>{
   assert.equal(sameConfig({a:[1,2]},{a:[2,1]}),false);
   assert.equal(normalizeDomain(' HTTPS://Example.COM/path?q=1 '),'example.com');
 });
+
+// @lat: [[contracts#Hosted contract tests#Admin config validation]]
+test('webSearchProvider is optional, limited to two values',()=>{
+  assert.equal('webSearchProvider' in emptyConfig(),false);
+  for(const value of ['openrouter','tavily'])assert.deepEqual(validateConfig({...emptyConfig(),webSearchProvider:value}),{});
+  assert.ok(validateConfig({...emptyConfig(),webSearchProvider:'exa'})['webSearchProvider']);
+});

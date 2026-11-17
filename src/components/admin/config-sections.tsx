@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { featureEnabled } from '@/lib/capabilities.mjs';
+import { featureEnabled, featureState } from '@/lib/capabilities.mjs';
 import { useCapabilities } from './capabilities-context';
 import { ChipList, ConfigPage, Field, ItemCard, SettingsGroup } from './form';
 import styles from './admin-form.module.css';
@@ -73,6 +73,7 @@ export function AgentSection() {
 }
 
 export function WebSearchSection() {
+  const tavily = featureState(useCapabilities(), 'tavilySearch');
   return (
     <ConfigPage title="Web search" description="Controls the agent's general web_search tool. Knowledge sources are searched first; the web is used when nothing scores high enough.">
       {({ draft, update, errors }) => {
@@ -83,6 +84,16 @@ export function WebSearchSection() {
               <div><label htmlFor="ws-enabled">Web search enabled</label><p>Turn off to stop all web lookups.</p></div>
               <Switch id="ws-enabled" checked={ws.enabled} onCheckedChange={enabled => set({ enabled })} />
             </div>
+            {tavily !== 'unknown' && (
+              <Field layout="row" label="Search provider" error={errors.webSearchProvider}
+                hint={tavily === 'off' ? 'Tavily key not configured on the server.' : 'Where general web searches run.'}>
+                {p => <Select {...p} value={draft.webSearchProvider ?? 'openrouter'}
+                  onChange={e => update({ webSearchProvider: e.target.value as 'openrouter' | 'tavily' })}>
+                  <option value="openrouter">OpenRouter (Exa)</option>
+                  <option value="tavily" disabled={tavily === 'off'}>Tavily</option>
+                </Select>}
+              </Field>
+            )}
             <ChipList draftKey="domains" label="Preferred domains" values={ws.includeDomains} onChange={includeDomains => set({ includeDomains })} max={30} normalize={normalizeDomain} placeholder="example.org" error={errors['webSearch.includeDomains']} hint="Results are limited to these domains. Empty allows any." />
             <Field layout="row" label="Max results" error={errors['webSearch.maxResults']} hint="1 to 10 per search.">
               {p => <Input {...p} type="number" inputMode="numeric" min={1} max={10} step={1} value={ws.maxResults} onChange={e => set({ maxResults: num(e.target.value) })} />}
