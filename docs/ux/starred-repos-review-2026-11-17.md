@@ -112,6 +112,30 @@ This is the AG1 check-and-fix loop, almost exactly. Mapped onto revisions:
 MIT, so the scoring and lock logic can be ported into the orchestrator with attribution. Separately, it could be
 installed as a Claude Code plugin for our own development work. That needs the user's OK (a new plugin).
 
+## Added 17 Nov: codepawl/creator-generalist (MIT, 239 stars, Python)
+
+Read by the orchestrator: the README and `plugins/3d-generalist/skills/build-house-from-plan/SKILL.md`. It is a
+pack of 2D, 3D, game, video and sound skills for coding agents. Most of it is content creation and not for us.
+The one relevant skill is **build-house-from-plan**: a floor plan becomes a photoreal Blender Cycles house.
+
+- **`plan.json` with provenance:** everything not read off the drawing goes in `provenance.inferred`, and the
+  final report repeats that list. This matches our recorded assumptions and RD1's known / inferred split.
+- **A numeric "the build lands on the ink" gate** (`plan_check.py`):
+  - At least 70% of wall faces lie within 7 cm of the drawing's lines.
+  - The best-fit offset is at most 16 cm.
+  - The result clearly beats a control shifted by 50 cm.
+  - It runs on the plan and again on the as-built section; the threshold is never loosened.
+  This is a strong pattern for V3 (Revit read-back vs the approved plan) and RD1 (redline vs current model). The
+  control comparison guards against a check that passes by chance.
+- **Fit-out checks** (`fitout_check.py`): reconciles mixed units (m, mm, ft-in) and checks equipment clearances and
+  clashes, shown as red volumes in 3D. Ideas for R1′ (clearances) and for M2.
+- **Sizes are measured or printed, never guessed.** Heights not on the drawing are inferred from the building type
+  and period, then listed. A "realism faults" file grows with every fault found, the same idea as the archicad
+  kit's "previous mistakes".
+- Photoreal Blender rendering suits client presentation in EV1 later. It is not needed for review.
+
+MIT, so `plan_check.py`'s overlay scoring can be ported with attribution once V3 or RD1 starts.
+
 ## Proposed changes to the revision-agent plan (awaiting the user, together with RV-a to RV-d)
 
 1. **V1:** freeze the finding schema first, using archlang's catalog shape plus mutinybim's dispositions with the
