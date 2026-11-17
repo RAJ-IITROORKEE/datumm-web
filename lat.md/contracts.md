@@ -114,6 +114,24 @@ The Tools page only narrows each tool inside the server's `allowedModes`; requir
 
 An untouched config gets no `tools` key. `adminTools` is strict: unknown is off, so `tools` is never sent to an older backend. Server group labels (`Core`, `Research`, `Revit`, `Design`) match the group ids without case. See `src/lib/admin-tools.mjs`.
 
+## Skill SKILL.md format
+
+SKILL.md is only the editor and import/export format for a skill; the stored item keeps today's six fields and no new field is sent to the backend.
+
+`parseSkillMd` in `src/lib/skill-md.mjs` maps frontmatter `name` to the id, optional `title` to the name (default: the id), `description` to the description and the body to the instructions. It refuses control characters (tab and newline stay legal), files over 6000 characters, a missing header, bad ids and anything over the backend caps of 300 and 4000, and reports each problem with its field. CRLF and a byte-order mark parse like LF. The editor changes the draft only on a valid parse, and a rename is refused so version history stays keyed by id.
+
+## Skill versions
+
+A skill's versions are the config history rows whose changes touch `skills[<id>]`, and a restore puts that skill back into the draft only.
+
+`src/lib/skill-versions.mjs` filters rows by exact `skills[id]` or `skills[id].` paths, so `ab` never matches `a`. `skillFromSnapshot` reads the item from the raw history detail (the history parser drops the snapshot), keeps the six stored fields and validates them with `validateConfig`. `withSkill` replaces or appends and refuses a thirty-first skill. Nothing saves until the admin presses Save changes, which writes a normal revision.
+
+## Skill preview
+
+The Test a prompt panel sends the unsaved draft skills to `admin/skills/preview` and shows only skill ids from the answer.
+
+`src/lib/skill-preview.mjs` is the one place that knows the request and response shape (prompt up to 2000 characters, a mode, at most 30 skills; answer `listed` ids and `attached` id or null). The proxy allows only that exact path. The Skills page uses the registry only when `skillsOnDemand` is on; unknown keeps the older page and sends nothing new. See `src/components/admin/skills-section.tsx`.
+
 ## Approval modes
 
 The approval mode fails closed to `ask`; a `tool_approval` question is a card only when `approvalModes` is on.

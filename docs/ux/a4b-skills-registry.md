@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **approved 17 Nov (recommended options), build in progress** |
+| Status | **done 17 Nov; web live with this commit; backend with the next backend release** |
 | Depends on | A2 versioned config (done); A4a tool catalog and `_tool_gate` (done, backend local `1e67551`); [parity plan](panda-parity-plan-2026-11-17.md) row 13, step 6; H5 = A |
 | Approved by / date | User's standing instruction, 17 Nov: A4b-a to A4b-f take the recommended option. Orchestrator addition for rollback safety: config load drops unknown `tools` ids (writes still reject them) |
 | Base commits | Backend local `main` `1e67551` (read 17 Nov). Web `main` as read 17 Nov. Panda `panda-agent-ui` working tree as read 17 Nov |
@@ -251,6 +251,11 @@ reads would then fail. Contain it: before rolling back, remove `tools.skills` (s
 default), or make the A4b validator change ship first as "unknown ids are dropped on load, refused
 on write". Record which at build. `skill_loaded` observations on old runs are ignored by older
 code (*inferred*: unknown kinds pass through `model_observations`, `agent_workflow.py:469-470`).
+**Recorded at build (orchestrator ruling):** A4b ships the load-drop (logged as a warning that
+names each dropped id), but it protects a rollback only to an image that contains it. The live
+image `1e67551` does not. **Rollback step to `1e67551`:** first reset the `skills` tool row to its
+default — /admin, Tools, switch Skills back on for Ask, Plan and Build, save — which removes
+`tools.skills` from the saved config. Then roll the image back.
 (3) Web revert: today's Skills page. Left behind: `skill_loaded` rows and events on runs.
 
 ## 10. Open questions
@@ -261,6 +266,8 @@ code (*inferred*: unknown kinds pass through `model_observations`, `agent_workfl
    Recommended yes, from the `skill_auto_attached` event; UI copy to approve.
 3. Should built-in DATUMM skills (e.g. NBC citation style) ship as seed data? Deferred.
 4. Hosted check of `load_skill` with a real model; schedule with the next live release.
+5. Known limit, kept: an older image that resumes a run stopped on a `load_skill` decision treats
+   it as an unknown tool (risk `write`), so it shows an approval card instead of loading the skill.
 
 ## 11. Result (fill at checkpoint)
 
@@ -272,3 +279,16 @@ code (*inferred*: unknown kinds pass through `model_observations`, `agent_workfl
 | Not run or not verified | |
 | Limits found | |
 | Next step | |
+
+## Result (17 Nov)
+
+Built on `main` (Sonnet implementers per repo, contract checked by the orchestrator, independent Opus review, Opus fixes). Backend commit in `datumm-orchestrator`; web this commit.
+
+| Item | Outcome |
+| --- | --- |
+| Contract | Preview `{prompt, mode, skills?}` → `{listed, attached}`, the six skill fields and the `skills[id]` / `skills[id].field` history paths match the backend (checked in source before review) |
+| Review | 1 HIGH handled: rolling back to `1e67551` after saving the new `skills` tool switch would break config reads there (only newer images drop unknown ids on load) — documented rollback step (reset the Skills tool to its default first) and dropped ids are logged. 2 MEDIUM fixed: `load_skill` no longer offered when a focus filter narrowed the tools; the skills block is now the last system text and its header says skills never override any rule. 8 LOW fixed or documented (grant look-past skill rows, older-image `load_skill` limit, no new font stack, Apply without edits writes nothing, stale tester answers, focus after Remove, export URL revoke) |
+| Gates (orchestrator) | Backend 673 passed + 26 subtests, `lat check` passed. Web typecheck clean, `npm test` 877 / 877, `lat check` passed, `npm run build` exit 0; no colour, font or token line |
+| Browser (built-in, signed-in localhost on the A4b backend) | Admin Skills shows the new registry; New skill editor shows counters and inline errors, accepts a SKILL.md (`nbc-fire-egress`), Add then Save gives revision 1, the detail panel shows the SKILL.md preview and "Revision 1 added" with Restore; Test a prompt ("maximum travel distance to a fire exit …", Ask) returns "Would list: nbc-fire-egress", "Would attach: nbc-fire-egress". Orchestrator fixes during the check: the list row was squeezed beside the detail panel (layout now intrinsic: two columns only when both fit, row wraps), and the "in your draft" notice now clears after a save |
+| Not run | A real model run with `load_skill`, 390 px, light mode, screen reader, file import/export downloads |
+

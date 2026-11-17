@@ -2,7 +2,8 @@
 
 import {useMemo,useState,type ReactNode} from 'react';
 import {AdminShell} from '../admin/admin-shell';
-import {AgentSection,WebSearchSection,SkillsSection,McpSection} from '../admin/config-sections';
+import {AgentSection,WebSearchSection,McpSection} from '../admin/config-sections';
+import {SkillsRoute} from '../admin/skills-section';
 import {TracesSection} from '../admin/traces-section';
 import {HistorySection} from '../admin/history-section';
 import {ModelsSection} from '../admin/models-section';
@@ -13,11 +14,11 @@ import {DesktopSettings} from '../desktop-settings';
 import {fixtureTraces} from './feedback-traces-preview';
 import {createHistoryFixture} from './admin-history-fixture';
 import {createModelsFixture} from './admin-models-fixture';
-import {emptyConfig} from '@/lib/admin-config.mjs';
+import {emptyConfig,type AdminSkill,type Mode} from '@/lib/admin-config.mjs';
 import release from '../../../public/downloads/release.json';
 import '../../app/admin/admin.css';
 
-type Scenario='ready'|'empty'|'missing'|'forbidden'|'conflict'|'save-error'|'traces-off'|'history-off'|'models-off'|'models-none'|'tavily-off'|'tavily-on'|'tools-off';
+type Scenario='ready'|'empty'|'missing'|'forbidden'|'conflict'|'save-error'|'traces-off'|'history-off'|'models-off'|'models-none'|'tavily-off'|'tavily-on'|'tools-off'|'skills-on';
 const entry=(id:string,label:string,group:string,risk:string,allowed:string[],extra:Record<string,unknown>={})=>({id,label,description:'Synthetic description for '+label.toLowerCase()+'. Fixture data only.',group,runsOn:'DATUMM service',risk,required:false,allowedModes:allowed,defaultModes:allowed,toolNames:[id],...extra});
 const TOOL_CATALOG=[
  entry('core','Core tools','Core','read',['ask','plan','build'],{required:true,locked:false}),
@@ -30,10 +31,22 @@ const TOOL_CATALOG=[
  entry('create_design','Create design','Design','read',['plan']),
  entry('propose_changes','Propose changes','Design','read',['plan','build']),
 ];
+const FIXTURE_SKILLS:AdminSkill[]=[
+ {id:'fixture-skill',name:'Fixture skill',description:'Use when a prompt mentions fixtures. Synthetic skill.',instructions:'Synthetic instructions, revision 12.',modes:['ask'],enabled:true},
+ {id:'nbc-egress',name:'NBC egress',description:'Use when checking exits, stairs or travel distance.',instructions:'Synthetic guidance. Cite the code clause.',modes:['ask','plan'],enabled:true},
+ {id:'no-trigger',name:'No trigger line',description:'Plain description.',instructions:'Synthetic guidance.',modes:['plan','build'],enabled:false},
+];
+// Stand-in for POST admin/skills/preview: shared words rank skills; one clear match attaches.
+function previewSkills(body:{prompt:string;mode:string;skills:typeof FIXTURE_SKILLS}){
+ const words=new Set(body.prompt.toLowerCase().match(/[a-z0-9]{3,}/g)??[]);
+ const scored=body.skills.filter(skill=>skill.enabled&&skill.modes.includes(body.mode as Mode)).map(skill=>({id:skill.id,score:(`${skill.id.replace(/-/g,' ')} ${skill.description}`.toLowerCase().match(/[a-z0-9]{3,}/g)??[]).filter(word=>words.has(word)).length}));
+ const hits=scored.filter(item=>item.score).sort((a,b)=>b.score-a.score);
+ return {listed:(hits.length?hits:scored).slice(0,8).map(item=>item.id),attached:hits.length&&hits[0].score>=2&&hits[0].score>(hits[1]?.score??0)?hits[0].id:null};
+}
 function fixtureClient(scenario:Scenario):AdminClient {
   // Traces, history and models are on in every state except their own '-off' state.
-  const capabilities={version:1,features:{adminTraces:scenario!=='traces-off',adminHistory:scenario!=='history-off',adminModels:scenario!=='models-off',adminTools:scenario!=='tools-off',approvalModes:scenario!=='tools-off',...(scenario==='tavily-off'||scenario==='tavily-on'?{tavilySearch:scenario==='tavily-on'}:{})}};
-  let envelope:ConfigEnvelope&{capabilities?:unknown}={capabilities,toolCatalog:scenario==='tools-off'?undefined:TOOL_CATALOG,config:{...emptyConfig(),models:['openai/gpt-6.1-sol','openai/gpt-6-luna','google/gemini-3-pro'],defaultModel:'openai/gpt-6-luna'},effective:{models:['openai/gpt-6.1-sol','openai/gpt-6-luna'],defaultModel:'openai/gpt-6-luna',defaultReasoningEffort:'high'},revision:12,updatedBy:'preview@example.invalid'};
+  const capabilities={version:1,features:{adminTraces:scenario!=='traces-off',adminHistory:scenario!=='history-off',adminModels:scenario!=='models-off',adminTools:scenario!=='tools-off',approvalModes:scenario!=='tools-off',...(scenario==='skills-on'?{skillsOnDemand:true}:{}),...(scenario==='tavily-off'||scenario==='tavily-on'?{tavilySearch:scenario==='tavily-on'}:{})}};
+  let envelope:ConfigEnvelope&{capabilities?:unknown}={capabilities,toolCatalog:scenario==='tools-off'?undefined:TOOL_CATALOG,config:{...emptyConfig(),models:['openai/gpt-6.1-sol','openai/gpt-6-luna','google/gemini-3-pro'],defaultModel:'openai/gpt-6-luna',...(scenario==='skills-on'?{skills:FIXTURE_SKILLS}:{})},effective:{models:['openai/gpt-6.1-sol','openai/gpt-6-luna'],defaultModel:'openai/gpt-6-luna',defaultReasoningEffort:'high'},revision:12,updatedBy:'preview@example.invalid'};
   let sources=scenario==='empty'?[]:[{id:'fixture-revit',url:'https://example.invalid/revit-room-guide',title:'Revit room review guide',corpus:'revit',status:'ready',chunks:24,updatedAt:'2026-11-12T06:00:00Z'},{id:'fixture-failed',url:'https://example.invalid/unavailable-source',title:'Unavailable public source',corpus:'other',status:'failed',chunks:0,updatedAt:'2026-11-12T05:00:00Z',error:'Synthetic indexing error. No external page was fetched.'}];
   const history=createHistoryFixture(envelope.config,Number(envelope.revision),'preview@example.invalid');
   let nextSource=0,approvalMode='ask';
@@ -65,6 +78,7 @@ function fixtureClient(scenario:Scenario):AdminClient {
       if(id&&!found)return {ok:false,reason:'missing',message:'Unknown revision.'};
       data=found??history.list(Number(url.searchParams.get('before'))||null,Number(url.searchParams.get('limit'))||20);
     }else if(path==='config')data={capabilities};
+    else if(path==='admin/skills/preview')data=previewSkills(init?.body as Parameters<typeof previewSkills>[0]);
     else if(path==='me/permissions'){
       if(method==='PUT')approvalMode=(init?.body as {approvalMode:string}).approvalMode;
       data={approvalMode};
@@ -94,7 +108,7 @@ function PreviewFrame({children,onClose,tools}:{children:ReactNode;onClose:()=>v
 export function AdminPreview({onClose}:{onClose:()=>void}) {
   const [path,setPath]=useState('/admin'),[scenario,setScenario]=useState<Scenario>('ready');
   const client=useMemo(()=>fixtureClient(scenario),[scenario]);
-  return <PreviewFrame onClose={onClose} tools={<label>Fixture state <select aria-label="Admin fixture state" value={scenario} onChange={event=>setScenario(event.target.value as Scenario)} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:5,padding:5,marginLeft:7}}><option value="ready">Ready</option><option value="empty">Empty lists</option><option value="missing">API unavailable</option><option value="forbidden">Access denied</option><option value="conflict">Save conflict</option><option value="save-error">Save failure</option><option value="traces-off">Traces not provided</option><option value="history-off">History not provided</option><option value="models-off">Models not provided</option><option value="models-none">No models served</option><option value="tavily-off">Tavily key absent</option><option value="tavily-on">Tavily key present</option><option value="tools-off">Tools and approvals not provided</option></select> <button onClick={()=>setPath('/admin/traces')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Traces path</button> <button onClick={()=>setPath('/admin/history')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open History path</button> <button onClick={()=>setPath('/admin/models')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Models path</button> <button onClick={()=>setPath('/admin/tools')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Tools path</button></label>}><div className="admin-root" style={{position:'absolute'}}><AdminClientProvider key={scenario} client={client}><AdminShell email="preview@example.invalid" activePath={path} onNavigate={setPath}><div key={path}>{path==='/admin'?<OverviewSection/>:path==='/admin/agent'?<AgentSection/>:path==='/admin/web-search'?<WebSearchSection/>:path==='/admin/knowledge'?<KnowledgeSection/>:path==='/admin/skills'?<SkillsSection/>:path==='/admin/mcp'?<McpSection/>:path==='/admin/plugin'?<PluginSection release={release}/>:path==='/admin/traces'?<TracesSection/>:path==='/admin/history'?<HistorySection/>:path==='/admin/models'?<ModelsSection/>:path==='/admin/tools'?<ToolsSection/>:<AuditSection/>}</div></AdminShell></AdminClientProvider></div></PreviewFrame>;
+  return <PreviewFrame onClose={onClose} tools={<label>Fixture state <select aria-label="Admin fixture state" value={scenario} onChange={event=>setScenario(event.target.value as Scenario)} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:5,padding:5,marginLeft:7}}><option value="ready">Ready</option><option value="empty">Empty lists</option><option value="missing">API unavailable</option><option value="forbidden">Access denied</option><option value="conflict">Save conflict</option><option value="save-error">Save failure</option><option value="traces-off">Traces not provided</option><option value="history-off">History not provided</option><option value="models-off">Models not provided</option><option value="models-none">No models served</option><option value="tavily-off">Tavily key absent</option><option value="tavily-on">Tavily key present</option><option value="tools-off">Tools and approvals not provided</option><option value="skills-on">Skills registry on</option></select> <button onClick={()=>setPath('/admin/traces')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Traces path</button> <button onClick={()=>setPath('/admin/history')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open History path</button> <button onClick={()=>setPath('/admin/models')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Models path</button> <button onClick={()=>setPath('/admin/tools')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Tools path</button></label>}><div className="admin-root" style={{position:'absolute'}}><AdminClientProvider key={scenario} client={client}><AdminShell email="preview@example.invalid" activePath={path} onNavigate={setPath}><div key={path}>{path==='/admin'?<OverviewSection/>:path==='/admin/agent'?<AgentSection/>:path==='/admin/web-search'?<WebSearchSection/>:path==='/admin/knowledge'?<KnowledgeSection/>:path==='/admin/skills'?<SkillsRoute/>:path==='/admin/mcp'?<McpSection/>:path==='/admin/plugin'?<PluginSection release={release}/>:path==='/admin/traces'?<TracesSection/>:path==='/admin/history'?<HistorySection/>:path==='/admin/models'?<ModelsSection/>:path==='/admin/tools'?<ToolsSection/>:<AuditSection/>}</div></AdminShell></AdminClientProvider></div></PreviewFrame>;
 }
 export function SettingsPreview({onClose}:{onClose:()=>void}) {
   const [approvals,setApprovals]=useState(true),client=useMemo(()=>fixtureClient('ready'),[]);
