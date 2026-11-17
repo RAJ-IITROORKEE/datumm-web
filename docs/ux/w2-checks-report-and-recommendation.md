@@ -93,4 +93,12 @@ Revert the commits. The new fields are additive.
 
 ## 5. Result
 
-(Filled in by the main agent.)
+| Item | Outcome |
+| --- | --- |
+| A (AG1a) | Backend `fd4eebe`. `design_recommendation.py`: `checks_of` and `recommend`, ranked pass < warn < fail, then blocking, then advisory, then planner order. `create_design` passes the brief to `ensure`; candidates carry `checks`; `agent_design.recommended` is set; one assumption line and the answer name the recommendation. 10 tests. The main agent checked that acceptance still matches: the web echoes `agent_design.assumptions`, and the cap is 40. |
+| B (V2) | Web `8c4baaa`. `plan-checks.mjs`; `ChecksReport` is a Checks tab beside Details in the Properties drawer, plus a toolbar button; Show/Hide highlights in 2D and 3D, with a live announcement. The review card shows each alternative's checks and a Recommended badge. Dev fixture: `/dev/ux`, "Plan checks fixture". |
+| Fix found by the W1 close-out | Web `02ce40f`. 2D highlight overlays now draw polygon rooms from their boundary and arc walls with `wallPath` (they drew rectangles and chords), so Show is exact on non-rectangular plans. |
+| Gates (main agent) | Backend: pytest 806 passed + 26 subtests; the 4 related `check_*.py` scripts passed; `lat check` passed. Web: typecheck, 902 then 905 tests, build, `lat check` passed. |
+| Localhost browser | Failing fixture: grouped rows, plain messages, expected vs actual. Show highlights Bedroom, Bathroom and the wall in 2D and 3D, and the button toggles to Hide. The curved fixture shows L-room and arc-wall highlights following their true shapes. |
+| Live | **Backend `fd4eebe` live at 13:52Z.** Rehearsal: 36,139 documents before and after, 0 tracebacks. Backup `20261117T135004Z`. The change set touched only Service and Task; 401s as expected; 0 tracebacks. Web deployed and smoke passed. On datumm-web.vercel.app, the Dental clinic plan's Checks tab shows "No problems found", checked with plan-rules@1; every request was 200. The 504s in the console came from polling during the backend switch. |
+| Not verified live | `recommended` and `checks` on a **new** Plan run. A new run spends model budget and creates a chat in the user's account, so it is covered by tests and left for the user's next Plan run. |
