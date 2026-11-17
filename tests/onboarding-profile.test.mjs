@@ -6,6 +6,7 @@ import * as React from 'react';
 import * as jsxRuntime from 'react/jsx-runtime';
 import {renderToStaticMarkup} from 'react-dom/server';
 import ts from 'typescript';
+import {createWebHost} from '../src/lib/host/web.mjs';
 import * as profileModule from '../src/lib/onboarding-profile.mjs';
 import {validateProfileInput,readOnboardingProfile,nextOnboardingProfile,handleProfileRequest} from '../src/lib/onboarding-profile.mjs';
 
@@ -114,6 +115,7 @@ function onboardingHarness(props,{component='AccountOnboarding',fetch,effects=fa
     if(name==='react')return hooks;
     if(name==='react/jsx-runtime')return jsxRuntime;
     if(name==='@/lib/onboarding-profile.mjs')return profileModule;
+    if(name==='@/components/host-provider')return {useHost:()=>createWebHost({fetcher:fetch})};
     if(name.endsWith('.module.css'))return {default:{}};
     if(name.endsWith('.json'))return {default:{}};
     return new Proxy({},{get:()=>()=>null});

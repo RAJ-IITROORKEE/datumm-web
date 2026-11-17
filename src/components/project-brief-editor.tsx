@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useHost } from '@/components/host-provider';
 import styles from './project-context.module.css';
 
 type Source = {kind:'user'|'task';taskId?:string;taskTitle?:string;note?:string};
@@ -18,6 +19,7 @@ const empty = (key:string):State => ({key,phase:'loading',base:null,entries:[],m
 
 /** State remains in ProjectContext while the dialog closes, scoped to account and project. */
 export function useProjectBriefEditor(accountKey:string, projectId:string|undefined, open:boolean) {
+ const host = useHost();
  const key = JSON.stringify([accountKey,projectId]);
  const [,setRevision] = useState(0);
  const store = useRef<{account:string;key:string;serial:number;states:Map<string,State>;saves:Map<string,object>}>({account:accountKey,key,serial:0,states:new Map(),saves:new Map()});
@@ -38,7 +40,7 @@ export function useProjectBriefEditor(accountKey:string, projectId:string|undefi
   const alive=()=>mounted.current && store.current===owner && store.current.key===key && store.current.serial===serial;
   if (replace || !state.base) commit(previous=>({...previous,phase:'loading',message:''}));
   try {
-   const response = await fetch(`/api/service/projects/${encodeURIComponent(projectId)}/brief`,{cache:'no-store',credentials:'same-origin'});
+   const response = await host.tasks.request(`projects/${encodeURIComponent(projectId)}/brief`);
    if (!response.ok) throw new Error(response.status===404?'This project is unavailable.': 'Could not load the project brief. Try again.');
    const result:unknown=await response.json();
    if (!alive()) return;
@@ -66,7 +68,7 @@ export function useProjectBriefEditor(accountKey:string, projectId:string|undefi
   const alive=()=>mounted.current && store.current===owner && store.current.key===key && store.current.serial===serial;
   commit(previous=>({...previous,phase:'saving',message:'Saving…'}));
   try {
-   const response=await fetch(`/api/service/projects/${encodeURIComponent(projectId)}/brief`,{method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},body});
+   const response=await host.tasks.request(`projects/${encodeURIComponent(projectId)}/brief`,{method:'PUT',headers:{'Content-Type':'application/json'},body});
    if (!alive()) return;
    if (response.status===409) {commit(previous=>({...previous,phase:'conflict',message:'This brief changed elsewhere. Your draft is still here.'}));return;}
    if (!response.ok) throw new Error(response.status===422?'Check the entry fields and try again.':'Could not save the brief. Your draft is still here.');

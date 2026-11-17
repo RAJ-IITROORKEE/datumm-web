@@ -5,12 +5,13 @@ import {runInNewContext} from 'node:vm';
 import * as React from 'react';
 import * as jsx from 'react/jsx-runtime';
 import ts from 'typescript';
+import {createWebHost} from '../src/lib/host/web.mjs';
 
 function harness(){
  let slots=[],cursor=0,effects=[],requests=[];
  const hooks={...React,useState(initial){const i=cursor++;if(!(i in slots)) slots[i]=typeof initial==='function'?initial():initial;return [slots[i],value=>{slots[i]=typeof value==='function'?value(slots[i]):value;}];},useRef(initial){const i=cursor++;return slots[i]??={current:initial};},useEffect(fn,deps){const i=cursor++,old=slots[i];if(!old||deps.some((value,index)=>!Object.is(value,old.deps[index]))){effects.push(()=>{old?.cleanup?.();slots[i]={deps,cleanup:fn()};});}}};
  const out={},code=ts.transpileModule(readFileSync(new URL('../src/components/project-brief-editor.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText;
- runInNewContext(code,{exports:out,TextEncoder,require(name){if(name==='react')return hooks;if(name==='react/jsx-runtime')return jsx;if(name.endsWith('.module.css'))return {default:{}};throw Error(name);},fetch:(url,init)=>new Promise(resolve=>requests.push({url,init,resolve})),crypto:{randomUUID:()=> 'new-id'}});
+ runInNewContext(code,{exports:out,TextEncoder,require(name){if(name==='react')return hooks;if(name==='react/jsx-runtime')return jsx;if(name==='@/components/host-provider')return {useHost:()=>createWebHost({fetcher:(url,init)=>new Promise(resolve=>requests.push({url,init,resolve}))})};if(name.endsWith('.module.css'))return {default:{}};throw Error(name);},fetch:(url,init)=>new Promise(resolve=>requests.push({url,init,resolve})),crypto:{randomUUID:()=> 'new-id'}});
  return {requests,render(account='account-a',project='project-a',open=true){cursor=0;const value=out.useProjectBriefEditor(account,project,open);const pending=effects;effects=[];pending.forEach(fn=>fn());return value;}};
 }
 const brief=(projectId='project-a',revision=0,entries=[])=>({projectId,revision,entries,history:[],updatedAt:null});
@@ -43,7 +44,7 @@ test('revision-bound save preserves draft on conflict and submits full archived 
 test('use in chat includes only saved active entries and stale controls cannot act',()=>{
  let ref,feedback='';const hooks={...React,useRef(initial){return ref??={current:initial};},useState(){return [feedback,value=>{feedback=value;}];}};const out={};
  const code=ts.transpileModule(readFileSync(new URL('../src/components/project-brief-editor.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText;
- runInNewContext(code,{exports:out,TextEncoder,require(name){if(name==='react')return hooks;if(name==='react/jsx-runtime')return jsx;if(name.endsWith('.module.css'))return {default:{}};throw Error(name);}});
+ runInNewContext(code,{exports:out,TextEncoder,require(name){if(name==='react')return hooks;if(name==='react/jsx-runtime')return jsx;if(name==='@/components/host-provider')return {useHost:()=>createWebHost({fetcher:(url,init)=>new Promise(resolve=>requests.push({url,init,resolve}))})};if(name.endsWith('.module.css'))return {default:{}};throw Error(name);}});
  const flatten=node=>Array.isArray(node)?node.flatMap(flatten):node&&typeof node==='object'?[node,...flatten(node.props?.children)]:[];
  const active={...entry,source:{kind:'task',taskId:'task-1',taskTitle:'Study',note:'Request'}};
  const archived={...entry,id:'old',label:'Old value',archived:true};

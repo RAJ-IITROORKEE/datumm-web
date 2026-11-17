@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect,useRef,useState,type FormEvent,type ReactNode} from 'react';
+import {useHost} from '@/components/host-provider';
 import {UserButton} from '@clerk/nextjs';
 import {ArrowLeft,ArrowRight,Check,Download,Loader2,Monitor,RefreshCw} from 'lucide-react';
 import installerRelease from '../../../public/downloads/release.json';
@@ -46,6 +47,7 @@ function UseCaseFields({value,onChange,error}:{value:ProfileInput;onChange:(valu
 }
 
 function ConnectorStep() {
+  const host=useHost();
   const [checking,setChecking]=useState(false),[message,setMessage]=useState(''),[online,setOnline]=useState(false);
   const checkPending=useRef(false);
   async function checkConnection() {
@@ -53,7 +55,7 @@ function ConnectorStep() {
     checkPending.current=true;
     setChecking(true);setOnline(false);setMessage('Checking your Revit devices…');
     try {
-      const response=await fetch('/api/service/devices',{cache:'no-store',credentials:'same-origin'});
+      const response=await host.tasks.request('devices');
       if(!response.ok) throw Error('Connection status is unavailable. Try again in the workspace.');
       const devices:unknown=await response.json();
       if(!Array.isArray(devices)) throw Error('Connection status is unavailable. Try again in the workspace.');

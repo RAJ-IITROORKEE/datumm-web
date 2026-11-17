@@ -59,7 +59,7 @@ test('root and provider agree on partial configuration without mounting account 
   for(const env of [{},{NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:'public-test-value'},accountEnv]) {
     const imports={'@/lib/web-configuration':{getWebConfiguration:()=>getWebConfiguration(env)}};
     const Page=load('src/app/page.tsx',{'@/components/workspace-entry':{WorkspaceEntry:'entry'},...imports}).default;
-    const Layout=load('src/app/layout.tsx',{'@clerk/nextjs':{ClerkProvider:'provider'},'@/components/admin/admin-draft-root':{AdminDraftRoot:'admin-root'},'@/lib/appearance':{appearanceBootstrap:''},...imports}).default;
+    const Layout=load('src/app/layout.tsx',{'@clerk/nextjs':{ClerkProvider:'provider'},'@/components/admin/admin-draft-root':{AdminDraftRoot:'admin-root'},'@/components/host-provider':{HostProvider:'host-root'},'@/lib/appearance':{appearanceBootstrap:''},...imports}).default;
     assert.equal(Page().props.authConfigured,getWebConfiguration(env).account.configured);
     assert.equal(Layout({children:'content'}).type,getWebConfiguration(env).account.configured?'provider':'html');
   }
