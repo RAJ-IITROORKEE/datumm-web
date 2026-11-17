@@ -69,6 +69,16 @@ previewed, logged and reversible. Research: two read-only Opus agents (desktop l
 - **Moved forward and reshaped:** W1 becomes UX1. R1 narrows to deterministic rules (R1′).
 - G1 releases continue unchanged; Tavily still waits for the key.
 
+## 5a. Adaptations from the user's starred repos (proposed)
+
+See [starred-repos-review-2026-11-17.md](starred-repos-review-2026-11-17.md).
+
+- **V1:** freeze the finding schema first (archlang catalog plus mutinybim dispositions and rule versions).
+- **R1′:** split into a rule table (R1′a) and route-based travel distance (R1′b, ported from massing).
+- **M1:** prove that untouched rooms did not change.
+- **AG1:** loop detection (deer-flow), stop when failures stop shrinking, and never weaken targets to pass.
+- **Review and EV1:** show dispositions beside the checks; Approve stays disabled until the review is opened.
+
 ## 6. Decisions for the user (recommendation first)
 
 | # | Decision | Options |
