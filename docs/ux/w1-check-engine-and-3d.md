@@ -120,4 +120,14 @@ Revert the commits. The new `findings` field on artifact rows is ignored by old 
 
 ## 7. Result
 
-(Filled in by the main agent.)
+| Item | Outcome |
+| --- | --- |
+| A1 (V1 planner) | `runPlanChecks` holds every check once. `validatePlanGraph` throws the first failure with the historical text and order; the agent compared it with the old build on 40,012 plans (golden plus fuzzed) and every message matched. `inspectPlanGraph` collects; 44 codes, all blocking except the advisory `brief.area-band`. CLI `inspect` operation added. |
+| V1-O | 13 golden plans in `apps/planner/fixtures/golden`, exercising 14 of 44 codes, each pinning its codes, status and legacy validate message. Two hand-derived expectations were wrong at first; the engine was right, and the notes explain why. |
+| A2 (domain API) | Findings are stored on artifact rows: filled lazily, refilled on a `ruleSet` change, and refilled once the generating brief is known. The main agent wired the brief lookup from provenance. `plan_version` returns `findings`, and a failure gives `null`, never a 503. 7 tests. |
+| B (VW1) | Polygon rooms and arc walls; wall and opening picking (`onSelectElement`), wired into Properties; outline highlights; rebuild only on a fingerprint change, with shared disposal. `plan-3d-geometry.mjs` is tested. |
+| Known limits | Briefs state minimum areas, not targets, so `brief.area-band` needs an optional `targetAreaMm2` that no brief has yet. v5, v6 and v7 plans give one `graph.integrity` finding. Arc openings are flat chord boxes, with a sagitta of about 40 mm on a 1 m window at R = 3 m. Arc and polygon 3D was not seen in a browser, because hosted plans are rectangular today. `graph:update` was not run. |
+| Gates (main agent, 17 Nov) | Planner: build, `check-variable-cli`, `check-findings` (13/13) and the four existing planner scripts all passed. Backend: pytest 796 passed + 26 subtests; `lat check` passed. Web: typecheck, 892/892 tests, build, `lat check` passed. |
+| Localhost browser | `/dev/ux` workspace fixture: the 3D cutaway renders; clicking the east wall shows "Wall east", 7,000 / 200 / 3,000 mm, in Properties. |
+| Live web | `d611938` deployed by Vercel and smoke passed. The live Dental clinic plan renders in 3D with doors, windows and labels, with no console errors. |
+| Live backend | **`cbb98d2` live at 13:27Z.** Image `g1-backend-v1-cbb98d2af892-61`. Rehearsal: 36,139 documents before and after, healthy in 3.4 s, 0 tracebacks. Quiet check passed; backup `20261117T132538Z`; the change set touched only Service and Task; 401s as expected; 0 tracebacks. A live `GET variable/plans/3fe4b4d3…/versions/1` through the site returns 200 with the svg and `findings` = `datumm.findings.v1`, `plan-rules@1`, status `pass`, 0/0. |
