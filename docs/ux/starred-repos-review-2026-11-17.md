@@ -57,6 +57,34 @@ house and draw 8 sheets, with a review-and-fix loop. Ideas that fit our plan:
 Drawing sheets (sections, elevations, annotation) is a later step for us than plan and model revisions. Keep it
 for EV1 reissue.
 
+## Added 17 Nov: pengxiaoan/autocad-dwg-redraw-skill (image → editable DWG)
+
+Read by the orchestrator: the Chinese tutorial `docs/图片自动绘制DWG使用教程.md`. 471 stars; no licence detected,
+so ideas only. A Codex skill turns photos, scans, screenshots or sketches of drawings into editable DWG/DXF
+through AutoCAD COM (pywin32, OpenCV, ezdxf, PyMuPDF), then checks and compares the result. Ideas for RD1
+(redline intake) and for M1:
+
+- **Named redraw modes that limit the claims made:**
+  - `strict-dimensioned`: needs units and reliable dimension anchors.
+  - `general`: the default; uncertain items are recorded.
+  - `hybrid`: dimensioned areas are checked; the rest is marked as inferred.
+  - `visual-trace`: unitless; no claim of real dimensions.
+  - `geometry-only`: drops text and dimensions.
+- **Honesty rules:**
+  - Never assume millimetres when the image has no unit or known length.
+  - Stated dimensions and user data always override pixel ratios.
+  - Stop and list the blockers instead of claiming accuracy.
+  - "Looks similar" does not prove dimensions.
+- **An evidence-traceable spec JSON** sits between the image and the drawing. Each element records where it came
+  from.
+- **The pipeline:** preflight of the input quality, spec validation, inspection of the output (units, layers,
+  entities), then an image-vs-CAD comparison (side by side, overlay, difference image and error metrics). It
+  loops on problems and finally reports what is known, what is inferred and what is unresolved.
+
+For us: RD1 should turn a redline image into a scoped task spec with per-item evidence and a mode that limits the
+claims. The final report's "known / inferred / unresolved" maps to our findings and recorded assumptions. DWG
+output is out of scope for now.
+
 ## Proposed changes to the revision-agent plan (awaiting the user, together with RV-a to RV-d)
 
 1. **V1:** freeze the finding schema first, using archlang's catalog shape plus mutinybim's dispositions with the
