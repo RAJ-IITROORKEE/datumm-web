@@ -85,6 +85,33 @@ For us: RD1 should turn a redline image into a scoped task spec with per-item ev
 claims. The final report's "known / inferred / unresolved" maps to our findings and recorded assumptions. DWG
 output is out of scope for now.
 
+## Added 17 Nov: Bil0000/Hill-Climb (MIT, 138 stars, Python, no dependencies)
+
+Read by the orchestrator: the README and repo layout. Hill Climb is a skill plus one script (`climb.py`) that makes
+a coding agent prove "done". Each step:
+
+1. Refuses the step if a locked file (the tests, a benchmark, fixtures) changed.
+2. Runs the checks in parallel and reads one score.
+3. Runs the guards (old tests, typecheck).
+4. Commits only if the score improved and every guard passed; otherwise it resets the tree.
+5. Writes every step to a log on disk.
+
+It stops at the target or when gains stop. A big goal first shows a one-screen plan card and waits for "go".
+
+This is the AG1 check-and-fix loop, almost exactly. Mapped onto revisions:
+
+| Hill Climb | DATUMM revision loop |
+| --- | --- |
+| Score | Count of failing findings (V1) |
+| Guard | No unintended change, brief targets met |
+| Lock | Rule tables and brief targets locked, so the agent cannot weaken them |
+| Commit or reset | Keep the edit or roll it back |
+| On-disk log | `task_events` |
+| Plan card + "go" | Our one blocking review |
+
+MIT, so the scoring and lock logic can be ported into the orchestrator with attribution. Separately, it could be
+installed as a Claude Code plugin for our own development work. That needs the user's OK (a new plugin).
+
 ## Proposed changes to the revision-agent plan (awaiting the user, together with RV-a to RV-d)
 
 1. **V1:** freeze the finding schema first, using archlang's catalog shape plus mutinybim's dispositions with the
