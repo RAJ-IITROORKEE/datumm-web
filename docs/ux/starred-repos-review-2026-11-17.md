@@ -31,6 +31,32 @@ Not useful for us, with the reason:
 
 The agent's full grouped list is in the session record.
 
+## Added 17 Nov: supertask/ai-architecture-lab, `experiments/2026-11_archicad-drawing-set`
+
+Read by the orchestrator through `gh api`: the README, `rules/README.en.md` and `skills/inspection.md`. The repo
+has no licence file, so ideas only. An AI drives Archicad (the Tapir add-on over its JSON API) to model a 2-storey
+house and draw 8 sheets, with a review-and-fix loop. Ideas that fit our plan:
+
+- **Drafting rules as plain-language files, one per sheet type**, given to the agent alone for that sheet. After
+  each review, every mistake is appended as one line, "what it did → what is correct", so the next run improves.
+  This maps to firm and client standards in V1/R1′, which can grow from accepted findings.
+- **Check numbers before looking at images.** Levels are checked against the model across all sheets, dimension
+  segments must sum to the overall dimension, and the grid must match one `grid.json` on every sheet. The maximum
+  element height must equal the drawn maximum height. Overlaps are found by intersecting bounding boxes.
+  Vision is never trusted for numbers (it misreads 6,950 as 6,900) and only for coarse questions. This supports
+  deterministic V1/V3 checks, with V4 critique advisory only.
+- **Sort each finding:** fix in the model, fix in the 2D annotation, or a preference that is not fixed (with the
+  reason recorded). Every fix order includes "re-read 1 m around what you changed and add no new overlap" and
+  "report model-side causes instead of patching them in 2D".
+- **Stop rule:** each round reports fixed / not fixed / partly fixed for the previous findings and gives a
+  verdict. The loop stops after 2–3 rounds once only minor items remain. This matches AG1's ~3-round budget.
+- **Snapshot before a fix** (`walls_before_fixA.json`; the script refuses to run if the snapshot already
+  exists). Scripts that are not idempotent are named as such. This supports before-values and revert in M2/EV1.
+- **A fresh agent context per sheet**, so no value carries over between steps.
+
+Drawing sheets (sections, elevations, annotation) is a later step for us than plan and model revisions. Keep it
+for EV1 reissue.
+
 ## Proposed changes to the revision-agent plan (awaiting the user, together with RV-a to RV-d)
 
 1. **V1:** freeze the finding schema first, using archlang's catalog shape plus mutinybim's dispositions with the

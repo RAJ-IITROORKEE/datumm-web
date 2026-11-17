@@ -1,6 +1,7 @@
 # Desktop UI convergence plan (17 November 2026)
 
-Status: **proposed, awaiting the user's approval.** Plan only; no application code was changed.
+Status: **approved by the user on 17 Nov 2026, with every recommended option (UI-a to UI-h).** Plan only so
+far; no application code has changed yet.
 
 Goal: one shared UI for the DATUMM desktop app and DATUMM Web. Keep the desktop's idea (clear modes that
 follow an architect's workflow) and the web's execution (layout, components, density). Long term both
