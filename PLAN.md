@@ -32,6 +32,7 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | T1 | Tavily web search with DATUMM's own key | Approved 17 Nov; building. Live use needs the user's key in the runtime secret and a template go-ahead | [Packet](docs/ux/t1-tavily-web-search.md) |
 | A4a | Tool catalog, per-mode switches, approval modes and risk classes | Done 17 Nov; **live** (backend `1e67551`) | [Packet](docs/ux/a4a-tools-and-approvals.md) |
 | A4b | Skills registry: SKILL.md, versions, on-demand loading | Done 17 Nov; **live** (backend `115980f`) | [Packet](docs/ux/a4b-skills-registry.md) |
+| P-SEC | Port the desktop line's hosted security fixes (expiry re-check before approve, share TTL, Clerk audience/origins, device user code, CSV escaping) | Proposed 17 Nov; recommended next | [Comparison](docs/ux/desktop-harness-comparison-2026-11-17.md) |
 | A4c | MCP registry | Packet proposed 17 Nov; waits for the user on A4c-a (new dependency) and A4c-c (new secret + template change) | [Packet](docs/ux/a4c-mcp-registry.md) |
 | N5 | Provider streaming and measured performance | Proposed | Roadmap |
 | W1 | Right work area on AG-UI state | Proposed; separate go or no-go | Roadmap |
