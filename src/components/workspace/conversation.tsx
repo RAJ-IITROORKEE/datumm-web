@@ -29,6 +29,7 @@ import { EvidenceResults } from '../evidence-results';
 import { DraftAssessmentDetails } from '../draft-assessment';
 import { AgentLimit } from '../agent-memory';
 import { Composer } from './composer';
+import { RetryOnModel } from './retry-on-model';
 import { DisplayActionsTurn, type DisplayActionsApi } from './display-actions';
 import {
   type WorkspaceState,
@@ -68,6 +69,9 @@ export type ConversationPanelProps = Pick<
   | 'liveRuntime'
   | 'desktopPreview'
   | 'capabilities'
+  | 'hostedQueue'
+  | 'retryModel'
+  | 'retryOnModel'
   | 'queueData'
   | 'run'
   | 'designDraftKey'
@@ -820,7 +824,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   annotationView={run.data.annotation_view_review?.name}
                   operations={run.data.compiled?.changes?.operations}
                   canRefresh={Boolean((run.data.variable_selection||run.data.m09_revision)&&!committedBuild)}
-                  onAction={act}
+                  onAction={async action=>{await act(action);}}
                   onConfigureAccess={run.data.agent_execution&&!run.data.proposal?.deletions?.length?trigger=>{
                     dialogTrigger.current=trigger;setAccessBatches(plannedAccessBatches);setAccessMargin(0);setAccessReview(null);setAccessDialog(true);
                   }:undefined}
@@ -1416,6 +1420,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                     {!confirmedAnnotationFailure && run.data.failure?.recoveryAction && (
                       <small>{recoveryGuidance(run.data.failure.recoveryAction)}</small>
                     )}
+                    <RetryOnModel model={props.retryModel} busy={actionBusy || executing} onRetry={props.retryOnModel} />
                     {run.data.operation_id && (
                       <button disabled={actionBusy} onClick={() => act('recover')}>
                         {outcome?.verifiedBatches === 1 && !outcome.completedBuild && run.status === 'failed'

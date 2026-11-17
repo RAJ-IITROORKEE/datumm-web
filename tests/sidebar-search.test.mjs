@@ -160,7 +160,7 @@ test('actual inline rename retains conflicting values, preserves revision-bound 
 test('actual account footer follows current Clerk identity and preserves its existing actions',()=>{
   let user={fullName:'Ada Architect',imageUrl:'https://example.com/ada',primaryEmailAddress:{emailAddress:'ada@example.com'}};
   const signedOut=[],opened=[];
-  const component=loadComponent('../src/components/workspace/sidebar.tsx',{'@clerk/nextjs':{useUser:()=>({user}),useClerk:()=>({signOut:()=>signedOut.push(true)}),Show:'Show',SignInButton:'SignInButton'},'@/lib/workflow-state':{workflowState:()=>({kind:'idle'})}});
+  const component=loadComponent('../src/components/workspace/sidebar.tsx',{'@clerk/nextjs':{useUser:()=>({user}),useClerk:()=>({signOut:()=>signedOut.push(true)}),Show:'Show',SignInButton:'SignInButton'},'@/lib/workflow-state':{workflowState:()=>({kind:'idle'})},'@/lib/prompt-queue.mjs':{clearQueueKeys:storages=>signedOut.push(`cleared ${storages.length}`)}});
   const props={runs:[],projects:[],orderedProjects:[],collapsedProjects:[],runId:'',mediaBusy:false,actionBusy:false,
     dialogTrigger:{current:null},left:true,viewportReady:true,panelWidths:{left:272},search:'',studioView:'workspace',historyView:'recent',
     desktopAvailable:false,workflowFilter:'',projectsSupported:false,chatMenuUnsupported:[],unreadIds:new Set(),authConfigured:true,workspaceReady:true,serviceError:''};
@@ -174,7 +174,7 @@ test('actual account footer follows current Clerk identity and preserves its exi
   assert.equal(all(account,node=>node.type==='ProfileIdentity')[0].props.email,'ada@example.com');
   assert.equal(all(account,node=>node.type==='Avatar')[0].props['aria-hidden'],'true');
   const items=all(account,node=>node.type==='MenuItem');items.forEach(item=>item.props.onSelect());
-  assert.deepEqual(opened,['activity','schedules','settings','archive','connections','delete']);assert.deepEqual(signedOut,[true]);
+  assert.deepEqual(opened,['activity','schedules','settings','archive','connections','delete']);assert.deepEqual(signedOut,['cleared 2',true],'Queued prompts are cleared before sign-out');
   const trigger=all(account,node=>node.type==='button')[0];
   assert.equal(trigger.props['aria-label'],'Account settings for Ada Architect');
   assert.equal(all(trigger,node=>node.type==='Avatar').length,1,'The entire account row is the single menu trigger');

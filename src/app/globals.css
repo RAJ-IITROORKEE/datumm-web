@@ -329,3 +329,9 @@ button:disabled { cursor:not-allowed; }
 .share-page footer a{color:var(--foreground)}
 
 .composer-tray .device-status .composer-ready-dot{display:inline-block;width:6px;height:6px;flex:none;border-radius:50%;background:var(--success)}
+.prompt-queue li .queue-actions{flex:none;display:flex;align-items:center;gap:4px}
+.prompt-queue .queue-menu-trigger{display:none;min-width:36px;min-height:36px;align-items:center;justify-content:center}
+.prompt-queue .queue-notice{margin:6px 0 0;font-size:12px;color:var(--muted-foreground)}
+@media(max-width:480px){.prompt-queue li .queue-actions{display:none}.prompt-queue .queue-menu-trigger{display:inline-flex}}
+.composer textarea[data-suggestion]::placeholder{color:var(--muted-foreground);font-style:italic}
+.composer-suggestion-hint{font-size:11px;color:var(--muted-foreground);margin:0 12px 4px}

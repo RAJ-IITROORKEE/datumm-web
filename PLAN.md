@@ -28,7 +28,7 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | H0 | Harness decision: keep the LangGraph backend, port Panda-agent features | Approved 17 Nov (H1 to H4, recommended options) | [Decision](docs/ux/harness-decision-2026-11-17.md) |
 | UI1 | Composer and sidebar: model picker, context-window meter, sidebar groups and Ctrl K | Done 17 Nov; **live** (web and `modelInfo`) | [Packet](docs/ux/ui1-composer-and-sidebar.md) |
 | P0 | Panda-agent parity plan: every Panda feature, step by step, live after each | Approved 17 Nov; H5 = A (port onto the LangGraph backend) | [Parity plan](docs/ux/panda-parity-plan-2026-11-17.md) |
-| UI2 | Composer extras: prompt queue, Send now, Tab to accept follow-up, retry on another model, attachment UI (flagged) | Approved 17 Nov (all A, standing instruction); in progress | [Packet](docs/ux/ui2-composer-extras.md) |
+| UI2 | Composer extras: prompt queue, Send now, Tab to accept follow-up, retry on another model, attachment UI (flagged) | Done 17 Nov; **live** | [Packet](docs/ux/ui2-composer-extras.md) |
 | T1 | Tavily web search with DATUMM's own key | Proposed (after H0) | Decision §5 |
 | A4a | Admin: tools and skills registry | Proposed (after H0) | Decision §5 |
 | A4b | Admin: MCP registry (official Python MCP SDK) | Proposed (after H0) | Decision §5 |

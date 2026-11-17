@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {conversationTurns} from '../src/lib/conversation-turns.mjs';
 import {
-  captureUndo, describeAction, liveScopeFor, parseDisplayActions, undoStatus,
+  acceptSuggestion, captureUndo, describeAction, liveScopeFor, parseDisplayActions, undoStatus,
   validateDisplayActions, validateDisplayItems,
 } from '../src/lib/display-actions.mjs';
 
@@ -174,4 +174,13 @@ test('liveScopeFor binds the live check to this browser\'s submission key', () =
     [live, ['task-1', 'turn-0002', 4, true]], [live, ['task-1', 'turn-0002', 5, false]],
     [{...live, scope: null}, own], [null, own],
   ]) assert.equal(liveScopeFor(value, ...args), null, JSON.stringify(args));
+});
+
+test('acceptSuggestion fills only an empty or whitespace-only box', () => {
+  assert.equal(acceptSuggestion('', 'Compare the two'), 'Compare the two');
+  assert.equal(acceptSuggestion('  \n ', 'Compare the two'), 'Compare the two');
+  assert.equal(acceptSuggestion('typed', 'Compare the two'), null);
+  assert.equal(acceptSuggestion('', ''), null);
+  assert.equal(acceptSuggestion('', null), null);
+  assert.equal(acceptSuggestion(undefined, 'Compare the two'), 'Compare the two');
 });

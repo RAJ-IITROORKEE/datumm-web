@@ -8,6 +8,7 @@ import {
   Check,
   Square,
   ArrowUp,
+  ListPlus,
   PencilRuler,
   Workflow,
   MessageSquare,
@@ -23,8 +24,12 @@ import { needsPluginSetup } from '@/lib/plugin-setup.mjs';
 import { PluginSetupGuide } from '../plugin-setup-guide';
 import { ComposerMedia } from '../composer-media';
 import { ModelPicker } from '../model-picker';
+import { QueuePanel } from './queue-panel';
+import { AttachmentChips } from './attachment-chips';
+import { acceptSuggestion } from '@/lib/display-actions.mjs';
 import { ContextMeter } from './context-meter';
 import { featureEnabled } from '@/lib/capabilities.mjs';
+import { queueAllowed } from '@/lib/prompt-queue.mjs';
 import { parseModelInfo } from '@/lib/model-display.mjs';
 import { useOutputWorkspace } from './output-workspace';
 import type { DisplayActionsApi } from './display-actions';
@@ -56,6 +61,7 @@ export type ComposerProps = Pick<
   | 'focusReview'
   | 'setDismissedWorkflow'
   | 'promptQueue'
+  | 'hostedQueue'
   | 'prompt'
   | 'queueAction'
   | 'runtimeConfig'
@@ -145,6 +151,7 @@ export function Composer(props: ComposerProps) {
     focusReview,
     setDismissedWorkflow,
     promptQueue,
+    hostedQueue: hq,
     prompt,
     queueAction,
     cancelPending,
@@ -237,6 +244,12 @@ export function Composer(props: ComposerProps) {
     applyStarter(choice);
   }
   const pendingStarter=starterReplacement?.token===starterToken && starterCurrent()?starterReplacement:null;
+  // Hosted Ask/Plan keeps accepting prompts while a turn runs: they join the browser queue.
+  // The running task decides, not the picker: Build and Revit work is never queued or stopped.
+  const queueing = Boolean(hq?.active && executing && !liveRuntime && queueAllowed(run) &&
+    mode !== 'build');
+  const focusPrompt = () => promptInput.current?.focus();
+  const suggestion = (!prompt && props.displayActions?.placeholder) || '';
   const canSubmit =
     scene !== 'task-loading' && scene !== 'submitting' &&
     hasPromptContent(prompt) &&
@@ -245,7 +258,8 @@ export function Composer(props: ComposerProps) {
     !actionBusy &&
     !mediaBusy &&
     !cancelPending &&
-    (!executing || (liveRuntime && Boolean(run)));
+    !(queueing && hq!.full) &&
+    (!executing || (liveRuntime && Boolean(run)) || queueing);
   return (
     <div className="composer-area">
       <div className="composer-workflow">
@@ -286,43 +300,24 @@ export function Composer(props: ComposerProps) {
             </div>
           )}
 
-        {liveRuntime && promptQueue.length > 0 && (
-          <div className="prompt-queue" aria-label="Queued prompts">
-            <div className="section-caption">
-              QUEUED · {promptQueue.length}/10{' '}
-              <span>{queueData?.queue_paused ? 'Paused · prompts saved' : 'Runs in order after the current turn'}</span>
-            </div>
-            <ol>
-              {promptQueue.map((item) => (
-                <li key={item.id}>
-                  <span>
-                    <strong>{item.mode === 'plan' ? 'Plan' : 'Ask'}</strong> <PromptContent text={item.prompt} />
-                  </span>
-                  <button
-                    type="button"
-                    disabled={actionBusy || cancelPending || Boolean(prompt.trim())}
-                    aria-label={`Edit queued prompt: ${item.prompt}`}
-                    onClick={() => void queueAction('edit', item)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    disabled={actionBusy || cancelPending}
-                    aria-label={`Remove queued prompt: ${item.prompt}`}
-                    onClick={() => void queueAction('remove', item)}
-                  >
-                    <X size={14} />
-                  </button>
-                </li>
-              ))}
-            </ol>
-            {!executing && !cancelPending && (
-              <Button variant="secondary" disabled={actionBusy} onClick={() => void queueAction('resume')}>
-                Resume queue
-              </Button>
-            )}
-          </div>
+        {liveRuntime && (
+          <QueuePanel rows={promptQueue} max={10} busy={actionBusy || cancelPending}
+            pausedText={queueData?.queue_paused ? 'Paused · prompts saved' : null}
+            editDisabled={Boolean(prompt.trim())}
+            onEdit={(item) => { void queueAction('edit', item); focusPrompt(); }}
+            onRemove={(item) => void queueAction('remove', item)} focusComposer={focusPrompt}
+            onResume={!executing && !cancelPending ? () => void queueAction('resume') : undefined} />
+        )}
+        {hq?.active && (
+          <QueuePanel rows={hq.items} max={hq.max} busy={actionBusy} stopping={hq.stopping}
+            notice={hq.notice} editDisabled={Boolean(prompt.trim())}
+            pausedText={hq.paused ? 'Paused · prompts kept' + (hq.paused === 'model' ? ' (model unavailable)' : '') : null}
+            onSendNow={hq.canSendNow ? (row) => void hq.sendNow({ id: row.id }) : undefined}
+            onEdit={(row) => {
+              const kept = hq.take(row.id);
+              if (kept) { setPrompt(kept.prompt); setMode(kept.mode); focusPrompt(); }
+            }}
+            onRemove={(row) => hq.remove(row.id)} focusComposer={focusPrompt} />
         )}
         {runtimeConfig?.authenticationRequired ? (
           <div className="runtime-notice" role="status">
@@ -416,10 +411,13 @@ export function Composer(props: ComposerProps) {
         onSubmit={(e) => {
           e.preventDefault();
           if (!canSubmit) return;
+          if (queueing) { if (hq!.add(prompt)) setPrompt(''); return; }
           void submit(prompt, mode === 'build' && prompt.toLowerCase().includes('verified 3bhk'));
         }}
       >
         <div className="composer-input">
+        {/* No send path carries attachments until the backend attachments phase. */}
+        <AttachmentChips enabled={featureEnabled(capabilities, 'attachments')} canSend={false} />
         {draftReferences.length > 0 && (
           <div className="saved-source-strip" aria-label="Draft design references">
             {draftReferences.map((row, i) => (
@@ -486,10 +484,12 @@ export function Composer(props: ComposerProps) {
             setCommandsDismissed(false);
             props.displayActions?.dismissPlaceholder();
           }}
+          data-suggestion={suggestion ? '' : undefined}
+          aria-describedby={suggestion ? 'composer-suggestion-hint' : undefined}
           aria-controls={commandsOpen ? 'workflow-commands' : undefined}
           aria-activedescendant={commandsOpen ? `workflow-${commandIndex}` : undefined}
           placeholder={
-            !prompt && props.displayActions?.placeholder ? props.displayActions.placeholder : hasContent ? drawingCurrent ? 'Ask about this plan or describe a change…' : 'Ask a follow-up or describe your task…' : 'Describe your project or ask anything…'
+            suggestion ? suggestion : hasContent ? drawingCurrent ? 'Ask about this plan or describe a change…' : 'Ask a follow-up or describe your task…' : 'Describe your project or ask anything…'
           }
           rows={2}
           onKeyDown={(e) => {
@@ -512,6 +512,20 @@ export function Composer(props: ComposerProps) {
                 return;
               }
             }
+            // Tab accepts a suggestion only into an empty box; otherwise focus moves on as usual.
+            const accepted = e.key === 'Tab' && !e.shiftKey && !e.nativeEvent.isComposing ? acceptSuggestion(prompt, suggestion) : null;
+            if (accepted) {
+              e.preventDefault();
+              setPrompt(accepted);
+              props.displayActions?.dismissPlaceholder();
+              return;
+            }
+            if (e.key === 'Enter' && e.altKey && !e.nativeEvent.isComposing && queueing) {
+              e.preventDefault();
+              const next = prompt.trim() ? { text: prompt } : hq!.items[0] && { id: hq!.items[0].id };
+              if (next && hq!.canSendNow) void hq!.sendNow(next, () => setPrompt(''));
+              return;
+            }
             if (
               e.key === 'Enter' &&
               !e.shiftKey &&
@@ -524,6 +538,7 @@ export function Composer(props: ComposerProps) {
           }}
         />
 
+        {suggestion && <p className="composer-suggestion-hint" id="composer-suggestion-hint">Suggested follow-up · press Tab to use it</p>}
         {visiblePrompt.references.length > 0 && (
           <ViewportReferences
             references={visiblePrompt.references}
@@ -649,15 +664,15 @@ export function Composer(props: ComposerProps) {
                 <Square size={13} fill="currentColor" />
               </button>
             )}
-            {(!executing || liveRuntime) && (
+            {(!executing || liveRuntime || queueing) && (
               <button
                 className="send-button"
                 type="submit"
                 disabled={!canSubmit}
-                aria-label={queueMessage ? 'Queue message' : 'Send message'}
-                title={queueMessage ? 'Save this prompt to run after the current turn' : 'Send message'}
+                aria-label={queueing ? 'Add to queue' : queueMessage ? 'Queue message' : 'Send message'}
+                title={queueing ? (hq!.full ? `Queue is full (${hq!.max})` : 'Add to queue: runs after the current turn. Alt+Enter sends it now') : queueMessage ? 'Save this prompt to run after the current turn' : 'Send message'}
               >
-                <ArrowUp size={16} strokeWidth={1.9} aria-hidden="true"/>
+                {queueing ? <ListPlus size={16} strokeWidth={1.9} aria-hidden="true"/> : <ArrowUp size={16} strokeWidth={1.9} aria-hidden="true"/>}
               </button>
             )}
           </div>

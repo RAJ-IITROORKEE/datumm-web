@@ -17,7 +17,7 @@ test('a config without a usable capabilities object reports every feature unknow
 
 test('a valid v1 object maps booleans and leaves missing or malformed features unknown', () => {
   const parsed = parseCapabilities(v1({adminConfig: true, adminAudit: false, adminOverview: 'yes', adminKnowledge: 1, extra: true}));
-  assert.deepEqual(parsed, {version: 1, features: {adminConfig: 'on', adminAudit: 'off', adminOverview: 'unknown', adminKnowledge: 'unknown', planningGoals: 'unknown', frontendContext: 'unknown', displayActions: 'unknown', adminTraces: 'unknown', feedback: 'unknown', adminHistory: 'unknown', adminModels: 'unknown', modelInfo: 'unknown'}});
+  assert.deepEqual(parsed, {version: 1, features: {adminConfig: 'on', adminAudit: 'off', adminOverview: 'unknown', adminKnowledge: 'unknown', planningGoals: 'unknown', frontendContext: 'unknown', displayActions: 'unknown', adminTraces: 'unknown', feedback: 'unknown', adminHistory: 'unknown', adminModels: 'unknown', modelInfo: 'unknown', attachments: 'unknown'}});
   assert.equal(featureState(parsed, 'adminAudit'), 'off');
   assert.equal(featureState(null, 'adminAudit'), 'unknown');
 });

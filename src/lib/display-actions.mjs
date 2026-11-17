@@ -181,3 +181,7 @@ export function describeAction(action, state, reason) {
 
 export const actionButtonLabel = action =>
   action.action === 'open_work_area' ? `Open ${SECTION_NAMES[action.section]}` : 'Apply';
+
+/** Tab accepts the model's suggested follow-up only into an empty box; otherwise null. */
+export const acceptSuggestion = (prompt, placeholder) =>
+  placeholder && !(prompt ?? '').trim() ? placeholder : null;

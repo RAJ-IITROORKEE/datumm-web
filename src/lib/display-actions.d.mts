@@ -59,3 +59,6 @@ export function describeAction(
   action: DisplayAction, state: DisplayItemState, reason?: string,
 ): string | null;
 export function actionButtonLabel(action: DisplayAction): string;
+export function acceptSuggestion(
+  prompt: string | undefined, placeholder: string | null | undefined,
+): string | null;

@@ -6,6 +6,7 @@ import {
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import { useUser, useClerk, Show, SignInButton } from '@clerk/nextjs';
 import { cn } from '@/lib/utils';
+import { clearQueueKeys } from '@/lib/prompt-queue.mjs';
 import { ChevronDown } from './sidebar-icons';
 import { Avatar } from '@/components/vendor/affectui/avatar-clean';
 import {
@@ -35,6 +36,11 @@ export function ProfileMenu({
     { signOut } = useClerk();
   const name = user?.fullName || user?.firstName || user?.username || 'Your account';
   const item = profileMenuClasses.item;
+  // Queued prompts are private text; they must not outlive the session on a shared browser.
+  const signOutAndForget = () => {
+    clearQueueKeys([() => sessionStorage, () => localStorage]);
+    void signOut();
+  };
   const avatar = (
     <Avatar kind="person" size={24} name={name} src={user?.imageUrl} aria-hidden="true" />
   );
@@ -78,7 +84,7 @@ export function ProfileMenu({
               onSelect={confirmDeleteAll}>
               <Trash2 size={15} /> Delete all chats
             </DropdownMenuPrimitive.Item>
-            <DropdownMenuPrimitive.Item className={item} onSelect={() => void signOut()}>
+            <DropdownMenuPrimitive.Item className={item} onSelect={signOutAndForget}>
               <LogOut size={15} /> Sign out
             </DropdownMenuPrimitive.Item>
           </div>

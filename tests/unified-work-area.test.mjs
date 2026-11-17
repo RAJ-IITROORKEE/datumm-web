@@ -11,6 +11,8 @@ import * as settingsNavigation from '../src/lib/settings-navigation.mjs';
 import * as chatSeen from '../src/lib/chat-seen.mjs';
 import {stopRequested} from '../src/lib/stop-requested.mjs';
 import {featureEnabled,parseCapabilities} from '../src/lib/capabilities.mjs';
+import {alternateModel,retryableFailure} from '../src/lib/model-retry.mjs';
+import {queueAllowed} from '../src/lib/prompt-queue.mjs';
 import {buildFrontendContext} from '../src/lib/agui/frontend-context.mjs';
 import * as selectionMarker from '../src/lib/selection-uncertainty.mjs';
 import * as conversationResult from '../src/lib/conversation-result.mjs';
@@ -117,6 +119,7 @@ test('A to B to A, changed brief and removed candidates at either GET boundary p
 
 
 function fakeLocks(){const tails=new Map();return {request(name,options,callback){assert.equal(options.mode,'exclusive');let result;try{result=tails.has(name)?tails.get(name).then(callback):Promise.resolve(callback());}catch(error){result=Promise.reject(error);}const tail=result.then(()=>{},()=>{});tails.set(name,tail);void tail.then(()=>{if(tails.get(name)===tail)tails.delete(name);});return result;}};}
+const queueEnv={current:null};
 function workspaceHarness(sharedStorage,sharedLocks){
  const effects=[],requests=[],chat={messages:[],status:'ready',options:null,sent:[]};
  const chatStart={};runInNewContext(compile(source('src/lib/chat-start.ts')).outputText,{exports:chatStart,Response,Error});
@@ -131,6 +134,9 @@ function workspaceHarness(sharedStorage,sharedLocks){
   '@/lib/chat-seen.mjs':chatSeen,
   '@/lib/stop-requested.mjs':{stopRequested},
   '@/lib/capabilities.mjs':{parseCapabilities,featureEnabled},
+  '@/lib/model-retry.mjs':{alternateModel,retryableFailure},
+  '@/lib/prompt-queue.mjs':{queueAllowed},
+  './use-prompt-queue':{usePromptQueue:env=>{queueEnv.current=env;return {active:false,items:[]};}},
   '@/lib/agui/frontend-context.mjs':{buildFrontendContext},
   '@/lib/task-command':{replaceTerminalCommand:(type,state)=>state==='applied'||state==='rejected'||(state==='interrupted'&&['compare_result','inspect_result'].includes(type))},
   '@/lib/chat-start':{chatStartFailure:()=>null,savedTaskConnectionNotice:()=>'',admissionMessage:message=>message},
@@ -850,4 +856,29 @@ test('N4 workspace keeps provider inputs and the context value stable across re-
  runInNewContext(compile(source('src/components/workspace/output-workspace.tsx')).outputText,{exports:api,document:{activeElement:null},HTMLElement:class{},require(name){if(name==='react')return provider.hooks;if(name==='react/jsx-runtime')return jsx;if(name.endsWith('.module.css'))return {default:{}};return {};}});
  const value=p=>{provider.reset();const {children:_children,...rest}=p;return api.OutputWorkspaceProvider(rest).props.value;};
  const before=value(first);props(3);assert.equal(value(props(4)),before);
+});
+
+test('queue send reports only a turn this call started, and Build tasks never queue',async()=>{
+ const h=workspaceHarness();let w=h.render();const first=w.submit('Same text');
+ h.chat.options.onData({type:'data-run',data:{id:'admitted',clientSubmissionId:h.chat.sent.at(-1)[1].body.clientSubmissionId}});
+ h.chat.finish();await first;w=h.render();
+ // The task is still loading, so this send returns early without starting anything.
+ assert.equal(await queueEnv.current.send('Same text','model','ask'),false);
+ assert.equal(h.chat.sent.length,1);
+ for(const [run,active] of [[task('a',{mode:'ask'}),true],[task('a',{mode:'build'}),false],[task('a',{mode:'plan',data:{native_build:{state:'proposed'}}}),false]]){
+  const other=workspaceHarness();const view=other.render();view.selectRun(run);other.render();
+  assert.equal(queueEnv.current.active,active,run.mode);
+ }
+});
+
+test('retry chooses the alternate against the failed run model, not the picker',async()=>{
+ const h=workspaceHarness();let w=h.render();const refresh=w.refresh();
+ for(const request of h.requests.splice(0)){
+  if(request.path.endsWith('/config'))request.resolve({runtime:'hosted',models:['a/one','b/two','c/three'],defaultModel:'a/one'});
+  else request.resolve([]);
+ }
+ await refresh;w=h.render();
+ w.selectRun(task('a',{status:'failed',model:'a/one',conversation:[{prompt:'Hi'}],data:{failure:{code:'provider_timeout'}}}));w=h.render();
+ w.setModel('b/two');w=h.render();
+ assert.equal(w.retryModel,'b/two');
 });

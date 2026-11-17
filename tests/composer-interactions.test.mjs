@@ -6,6 +6,9 @@ import * as React from 'react';
 import * as jsxRuntime from 'react/jsx-runtime';
 import ts from 'typescript';
 import * as modelDisplay from '../src/lib/model-display.mjs';
+import {acceptSuggestion} from '../src/lib/display-actions.mjs';
+import {featureEnabled} from '../src/lib/capabilities.mjs';
+import * as queueLib from '../src/lib/prompt-queue.mjs';
 
 const compile=path=>ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText;
 const promptContent={};
@@ -17,7 +20,7 @@ function harness(input={}) {
  const slots=[];let cursor=0;
  const hooks={useState(initial){const i=cursor++;if(!(i in slots))slots[i]=initial;return [slots[i],next=>{slots[i]=typeof next==='function'?next(slots[i]):next;}];},useRef(initial){const i=cursor++;return slots[i]??={current:initial};}};
  const exports={};
- runInNewContext(code,{exports,require(name){if(name==='react')return hooks;if(name==='react/jsx-runtime')return jsxRuntime;if(name==='../prompt-content')return promptContent;if(name==='./output-workspace')return {useOutputWorkspace:()=>({scope:{key:'test',epoch:1}})};if(name==='@/lib/plugin-setup.mjs')return {needsPluginSetup:()=>false};if(name==='@/lib/utils')return {cn:(...values)=>values.filter(Boolean).join(' ')};return new Proxy({},{get:(_,key)=>Object.assign(()=>null,{displayName:key})});}});
+ runInNewContext(code,{exports,require(name){if(name==='react')return hooks;if(name==='react/jsx-runtime')return jsxRuntime;if(name==='../prompt-content')return promptContent;if(name==='./output-workspace')return {useOutputWorkspace:()=>({scope:{key:'test',epoch:1}})};if(name==='@/lib/plugin-setup.mjs')return {needsPluginSetup:()=>false};if(name==='@/lib/utils')return {cn:(...values)=>values.filter(Boolean).join(' ')};if(name==='@/lib/display-actions.mjs')return {acceptSuggestion};if(name==='@/lib/capabilities.mjs')return {featureEnabled};if(name==='@/lib/prompt-queue.mjs')return queueLib;return new Proxy({},{get:(_,key)=>Object.assign(()=>null,{displayName:key})});}});
  const props={prompt:'Keep this draft',visiblePrompt:{text:'Keep this draft',references:[]},mode:'plan',liveRuntime:true,workspaceReady:true,connected:true,hasContent:true,draftReferences:[],devices:[],promptQueue:[],chatModels:['openai/actual-model'],model:'openai/actual-model',reasoningEffort:'high',sources:[],commandMatches:['inspect','plan'],commandIndex:0,commandsOpen:false,sendShortcut:'enter',submit:(...args)=>calls.submitted.push(args),setCommandsDismissed:value=>calls.dismissed.push(value),chooseCommand:value=>calls.chosen.push(value),...input};
  const tree=exports.Composer(props),elements=[];
  const visit=node=>{if(!React.isValidElement(node))return;elements.push(node);React.Children.forEach(node.props.children,visit);};visit(tree);
@@ -134,4 +137,110 @@ test('Add menu exposes only actual context/capabilities actions and truthfully d
  const items=tree.filter(row=>row.type==='add-item');assert.equal(items.length,3);assert.equal(items[0].props.disabled,true);assert.match(items[0].props.textValue,/require DATUMM Desktop/);assert.equal(items[0].props.onSelect,undefined);
  items[1].props.onSelect();items[2].props.onSelect();assert.deepEqual(calls,['context','capabilities']);
  const voice=all(exports.ComposerMedia({voiceOnly:true}));assert.equal(voice.filter(row=>row.type==='button').length,1);assert.equal(voice.find(row=>row.type==='button').props.disabled,true);assert.match(voice.find(row=>row.type==='button').props['aria-label'],/Dictation requires DATUMM Desktop/);
+});
+
+const hosted=(over={},state={})=>{
+ const calls={added:[],now:[],prompts:[]};
+ const hostedQueue={active:true,canSendNow:true,items:[],max:3,full:false,paused:null,stopping:false,notice:'',add:text=>{calls.added.push(text);return true;},remove(){},take(){return null;},sendNow:async(source,done)=>{calls.now.push(source);done?.();}, ...over};
+ const h=harness({liveRuntime:false,executing:true,run:{id:'task-1',mode:'ask'},mode:'ask',hostedQueue,setPrompt:value=>calls.prompts.push(value),...state});
+ return {h,calls};
+};
+const sendButton=h=>h.find(e=>e.type==='button'&&e.props.type==='submit');
+
+test('hosted Ask/Plan queues while a turn runs and labels the button Add to queue',()=>{
+ const {h,calls}=hosted();
+ assert.equal(sendButton(h).props['aria-label'],'Add to queue');assert.equal(sendButton(h).props.disabled,false);
+ h.enter();assert.deepEqual(calls.added,['Keep this draft']);assert.deepEqual(calls.prompts,['']);assert.equal(h.calls.submitted.length,0);
+ for(const [state,label] of [[{executing:false},'Send message'],[{mode:'build'},undefined]]){
+  const other=hosted({},state).h;assert.equal(sendButton(other)?.props['aria-label'],label);
+ }
+ const full=hosted({full:true}).h;assert.equal(sendButton(full).props.disabled,true);assert.match(sendButton(full).props.title,/Queue is full \(3\)/);
+ full.enter();assert.equal(full.calls.submitted.length,0);
+ const idle=harness({liveRuntime:false,executing:false});assert.equal(sendButton(idle).props['aria-label'],'Send message');
+ const noQueue=hosted({active:false}).h;noQueue.enter();assert.equal(noQueue.calls.submitted.length,0);
+});
+
+test('Alt+Enter sends now only while queueing, using the draft or the first queued prompt',()=>{
+ const {h,calls}=hosted();
+ let prevented=false;
+ h.textarea.props.onKeyDown({key:'Enter',altKey:true,shiftKey:false,nativeEvent:{isComposing:false},preventDefault(){prevented=true;},currentTarget:{form:null}});
+ assert.equal(prevented,true);assert.deepEqual(JSON.parse(JSON.stringify(calls.now)),[{text:'Keep this draft'}]);assert.deepEqual(calls.prompts,['']);
+ const empty=hosted({items:[{id:'q1',prompt:'next',mode:'ask',model:'m'}]},{prompt:'',visiblePrompt:{text:'',references:[]}});
+ empty.h.textarea.props.onKeyDown({key:'Enter',altKey:true,nativeEvent:{isComposing:false},preventDefault(){},currentTarget:{}});
+ assert.deepEqual(JSON.parse(JSON.stringify(empty.calls.now)),[{id:'q1'}]);
+ const idle=harness({executing:false});idle.textarea.props.onKeyDown({key:'Enter',altKey:true,shiftKey:false,nativeEvent:{isComposing:false},preventDefault(){},currentTarget:{form:null}});
+ assert.equal(idle.calls.submitted.length,0);
+});
+
+test('Tab accepts the suggested follow-up into an empty box and never traps focus otherwise',()=>{
+ const set=[];
+ const withSuggestion=(state={})=>harness({prompt:'',visiblePrompt:{text:'',references:[]},setPrompt:value=>set.push(value),displayActions:{placeholder:'Compare the two',dismissPlaceholder(){set.push('dismissed');}},...state});
+ const h=withSuggestion();
+ assert.equal(h.textarea.props.placeholder,'Compare the two');assert.equal(h.textarea.props['data-suggestion'],'');
+ assert.equal(h.textarea.props['aria-describedby'],'composer-suggestion-hint');
+ assert.match(JSON.stringify(h.find(e=>e.props.id==='composer-suggestion-hint').props.children),/press Tab/);
+ let prevented=false;h.textarea.props.onKeyDown({key:'Tab',shiftKey:false,nativeEvent:{isComposing:false},preventDefault(){prevented=true;},currentTarget:{}});
+ assert.equal(prevented,true);assert.deepEqual(set,['Compare the two','dismissed']);
+ for(const event of [{shiftKey:true},{nativeEvent:{isComposing:true}}]){
+  const other=withSuggestion();prevented=false;other.textarea.props.onKeyDown({key:'Tab',shiftKey:false,nativeEvent:{isComposing:false},preventDefault(){prevented=true;},currentTarget:{},...event});assert.equal(prevented,false);
+ }
+ const typed=withSuggestion({prompt:'typed',visiblePrompt:{text:'typed',references:[]},displayActions:{placeholder:'Compare the two'}});
+ assert.equal(typed.textarea.props['data-suggestion'],undefined);assert.equal(typed.textarea.props['aria-describedby'],undefined);
+ prevented=false;typed.textarea.props.onKeyDown({key:'Tab',shiftKey:false,nativeEvent:{isComposing:false},preventDefault(){prevented=true;},currentTarget:{}});assert.equal(prevented,false);
+ const plain=harness({prompt:'',visiblePrompt:{text:'',references:[]}});assert.equal(plain.find(e=>e.props.id==='composer-suggestion-hint'),undefined);
+});
+
+test('attachment chips need the attachments capability and a send path, which none has yet',()=>{
+ const chips=h=>h.find(e=>e.type?.displayName==='AttachmentChips');
+ assert.equal(chips(harness()).props.enabled,false);
+ assert.equal(chips(harness({capabilities:{version:1,features:{attachments:'unknown'}}})).props.enabled,false);
+ const on=chips(harness({capabilities:{version:1,features:{attachments:'on'}}}));
+ assert.equal(on.props.enabled,true);assert.equal(on.props.canSend,false);
+});
+
+test('a running Build task never queues, steers or sends now, whatever the picker says',()=>{
+ for(const run of [{id:'task-1',mode:'build'},{id:'task-1',mode:'ask',data:{native_build:{state:'proposed'}}}]){
+  const {h,calls}=hosted({},{run,mode:'ask'});
+  assert.equal(sendButton(h),undefined);
+  h.enter();assert.deepEqual(calls.added,[]);
+  h.textarea.props.onKeyDown({key:'Enter',altKey:true,nativeEvent:{isComposing:false},preventDefault(){},currentTarget:{}});
+  assert.deepEqual(calls.now,[]);
+ }
+});
+
+test('send now is offered only when the queue may send now; Edit returns focus to the box',()=>{
+ const row={id:'q1',prompt:'next',mode:'ask',model:'m'};
+ const panel=h=>h.find(e=>e.type?.displayName==='QueuePanel'&&e.props.max===3);
+ const held=hosted({canSendNow:false,items:[row]},{prompt:'',visiblePrompt:{text:'',references:[]}});
+ assert.equal(panel(held.h).props.onSendNow,undefined);
+ held.h.textarea.props.onKeyDown({key:'Enter',altKey:true,nativeEvent:{isComposing:false},preventDefault(){},currentTarget:{}});
+ assert.deepEqual(held.calls.now,[]);
+ const open=hosted({items:[row],take:()=>row},{prompt:'',visiblePrompt:{text:'',references:[]},setMode(){}});
+ assert.equal(typeof panel(open.h).props.onSendNow,'function');
+ panel(open.h).props.onEdit(row);
+ assert.deepEqual(open.calls.prompts,['next']);assert.equal(open.h.calls.focused,1);
+ panel(open.h).props.focusComposer();assert.equal(open.h.calls.focused,2);
+});
+
+const panelCode=compile('../src/components/workspace/queue-panel.tsx');
+function queuePanel(props){
+ const list={current:null},exports={};
+ runInNewContext(panelCode,{exports,require(name){if(name==='react')return {useRef:()=>list};if(name==='react/jsx-runtime')return jsxRuntime;return new Proxy({},{get:(_,key)=>Object.assign(()=>null,{displayName:key})});}});
+ const tree=exports.QueuePanel(props),elements=[];
+ const visit=node=>{if(!React.isValidElement(node))return;elements.push(node);React.Children.forEach(node.props.children,visit);};visit(tree);
+ return {tree,list,elements};
+}
+
+test('the queue is a labelled region and Remove moves focus to the next row or the box',()=>{
+ const rows=['a','b'].map(id=>({id,prompt:id,mode:'ask'}));
+ let composer=0,removed=[],focused='';
+ const p=queuePanel({rows,max:3,onEdit(){},onRemove:row=>removed.push(row.id),focusComposer:()=>composer++});
+ assert.equal(p.tree.props.role,'region');assert.equal(p.tree.props['aria-label'],'Queued prompts');
+ const button=(id,visible=true)=>({disabled:false,offsetParent:visible?{}:null,focus:()=>{focused=id;}});
+ p.list.current={children:[{},{querySelectorAll:()=>[button('hidden',false),button('b-send')]}]};
+ const remove=id=>p.elements.find(e=>e.props['aria-label']===`Remove queued prompt: ${id}`);
+ remove('a').props.onClick();
+ assert.deepEqual(removed,['a']);assert.equal(focused,'b-send');assert.equal(composer,0);
+ remove('b').props.onClick();
+ assert.deepEqual(removed,['a','b']);assert.equal(composer,1);
 });

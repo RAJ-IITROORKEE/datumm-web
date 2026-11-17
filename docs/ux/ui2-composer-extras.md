@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **approved 17 Nov, build in progress** |
+| Status | **done 17 Nov; live with this commit** (section 11) |
 | Depends on | UI1 (done, web live); [parity plan](panda-parity-plan-2026-11-17.md) rows 4, 5, 6, 8; H5 = A ([harness decision](harness-decision-2026-11-17.md)) |
 | Approved by / date | User's standing instruction, 17 Nov ("proceed to next automatically ... as per the plan"): every decision UI2-a to UI2-f takes the recommended option A |
 | Base commits | Web `main` after UI1. Backend local `main` `95b2361`; live is `70ce912` per [HANDOFF](HANDOFF.md) line 77 (the G1 row of the same file says `188ebc0`; see open question 1). Panda `panda-agent-ui/Panda-agent` on `claude/agent-ui-migrations`, checkout now at `c30468e` (UI1 cited `1bedf1c`) |
@@ -132,6 +132,8 @@ textarea (`.composer-sources`, already ordered first, `globals.css:275`); chip =
 (blob URL) or file icon, name, size, state: "Reading…" with `aria-busy`, "Couldn't read <name>:
 <reason>" in `--trace-error` colour already used by `.error-card`, Remove button. Paste anywhere in
 the chat and drop on the composer (drop zone outline uses `--border`). Limits mirror section 5.
+The chips stay hidden, even with `attachments` on, until the backend attachments phase wires a send
+path that carries them.
 
 ## 5. Contract changes
 
@@ -253,14 +255,19 @@ ordinary `cancel` and `chat_followup` in the task history.
    reloads, `localStorage` with a 24 h expiry is a one-line change (privacy: prompts stay on disk).
 6. **Attachments backend phase** needs its own packet (storage, retention, privacy note for the
    model provider, vision-model gating) before UI2-e chips can be switched on.
+7. **Alt+Enter with a full queue** (3 queued, new text in the box) keeps the spec: the prompt is
+   refused with "Queue is full (3)" and nothing is stopped. Should it instead replace the last row
+   or stop and send without queueing? Unchanged until decided.
 
-## 11. Result (fill at checkpoint)
+## 11. Result
+
+Built 17 Nov on `main` (Sonnet implementer, independent Opus review, Opus fixes). Web only; no backend change.
 
 | Item | Outcome |
 | --- | --- |
-| Commit | |
-| Gates run (command, Node version, counts, date) | |
-| Browser evidence (tool, URL, scenario, result) | |
-| Not run or not verified | |
-| Limits found | |
-| Next step | |
+| Review | 2 HIGH fixed: a hosted Build run could be queued, steered or cancelled when the picker said Ask (now gated on the run's own mode and native state); "Send now" could answer a pending agent question or send during a pending Revit approval (now only after `completed`, `failed` or `cancelled`). 4 MEDIUM fixed: failed send landing in another chat's queue; stuck "Stopping…"; lost or duplicated queued prompt (per-call start flag, cross-tab claim); retry alternate chosen against the picker instead of the failed run. 7 LOW fixed or noted (sign-out clears queue keys, no nested "Instead of", focus after Edit/Remove, region role, object URL revoke, attachments need a send path, Alt+Enter with a full queue left as spec) |
+| Gates (orchestrator, Node 24.18.0) | typecheck clean; `npm test` 831 / 831; `lat check` passed; `npm run build` exit 0; no colour, font or token line in the diff |
+| Browser (built-in browser) | `/dev/ux` Composer extras: Tab fills the suggested follow-up; Enter while running queues it ("Queued · 1/3" with Send now, Edit, Remove); completing the turn sends it ("Sent: …", queue empty); Alt+Enter while running stops the turn and sends "Instead of: … / Make the living room larger"; "Retry with Claude Sonnet-5" only on the three provider codes. Real signed-in localhost: an Ask turn submits and runs through the changed send path; it failed with `workflow_error` (no provider key locally) and correctly shows no retry button |
+| Not run | A real provider failure (retry on the live stack), the 390 px row menu, light mode, screen reader, attachments (hidden: no backend support) |
+| Ownership check | Retry compares the task's `ownerId` (backend `task_contracts.py:29`, the Clerk subject) with the web's `accountKey` (the Clerk `userId`, `workspace-entry.tsx:8`): same value for hosted users |
+| Next step | T1 Tavily search per the [parity plan](panda-parity-plan-2026-11-17.md) |

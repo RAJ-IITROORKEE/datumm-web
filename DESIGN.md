@@ -143,7 +143,7 @@ These are the AG-UI-driven parts of the middle chat.
 
 | Pattern | Rule | Source |
 | --- | --- | --- |
-| Composer | One composer, 672×143px: 106px write layer, 37px context tray. Explicit Ask / Plan / Build menu on the left; model, effort, voice and Send on the right. Draft and IME state survive loading. Suggestions appear only as the empty placeholder. | `workspace/composer.tsx` |
+| Composer | One composer, 672×143px: 106px write layer, 37px context tray. Explicit Ask / Plan / Build menu on the left; model, effort, voice and Send on the right. Draft and IME state survive loading. Suggestions appear only as the empty placeholder (italic, with a hint; Tab accepts it into an empty box). While an Ask or Plan turn runs, Enter adds to a queue of three above the composer and Alt+Enter or "Send now" stops the turn and sends next. A failed provider turn offers "Retry with <model>". Attachment chips stay hidden until the backend reports `attachments`. | `workspace/composer.tsx`, `queue-panel.tsx`, `attachment-chips.tsx` |
 | Process | One collapsed accordion per turn: "Working…" then "Worked for N s · n steps". Named actions first, lifecycle and failures separate. Only agents that actually ran appear. Never private reasoning. | `workspace/turn-process.tsx`, `lib/turn-nesting.mjs` |
 | Tools | Status badge, bounded and escaped input and output, truthful timing. Unknown, stopped and unconfirmed labels stay as they are. | `ai-elements/tool.tsx` |
 | Questions | Docked above the composer, one at a time with progress, option chips, an "Other" input, Back and Next, then review and one submit. | `agent-questions.tsx`, `lib/question-stepper.mjs` |
