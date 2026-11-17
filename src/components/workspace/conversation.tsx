@@ -222,6 +222,7 @@ export type ConversationPanelProps = Pick<
   | 'queueMessage'
   | 'providerStatus'
   | 'contextView'
+  | 'openStudioView'
 > & {workAreaActions: WorkAreaActions; displayActions?: DisplayActionsApi};
 
 export function ConversationPanel(props: ConversationPanelProps) {

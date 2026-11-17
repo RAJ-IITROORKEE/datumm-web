@@ -11,6 +11,7 @@ Pure logic and adapters. Most modules are `.mjs` with a matching `.d.mts` type f
 | Plan and drawing | `plan-geometry.mjs`, `plan-viewport.mjs`, `plan-pdf.ts`, `drawing-presentation.mjs`, `drawing-export-identity.mjs`, `preview-raster.mjs`, `review-report.mjs`, `workspace-assets.mjs`, `workspace-layout.mjs`, `work-area-contract.ts` |
 | Account, settings, admin | `auth-gate.mjs`, `onboarding-profile.mjs`, `project-brief.mjs`, `settings-navigation.mjs`, `web-configuration.ts`, `appearance.ts`, `admin-access.mjs`, `admin-config.mjs`, `device-authorization.mjs`, `plugin-setup.mjs`, `share.mjs` |
 | Navigation state | `sidebar-history.mjs`, `chat-seen.mjs` |
+| Composer model and context display | `model-display.mjs` (picker labels, optional `modelInfo`), `context-meter.mjs` (ring maths from `data.usage`) |
 | Backend access | `backend.ts`, `request-body.ts` |
 | Theme tokens | `themes/affectui.json` is the active theme; the other palette files remain for the appearance migration and carry their own licenses |
 

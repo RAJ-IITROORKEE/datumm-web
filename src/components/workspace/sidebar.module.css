@@ -22,6 +22,7 @@
 .sectionHeading { display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-height:18px;margin:0 0 4px;padding:0 6px;color:var(--muted);font-size:11px;font-weight:400; }
 .sectionHeading>svg { display:none; }
 .sectionHeading>span { margin-right:auto; }
+.sectionHeading>h2 { margin:0 auto 0 0;font:inherit;color:inherit; }
 .smallButton { display:grid;place-items:center;flex:none;width:24px;height:24px;padding:0;border:0;border-radius:6px;background:none;color:var(--muted); }
 .smallButton:hover { background:var(--hover);color:var(--ink); }
 .smallButton:disabled { opacity:.45;cursor:wait; }
@@ -62,9 +63,12 @@
 .row:is(:hover,:focus-within,:has(.chatMenu[data-state=open])) .chatButton { padding-inline-end:60px; }
 .rename { flex:1;min-width:0;width:0;height:28px;padding:0 60px 0 8px;border:1px solid var(--line-strong);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit;caret-color:var(--ink); }
 .newProject { flex:0 0 100%;width:100%;margin:4px 0; }
-.running,.unread,.failed { flex:none;width:5px;height:5px;border-radius:50%;background:var(--accent); }
-.failed { background:var(--danger); }
-.attention { flex:none;color:var(--warning); }
+.unread { flex:none;width:5px;height:5px;border-radius:50%;background:var(--accent); }
+.chip { flex:none;max-width:96px;padding:1px 6px;overflow:hidden;border-radius:999px;font-size:11px;line-height:16px;text-overflow:ellipsis;white-space:nowrap; }
+.chipWorking { background:var(--hover);color:var(--muted-foreground); }
+.chipAttention { background:var(--warning-soft);color:var(--warning); }
+.dateGroup { display:grid;gap:1px; }
+.dateHeading { margin:8px 0 2px;padding:0 6px;color:var(--muted);font:500 11px/16px var(--font-sans); }
 @media(hover:none) { .chatActions {opacity:1;pointer-events:auto}.chatButton {padding-inline-end:60px}.projectMenu {opacity:1} }
 @media(max-width:850px) { .sidebar.sidebar {width:min(264px,calc(100vw - 32px))}.rename {font-size:16px}.smallButton {min-width:24px}.sectionHeading {flex-wrap:wrap} }
 

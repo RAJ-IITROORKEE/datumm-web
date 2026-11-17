@@ -648,6 +648,7 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
           aria-modal={navigationNarrow && left && !settingsOpen && !canvasOpen ? true : undefined}
           aria-label="Workspace navigation" inert={navigationNarrow && !left || canvasOpen}>
           <Sidebar {...w} scope={scope} externalBackdrop openStudioView={view => { setWorkAreaOpen(true); w.openStudioView(view); }} />
+          {left && !navigationNarrow && !settingsOpen && !canvasOpen && <PanelResize side="left" label="navigation" width={panelWidths.left} onChange={value => resizePanel('left', value)} />}
         </div>
         <Dialog
           open={Boolean(renameTarget)}

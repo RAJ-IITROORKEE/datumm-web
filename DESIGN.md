@@ -160,7 +160,7 @@ Routes, purpose, main features and the data each reads or writes. Client calls g
 
 Entry order: signed-out sign-in gate → onboarding gate → workspace (`workspace-entry.tsx`). Signed-out visitors never reach an anonymous workspace.
 
-- **Left navigation** (`workspace/sidebar.tsx`): new chat, search dialog, pinned and recent chats, project groups, row menu (rename, move, pin, archive, delete), profile menu (settings, activity, scheduled tasks). 224px expanded, 52px collapsed.
+- **Left navigation** (`workspace/sidebar.tsx`): new chat, search dialog, pinned and recent chats, project groups, row menu (rename, move, pin, archive, delete), profile menu (settings, activity, scheduled tasks). 224px default, resizable 220 to 360px (drag or arrow keys), 52px collapsed. Chats are grouped Today, Yesterday, Previous 7 days and Older by creation date; rows show a "Working" or "Needs attention" text chip.
 - **Chat** (`workspace/conversation.tsx`, `composer.tsx`): the patterns in section 4. The project overview (`workspace/project-overview.tsx`) lists a project's chats with All, Running and Needs your input filters.
 - **Right work area** (`workspace/inspector.tsx`): four tabs. *Design* shows the 2D and 3D drawing with properties and focus mode; *Activity* shows the checklist, process, scheduler, specialists and usage; *Assets* lists saved previews; *Exports* lists revision-bound downloads. One drawing stays mounted across tabs.
 - **Data:** `POST /api/agui` (send, resume, observe), `/api/service/tasks/{id}/…` (commands, events, questions/answer, cancel, queue, design-review, reports, title, project, share, history), `projects/{id}/brief`, `runs/{id}/…` (exports), `devices`, `config`, `tools`.

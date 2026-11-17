@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readWorkspaceLayout,effectiveWorkspaceLayout,workspaceScene,storedWorkspaceLayout} from '../src/lib/workspace-layout.mjs';
+import {readWorkspaceLayout,effectiveWorkspaceLayout,workspaceScene,storedWorkspaceLayout,resizeWorkspaceLayout} from '../src/lib/workspace-layout.mjs';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import * as jsxRuntime from 'react/jsx-runtime';
@@ -8,8 +8,8 @@ import ts from 'typescript';
 const store=values=>({getItem:key=>values[key]??null});
 test('versioned navigation/chat records take precedence; legacy right migrates as chat width',()=>{
  assert.deepEqual(readWorkspaceLayout(store({})),{version:2,navigationWidth:224,chatWidth:380});
- assert.deepEqual(readWorkspaceLayout(store({'datumm-panel-widths':JSON.stringify({left:242,right:316})})),{version:2,navigationWidth:200,chatWidth:380});
- assert.deepEqual(readWorkspaceLayout(store({'datumm-panel-widths':JSON.stringify({left:900,right:1})})),{version:2,navigationWidth:440,chatWidth:320});
+ assert.deepEqual(readWorkspaceLayout(store({'datumm-panel-widths':JSON.stringify({left:242,right:316})})),{version:2,navigationWidth:224,chatWidth:380});
+ assert.deepEqual(readWorkspaceLayout(store({'datumm-panel-widths':JSON.stringify({left:900,right:1})})),{version:2,navigationWidth:360,chatWidth:320});
  assert.deepEqual(readWorkspaceLayout(store({'datumm-workspace-layout-v2':JSON.stringify({version:2,navigationWidth:300,chatWidth:500}),'datumm-panel-widths':JSON.stringify({left:180,right:320})})),{version:2,navigationWidth:300,chatWidth:500});
  assert.equal(readWorkspaceLayout({getItem(){throw Error('denied');}}).navigationWidth,224);
 });
@@ -24,15 +24,29 @@ test('old factory width migrates while custom and newly saved widths survive',()
  assert.equal(saved.navigationDefaultRevision,2);
  assert.equal(read(saved).navigationWidth,272);
  assert.equal(read(storedWorkspaceLayout({version:2,navigationWidth:248,chatWidth:380})).navigationWidth,248);
- assert.deepEqual(read({version:2,navigationWidth:900,chatWidth:1,navigationDefaultRevision:1}),{version:2,navigationWidth:440,chatWidth:320});
+ assert.deepEqual(read({version:2,navigationWidth:900,chatWidth:1,navigationDefaultRevision:1}),{version:2,navigationWidth:360,chatWidth:320});
  assert.equal(effectiveWorkspaceLayout({navigationWidth:248,chatWidth:380},1440).navigationTotalWidth,248);
 });
 test('temporary viewport clamping leaves preferences untouched and Design no narrower than chat',()=>{
- const saved={version:2,navigationWidth:440,chatWidth:620};
+ const saved={version:2,navigationWidth:360,chatWidth:620};
  for(const viewport of [1440,1280,1180]){const effective=effectiveWorkspaceLayout(saved,viewport);assert.equal(effective.navigationTotalWidth,effective.navigationWidth);assert.equal(effective.chatMaxWidth,Math.min(620,Math.floor((viewport-effective.navigationTotalWidth-16)/2)));assert.ok(effective.chatWidth<=effective.chatMaxWidth);assert.ok(effective.chatWidth>=320);}
  assert.equal(saved.chatWidth,620);assert.equal(effectiveWorkspaceLayout(saved,390).split,false);
  assert.equal(effectiveWorkspaceLayout(saved,1440,false).navigationWidth,52);
  assert.equal(effectiveWorkspaceLayout(saved,1440,false).navigationTotalWidth,52);
+});
+test('navigation width clamps to 220-360',()=>{
+ const key='datumm-workspace-layout-v2';
+ const read=width=>readWorkspaceLayout(store({[key]:JSON.stringify({version:2,navigationWidth:width,chatWidth:380,navigationDefaultRevision:2})})).navigationWidth;
+ assert.deepEqual([read(180),read(440),read(224),read(300)],[220,360,224,300]);
+ assert.equal(effectiveWorkspaceLayout({navigationWidth:440,chatWidth:380},1440).navigationWidth,360);
+});
+test('resizing one side stores only that side; viewport clamping never reaches storage',()=>{
+ const saved={version:2,navigationWidth:224,chatWidth:620};
+ assert.ok(effectiveWorkspaceLayout({...saved,navigationWidth:360},1280).chatWidth<620);
+ assert.deepEqual(resizeWorkspaceLayout(saved,'left',360),{version:2,navigationWidth:360,chatWidth:620});
+ assert.deepEqual(resizeWorkspaceLayout(saved,'right',400),{version:2,navigationWidth:224,chatWidth:400});
+ assert.deepEqual(resizeWorkspaceLayout(saved,'left',900),{version:2,navigationWidth:360,chatWidth:620});
+ assert.deepEqual(resizeWorkspaceLayout(saved,'right',1),{version:2,navigationWidth:224,chatWidth:320});
 });
 test('only an authoritative ID leaves centered Home; selected ID precedes snapshot',()=>{
  assert.equal(workspaceScene('',undefined,false),'home');assert.equal(workspaceScene('',undefined,true),'submitting');

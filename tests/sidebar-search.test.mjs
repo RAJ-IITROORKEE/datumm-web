@@ -53,6 +53,7 @@ function loadComponent(file,extra={},effects=false) {
     if(name==='@/lib/utils')return {cn:(...values)=>values.filter(Boolean).join(' ')};
     if(name==='radix-ui')return {Dialog:{Content:'DialogContent'},DropdownMenu:new Proxy({},{get:(_,key)=>`Menu${key}`})};
     if(name.endsWith('.module.css'))return {default:new Proxy({},{get:(_,key)=>String(key)})};
+    if(['./sidebar-chats','./sidebar-account','./sidebar-rail'].includes(name))return loadComponent(`../src/components/workspace/${name.slice(2)}.tsx`,extra,effects).exports;
     if(name in extra)return extra[name];
     if(name==='@/lib/workflow-state')return workflow;
     return new Proxy({},{get:(_,key)=>String(key)});
@@ -264,8 +265,10 @@ test('chat overlay actions remain separate single-click controls and preserve st
   const pin=buttons.find(node=>node.props['aria-label']==='Pin A long task title');
   assert.ok(select&&menu&&pin);
   assert.equal(tree.props.onClick,undefined,'The row wrapper cannot turn an action click into task selection');
-  assert.equal(all(select,node=>node.props['aria-label']==='Chat running').length,1);
-  assert.equal(all(select,node=>node.props['aria-label']==='Chat needs your answer').length,1);
+  assert.equal(all(select,node=>node.type==='span'&&node.props.children==='Working').length,1);
+  const attention=loadComponent('../src/components/workspace/chat-row.tsx',{'@/lib/workflow-state':{workflowState:()=>({kind:'needs_input',label:'Waiting for your input'}),hasPendingQuestion:()=>true}});
+  const waiting=attention.render('ChatRow',{...props,item:{...props.item,status:'needs_input'}});
+  assert.equal(all(waiting,node=>node.type==='span'&&node.props.children==='Needs attention').length,1);
   assert.equal(all(select,node=>node.props['aria-label']==='Unread result').length,1);
   pin.props.onClick(); assert.deepEqual(actions,['pin']);
   menu.props.onClick({currentTarget:'menu-opener'});
@@ -285,9 +288,9 @@ test('sidebar places pinned, project and ungrouped chats in reference order',()=
   const region=all(tree,node=>node.type==='div'&&node.props.role==='region')[0];
   const sections=React.Children.toArray(region.props.children).filter(node=>node?.type==='section');
   assert.deepEqual(sections.map(section=>all(section,node=>node.type==='ChatRow').map(row=>row.props.item.id)),[['pinned'],['grouped'],['plain']]);
-  assert.ok(all(sections[0],node=>node.type==='span'&&node.props.children==='Pinned').length);
-  assert.ok(all(sections[1],node=>node.type==='span'&&node.props.children==='Projects').length);
-  assert.ok(all(sections[2],node=>node.type==='span'&&node.props.children==='Chats').length);
+  assert.ok(all(sections[0],node=>node.type==='h2'&&node.props.children==='Pinned').length);
+  assert.ok(all(sections[1],node=>node.type==='h2'&&node.props.children==='Projects').length);
+  assert.ok(all(sections[2],node=>node.type==='h2'&&node.props.children==='Chats').length);
   const toggle=all(sections[1],node=>node.type==='button'&&node.props['aria-expanded']===true)[0];
   assert.deepEqual(all(toggle,node=>['FolderOpen','ChevronDown'].includes(node.type)).map(node=>node.type),['FolderOpen','ChevronDown']);
 });
@@ -387,7 +390,7 @@ test('project switcher filters loaded navigation only and scopes its selection t
   filter('p');tree=component.render('Sidebar',props);
   assert.deepEqual(all(tree,node=>node.type==='ChatRow').map(row=>row.props.item.id),['p-pin','p-chat']);
   assert.equal(all(tree,node=>node.type==='button'&&node.props['aria-label']==='Filter projects: Clinic').length,1);
-  assert.equal(all(tree,node=>node.type==='span'&&node.props.children==='Chats').length,0);
+  assert.equal(all(tree,node=>node.type==='h2'&&node.props.children==='Chats').length,0);
   assert.deepEqual(events,[],'filtering keeps the open task and draft untouched');
   all(tree,node=>node.type==='button'&&node.props.className==='navRow')[0].props.onClick();
   assert.deepEqual(events,[['new','p']]);

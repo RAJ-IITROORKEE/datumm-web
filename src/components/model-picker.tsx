@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { groupModels, modelFacts, modelName, type ModelInfoMap } from "@/lib/model-display.mjs"
 import { PopoverStyles, popoverClasses } from "./vendor/affectui/popover-clean"
 import styles from "./composer-controls.module.css"
 
@@ -23,23 +26,11 @@ const effortOptions: { value: ReasoningEffort; title: string; description: strin
   { value: "high", title: "High", description: "More reasoning for complex work" },
 ]
 
-function modelName(model: string) {
-  const slug = model.split("/").at(-1) ?? model
-  return slug
-    .replace(/^gpt-/i, "GPT-")
-    .replace(/(^|[-_.])([a-z])/g, (_, separator: string, letter: string) => `${separator === "-" ? " " : separator}${letter.toUpperCase()}`)
-}
-
-function modelProvider(model: string) {
-  const provider = model.split("/")[0] ?? ""
-  const knownProviders: Record<string, string> = { openai: "OpenAI", anthropic: "Anthropic", google: "Google", qwen: "Qwen" }
-  if (knownProviders[provider.toLowerCase()]) return knownProviders[provider.toLowerCase()]
-  return provider ? provider.charAt(0).toUpperCase() + provider.slice(1) : "Model"
-}
-
 export function ModelPicker({
   model,
   models,
+  modelInfo,
+  defaultModel,
   reasoningEffort,
   onModelChange,
   onReasoningEffortChange,
@@ -47,6 +38,9 @@ export function ModelPicker({
 }: {
   model: string
   models: string[]
+  /** Present only when the service reports capability modelInfo. */
+  modelInfo?: ModelInfoMap
+  defaultModel?: string
   reasoningEffort: ReasoningEffort
   onModelChange: (model: string) => void
   onReasoningEffortChange: (effort: ReasoningEffort) => void
@@ -55,6 +49,8 @@ export function ModelPicker({
   const availableModels = models.length ? models : [model]
   const selectedEffort = effortOptions.find((option) => option.value === reasoningEffort) ?? effortOptions[2]
   const effortIndex = effortOptions.indexOf(selectedEffort)
+  const groups = groupModels(availableModels, defaultModel)
+  const price = modelFacts(modelInfo?.[model]).find((fact) => fact.includes("per M"))
   const contentId = useId()
   const sliderId = useId()
 
@@ -67,7 +63,7 @@ export function ModelPicker({
           variant="ghost"
           size="sm"
           className={styles.pickerTrigger}
-          aria-label={`Configure model and reasoning effort. ${modelName(model)}, ${selectedEffort.title} reasoning.`}
+          aria-label={`Configure model and reasoning effort. ${modelName(model)}${price ? `, ${price}` : ""}, ${selectedEffort.title} reasoning.`}
           aria-controls={contentId}
           disabled={disabled}
         >
@@ -136,15 +132,25 @@ export function ModelPicker({
               <DropdownMenuContent className={styles.modelSubmenu} side="right" align="start" sideOffset={5}>
                 <DropdownMenuLabel>Choose a model</DropdownMenuLabel>
                 <DropdownMenuRadioGroup value={model} onValueChange={onModelChange}>
-                  {availableModels.map((option) => (
-                    <DropdownMenuRadioItem key={option} value={option} disabled={disabled} className={styles.modelOption}>
-                      <span className={styles.modelOptionCopy}>
-                        <span>{modelName(option)}</span>
-                        <small>{modelProvider(option)}</small>
-                      </span>
-                    </DropdownMenuRadioItem>
+                  {groups.map((group, index) => (
+                    <DropdownMenuGroup key={group.provider} aria-label={group.provider}>
+                      {index > 0 && <DropdownMenuSeparator />}
+                      <DropdownMenuLabel>{group.provider}</DropdownMenuLabel>
+                      {group.models.map((option) => {
+                        const facts = modelFacts(modelInfo?.[option])
+                        return (
+                          <DropdownMenuRadioItem key={option} value={option} disabled={disabled} className={styles.modelOption}>
+                            <span className={styles.modelOptionCopy}>
+                              <span>{modelName(option)}</span>
+                              {facts.length > 0 && <small>{facts.join(" · ")}</small>}
+                            </span>
+                          </DropdownMenuRadioItem>
+                        )
+                      })}
+                    </DropdownMenuGroup>
                   ))}
                 </DropdownMenuRadioGroup>
+                <p className={styles.modelNote}>Requests go to the model provider through OpenRouter.</p>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

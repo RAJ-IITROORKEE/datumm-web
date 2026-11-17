@@ -17,7 +17,7 @@ test('a config without a usable capabilities object reports every feature unknow
 
 test('a valid v1 object maps booleans and leaves missing or malformed features unknown', () => {
   const parsed = parseCapabilities(v1({adminConfig: true, adminAudit: false, adminOverview: 'yes', adminKnowledge: 1, extra: true}));
-  assert.deepEqual(parsed, {version: 1, features: {adminConfig: 'on', adminAudit: 'off', adminOverview: 'unknown', adminKnowledge: 'unknown', planningGoals: 'unknown', frontendContext: 'unknown', displayActions: 'unknown', adminTraces: 'unknown', feedback: 'unknown', adminHistory: 'unknown', adminModels: 'unknown'}});
+  assert.deepEqual(parsed, {version: 1, features: {adminConfig: 'on', adminAudit: 'off', adminOverview: 'unknown', adminKnowledge: 'unknown', planningGoals: 'unknown', frontendContext: 'unknown', displayActions: 'unknown', adminTraces: 'unknown', feedback: 'unknown', adminHistory: 'unknown', adminModels: 'unknown', modelInfo: 'unknown'}});
   assert.equal(featureState(parsed, 'adminAudit'), 'off');
   assert.equal(featureState(null, 'adminAudit'), 'unknown');
 });
@@ -36,9 +36,9 @@ test('planning goals fall back to today\'s gate only while the backend is silent
 
 // @lat: [[contracts#Hosted contract tests#Frontend context and display actions]]
 test('frontend context, display actions, admin traces, feedback, history and models are off unless on', () => {
-  const on = parseCapabilities(v1({frontendContext: true, displayActions: true, adminTraces: true, feedback: true, adminHistory: true, adminModels: true}));
-  const off = parseCapabilities(v1({frontendContext: false, displayActions: false, adminTraces: false, feedback: false, adminHistory: false, adminModels: false}));
-  for (const name of ['frontendContext', 'displayActions', 'adminTraces', 'feedback', 'adminHistory', 'adminModels']) {
+  const on = parseCapabilities(v1({frontendContext: true, displayActions: true, adminTraces: true, feedback: true, adminHistory: true, adminModels: true, modelInfo: true}));
+  const off = parseCapabilities(v1({frontendContext: false, displayActions: false, adminTraces: false, feedback: false, adminHistory: false, adminModels: false, modelInfo: false}));
+  for (const name of ['frontendContext', 'displayActions', 'adminTraces', 'feedback', 'adminHistory', 'adminModels', 'modelInfo']) {
     assert.equal(featureEnabled(on, name), true);
     assert.equal(featureEnabled(off, name), false);
     assert.equal(featureEnabled(parseCapabilities({}), name), false, 'unknown is off');

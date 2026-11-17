@@ -5,6 +5,7 @@ import {runInNewContext} from 'node:vm';
 import * as React from 'react';
 import * as jsxRuntime from 'react/jsx-runtime';
 import ts from 'typescript';
+import * as modelDisplay from '../src/lib/model-display.mjs';
 
 const compile=path=>ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText;
 const promptContent={};
@@ -70,8 +71,8 @@ test('model configuration keeps actual runtime model IDs, effort events and one 
  runInNewContext(compile('../src/components/model-picker.tsx'),{exports:module,require(name){
   if(name==='react')return {useId:()=> 'picker-test'};if(name==='react/jsx-runtime')return jsxRuntime;
   if(name==='radix-ui')return {Popover:{Root:'popover-root',Trigger:'popover-trigger',Portal:'popover-portal',Content:'popover-content'}};
-  if(name==='@/components/ui/button')return {Button:'button'};
-  if(name==='@/components/ui/dropdown-menu')return Object.fromEntries(['DropdownMenu','DropdownMenuContent','DropdownMenuLabel','DropdownMenuRadioGroup','DropdownMenuRadioItem','DropdownMenuTrigger'].map(key=>[key,key]));
+  if(name==='@/components/ui/button')return {Button:'button'};if(name==='@/lib/model-display.mjs')return modelDisplay;
+  if(name==='@/components/ui/dropdown-menu')return Object.fromEntries(['DropdownMenu','DropdownMenuContent','DropdownMenuGroup','DropdownMenuLabel','DropdownMenuRadioGroup','DropdownMenuRadioItem','DropdownMenuSeparator','DropdownMenuTrigger'].map(key=>[key,key]));
   if(name==='./vendor/affectui/popover-clean')return {PopoverStyles:'popover-styles',popoverClasses:{content:'aui-popover-content'}};
   if(name.endsWith('.module.css'))return {default:new Proxy({},{get:(_,key)=>key})};if(name==='lucide-react')return new Proxy({},{get:()=>()=>null});throw Error(name);
  }});
@@ -86,6 +87,10 @@ test('model configuration keeps actual runtime model IDs, effort events and one 
  assert.deepEqual(calls,[['model','provider/unicode-model'],['effort','medium']]);
  const trigger=all.find(node=>node.type==='button'&&node.props['aria-label']?.startsWith('Configure model'));assert.match(trigger.props['aria-label'],/Actual Model.*Low reasoning/);
  assert.equal(all.some(node=>/latency|price|speed|quality|web search/i.test(String(node.props['aria-label']??''))),false);
+ const rich=module.ModelPicker({model:'openai/actual-model',models:['openai/actual-model'],modelInfo:{'openai/actual-model':{promptPerM:3,completionPerM:15,contextLength:200000}},reasoningEffort:'low',onModelChange(){},onReasoningEffortChange(){}});
+ const richAll=[];const walk=node=>{if(!React.isValidElement(node))return;richAll.push(node);React.Children.forEach(node.props.children,walk);};walk(rich);
+ assert.match(richAll.find(node=>node.type==='button'&&node.props['aria-label']?.startsWith('Configure model')).props['aria-label'],/\$3 \/ \$15 per M/);
+ assert.ok(richAll.some(node=>node.type==='small'&&node.props.children==='$3 / $15 per M · 200K context'));
 });
 
 

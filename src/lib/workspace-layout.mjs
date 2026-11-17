@@ -43,11 +43,11 @@ export function readWorkspaceLayout(storage) {
       const formerDefault = (saved.navigationDefaultRevision ?? 0) < 2 &&
         (saved.navigationWidth === 248 || (!saved.navigationDefaultRevision && saved.navigationWidth === 272));
       const navigationWidth = formerDefault ? DEFAULT_WORKSPACE_LAYOUT.navigationWidth : saved.navigationWidth;
-      return {version: 2, navigationWidth: clamp(navigationWidth, 180, 440), chatWidth: clamp(saved.chatWidth, 320, 620)};
+      return {version: 2, navigationWidth: clamp(navigationWidth, 220, 360), chatWidth: clamp(saved.chatWidth, 320, 620)};
     }
     const legacy = JSON.parse(storage.getItem('datumm-panel-widths') ?? 'null');
     if (legacy && Number.isFinite(legacy.left) && Number.isFinite(legacy.right)) {
-      return {version: 2, navigationWidth: clamp(legacy.left === 242 ? 200 : legacy.left, 180, 440), chatWidth: clamp(legacy.right === 316 ? 380 : legacy.right, 320, 620)};
+      return {version: 2, navigationWidth: clamp(legacy.left === 242 ? DEFAULT_WORKSPACE_LAYOUT.navigationWidth : legacy.left, 220, 360), chatWidth: clamp(legacy.right === 316 ? 380 : legacy.right, 320, 620)};
     }
   } catch {}
   return {...DEFAULT_WORKSPACE_LAYOUT};
@@ -58,9 +58,16 @@ export function storedWorkspaceLayout(layout) {
   return {...layout, navigationDefaultRevision: 2};
 }
 
+/** A drag changes only its own side; the other side keeps its stored, unclamped value. */
+export function resizeWorkspaceLayout(layout, side, width) {
+  return side === 'left'
+    ? {version: 2, navigationWidth: clamp(width, 220, 360), chatWidth: layout.chatWidth}
+    : {version: 2, navigationWidth: layout.navigationWidth, chatWidth: clamp(width, 320, 620)};
+}
+
 /** Viewport clamping is presentation only; it never writes stored preferences. */
 export function effectiveWorkspaceLayout(layout, viewportWidth, navigationOpen = true) {
-  const navigationWidth = navigationOpen ? clamp(layout.navigationWidth, 180, 440) : 52;
+  const navigationWidth = navigationOpen ? clamp(layout.navigationWidth, 220, 360) : 52;
   const navigationTotalWidth = navigationWidth;
   const remaining = viewportWidth - navigationTotalWidth - 16;
   const split = viewportWidth >= 1180 && remaining >= 640;

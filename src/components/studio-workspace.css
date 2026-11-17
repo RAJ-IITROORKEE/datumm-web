@@ -606,7 +606,7 @@
 #datumm-workspace.workspace.desktop-workspace.studio-stable-layout{--navigation-column-width:var(--left-panel-width)}
 #datumm-workspace.workspace.desktop-workspace.studio-stable-layout.left-closed{--navigation-column-width:52px}
 #datumm-workspace.workspace.desktop-workspace.studio-stable-layout:not(.studio-settings-open):not(.studio-drawing-focused){grid-template-columns:var(--navigation-column-width) var(--chat-panel-width) minmax(0,1fr)}
-#datumm-workspace .studio-navigation-shell{display:flex;grid-column:1;grid-row:1/-1;min-width:0;min-height:0;background:var(--chrome)}
+#datumm-workspace .studio-navigation-shell{position:relative;display:flex;grid-column:1;grid-row:1/-1;min-width:0;min-height:0;background:var(--chrome)}
 #datumm-workspace:not(.studio-drawing-focused) .studio-global-footer{grid-column:2/-1}
 #datumm-workspace .studio-navigation-shell>.sidebar{position:relative;inset:auto;flex:1;min-width:0;width:var(--left-panel-width);max-width:none;height:calc(100% - 16px);margin:8px 0;border:0;border-radius:10px;box-shadow:none}
 #datumm-workspace.workspace.desktop-workspace.studio-stable-layout:is(.studio-scene-home,.studio-scene-submitting):not(.studio-secondary-view):not(.studio-settings-open):not(.studio-drawing-focused){grid-template-columns:var(--navigation-column-width) minmax(0,1fr)}

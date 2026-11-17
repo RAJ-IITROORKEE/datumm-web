@@ -1,153 +1,24 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { filterSidebarChats, isSidebarSearchShortcut, pinnedChats, recentChats } from '@/lib/sidebar-history.mjs';
+import { filterSidebarChats, isSidebarSearchShortcut } from '@/lib/sidebar-history.mjs';
 import { cn } from '@/lib/utils';
-import {
-  CircleHelp,
-  Archive,
-  Trash2,
-  Plus,
-  Clock3,
-  Workflow,
-  Pencil,
-  Check,
-  Settings2,
-  Monitor,
-  LogOut,
-  ArrowUpRight,
-} from 'lucide-react';
-import { Pin, Ellipsis, FolderOpen, PanelLeft, Search, Folder, PanelLeftOpen, ChevronDown, SquarePen, LayoutGrid } from './sidebar-icons';
+import { Plus, Check } from 'lucide-react';
+import { FolderOpen, PanelLeft, Search, Folder, ChevronDown, SquarePen, LayoutGrid } from './sidebar-icons';
 import { workflowState } from '@/lib/workflow-state';
 import { ChatRow } from './chat-row';
-import { ProjectCreate } from './project-create';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import type { WorkScope } from '@/lib/work-area-contract';
 import { ShareDialog } from './share-dialog';
-import { useUser, useClerk, Show, SignInButton } from '@clerk/nextjs';
 import { type WorkspaceState, type Run } from './use-workspace-state';
 import { IconButton } from '@/components/vendor/affectui/icon-button-clean';
-import { Avatar } from '@/components/vendor/affectui/avatar-clean';
-import { ProfileIdentity, ProfileMenuStyles, profileMenuClasses } from '@/components/vendor/affectui/profile-menu-clean';
-import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { SearchDialog, type SearchNavigation, type SearchResult } from './search-dialog';
 import { ProjectOverview } from './project-overview';
+import { AccountFooter } from './sidebar-account';
+import { chatSections } from './sidebar-chats';
+import { collapsedRail } from './sidebar-rail';
 import styles from './sidebar.module.css';
-
-export function ProfileMenu({
-  openConnections,
-  openSettings,
-  openArchived,
-  confirmDeleteAll,
-  openActivity,
-  openSchedules,
-  compact = false,
-}: {
-  openConnections: () => void;
-  openSettings: () => void;
-  openArchived: () => void;
-  confirmDeleteAll: () => void;
-  openActivity?: () => void;
-  openSchedules?: () => void;
-  compact?: boolean;
-}) {
-  const { user } = useUser(),
-    { signOut } = useClerk();
-  const name = user?.fullName || user?.firstName || user?.username || 'Your account';
-  return (
-      <DropdownMenuPrimitive.Root>
-        <DropdownMenuPrimitive.Trigger asChild>
-          <button type="button" className={cn(styles.profileRow, compact && styles.compactProfile)} aria-label={`Account settings for ${name}`} title={compact ? name : undefined}>
-            <Avatar kind="person" size={24} name={name} src={user?.imageUrl} aria-hidden="true" />
-            {!compact && <><span className={styles.profileName} title={name} dir="auto">{name}</span>
-            <ChevronDown size={13} strokeWidth={1.9} aria-hidden="true" /></>}
-          </button>
-        </DropdownMenuPrimitive.Trigger>
-        <ProfileMenuStyles />
-        <DropdownMenuPrimitive.Portal>
-          <DropdownMenuPrimitive.Content className={cn(profileMenuClasses.content, styles.accountMenu)} side={compact ? "right" : "top"} align="end" sideOffset={9}>
-            <ProfileIdentity name={name} email={user?.primaryEmailAddress?.emailAddress}
-              avatar={<Avatar kind="person" size={24} name={name} src={user?.imageUrl} aria-hidden="true" />} />
-            <div className={profileMenuClasses.items}>
-            {openActivity && <DropdownMenuPrimitive.Item className={profileMenuClasses.item} onSelect={openActivity}>
-              <Workflow size={15} strokeWidth={1.9} /> Activity
-            </DropdownMenuPrimitive.Item>}
-            {openSchedules && <DropdownMenuPrimitive.Item className={profileMenuClasses.item} onSelect={openSchedules}>
-              <Clock3 size={15} strokeWidth={1.9} /> Scheduled tasks
-            </DropdownMenuPrimitive.Item>}
-            <DropdownMenuPrimitive.Item className={profileMenuClasses.item} onSelect={openSettings}>
-              <Settings2 size={15} strokeWidth={1.9} /> Settings
-            </DropdownMenuPrimitive.Item>
-            <DropdownMenuPrimitive.Item className={profileMenuClasses.item} onSelect={openArchived}>
-              <Archive size={15} /> Archived chats
-            </DropdownMenuPrimitive.Item>
-            <DropdownMenuPrimitive.Item className={profileMenuClasses.item} onSelect={openConnections}>
-              <Monitor size={15} /> Connections
-            </DropdownMenuPrimitive.Item>
-            <DropdownMenuPrimitive.Separator asChild><Separator /></DropdownMenuPrimitive.Separator>
-            <DropdownMenuPrimitive.Item className={cn(profileMenuClasses.item, styles.danger)} onSelect={confirmDeleteAll}>
-              <Trash2 size={15} /> Delete all chats
-            </DropdownMenuPrimitive.Item>
-            <DropdownMenuPrimitive.Item className={profileMenuClasses.item} onSelect={() => void signOut()}>
-              <LogOut size={15} /> Sign out
-            </DropdownMenuPrimitive.Item>
-            </div>
-          </DropdownMenuPrimitive.Content>
-        </DropdownMenuPrimitive.Portal>
-      </DropdownMenuPrimitive.Root>
-  );
-}
-
-export function AccountFooter({
-  authConfigured,
-  openConnections,
-  openSettings,
-  openArchived,
-  confirmDeleteAll,
-  openActivity,
-  openSchedules,
-  compact = false,
-}: {
-  authConfigured: boolean;
-  openConnections: () => void;
-  openSettings: () => void;
-  openArchived: () => void;
-  confirmDeleteAll: () => void;
-  openActivity?: () => void;
-  openSchedules?: () => void;
-  compact?: boolean;
-}) {
-  if (!authConfigured)
-    return (
-      <div className={cn(styles.profileRow, compact && styles.compactProfile)} title="Sign-in unavailable" aria-label="Sign-in unavailable">
-        <CircleHelp size={18} />
-        {!compact && <span>Sign-in unavailable</span>}
-      </div>
-    );
-  return (
-    <>
-      <Show when="signed-in">
-        <ProfileMenu
-          openActivity={openActivity}
-          openSchedules={openSchedules}
-          compact={compact}
-          openConnections={openConnections}
-          openSettings={openSettings}
-          openArchived={openArchived}
-          confirmDeleteAll={confirmDeleteAll}
-        />
-      </Show>
-      <Show when="signed-out">
-        <SignInButton mode="modal">
-          <button type="button" className={cn(styles.signIn, compact && styles.compactProfile)} aria-label="Sign in to DATUMM" title={compact ? "Sign in to DATUMM" : undefined}>
-            {!compact && "Sign in to DATUMM"} <ArrowUpRight size={15} />
-          </button>
-        </SignInButton>
-      </Show>
-    </>
-  );
-}
 
 type SidebarProps = Pick<
   WorkspaceState,
@@ -479,174 +350,10 @@ export function Sidebar(props: SidebarProps) {
             aria-label={historyView === 'archived' ? 'Archived chats' : 'Recent tasks'}
             tabIndex={0}
           >
-            {visibleChats.some((item) => item.pinned_at) && (
-              <section className={styles.chatGroup}>
-                <div className={styles.sectionHeading}>
-                  <Pin size={13} />
-                  <span>Pinned</span>
-                </div>
-                {pinnedChats(visibleChats).map(chatRow)}
-              </section>
-            )}
-              <section id="sidebar-projects" ref={projectSection} tabIndex={-1} className={styles.projectGroups} aria-label="Projects">
-                <div className={styles.sectionHeading}>
-                  <FolderOpen size={13} />
-                  <span>Projects</span>
-                  {showProjects && (hosted ? (
-                    canCreateProject && (
-                      <ProjectCreate disabled={mediaBusy || actionBusy} onCreate={createProject} />
-                    )
-                  ) : (
-                    <button
-                      className={styles.smallButton}
-                      aria-label="Projects & local files"
-                      onClick={() => setProjectContextOpen(true)}
-                    >
-                      <Plus size={15} />
-                    </button>
-                  ))}
-                </div>
-                {!workspaceReady && <p className={styles.empty} role="status">Loading projects…</p>}
-                {workspaceReady && !showProjects && <p className={styles.empty} role="status">Projects are unavailable on this service.</p>}
-                {workspaceReady && showProjects && !orderedProjects.length && <p className={styles.empty} role="status">
-                  {serviceError ? 'Projects could not refresh. Retry the workspace connection.' : 'No projects yet.'}
-                </p>}
-                {showProjects && orderedProjects.filter(project => !selectedProject || project.id === selectedProject.id).map((project) => (
-                  <section key={project.id} className={styles.projectGroup}>
-                    <div className={styles.projectHeading}>
-                      <button
-                        className={styles.projectToggle}
-                        aria-expanded={!collapsedProjects.includes(project.id) || Boolean(search)}
-                        onClick={() => {
-                          const value = collapsedProjects.includes(project.id)
-                            ? collapsedProjects.filter((id) => id !== project.id)
-                            : [...collapsedProjects, project.id];
-                          setCollapsedProjects(value);
-                          localStorage.setItem('datumm-collapsed-projects', JSON.stringify(value));
-                        }}
-                      >
-                        {collapsedProjects.includes(project.id) && !search
-                          ? <Folder size={16} strokeWidth={1.9} aria-hidden="true" />
-                          : <FolderOpen size={16} strokeWidth={1.9} aria-hidden="true" />}
-                        <span title={project.title} dir="auto">{project.title}</span>
-                        {(!collapsedProjects.includes(project.id) || Boolean(search)) && <ChevronDown size={12} strokeWidth={1.9} aria-hidden="true" />}
-                      </button>
-                      <DropdownMenuPrimitive.Root>
-                        <DropdownMenuPrimitive.Trigger asChild>
-                          <button type="button" disabled={mediaBusy || actionBusy} className={cn(styles.smallButton, styles.projectMenu)} aria-label={`Options for project ${project.title}`}
-                            onClick={event => { dialogTrigger.current = event.currentTarget; }}>
-                            <Ellipsis size={15} strokeWidth={1.9} />
-                          </button>
-                        </DropdownMenuPrimitive.Trigger>
-                        <DropdownMenuPrimitive.Portal>
-                          <DropdownMenuPrimitive.Content className="action-menu" onCloseAutoFocus={event => {
-                            if (pendingOverview.current !== project.id) return;
-                            event.preventDefault();
-                            pendingOverview.current = null;
-                            setOverviewId(project.id);
-                          }}>
-                            <DropdownMenuPrimitive.Item onSelect={() => { pendingOverview.current = project.id; }}>
-                              <FolderOpen size={14} />
-                              Open project
-                            </DropdownMenuPrimitive.Item>
-                            {!project.archived_at && (
-                              <DropdownMenuPrimitive.Item onSelect={() => newTask(project.id)}>
-                                <Plus size={14} />
-                                New chat in project
-                              </DropdownMenuPrimitive.Item>
-                            )}
-                            <DropdownMenuPrimitive.Item
-                              onSelect={() => {
-                                setRenameTitle(project.title);
-                                setRenameTarget({
-                                  kind: 'project',
-                                  id: project.id,
-                                  title: project.title,
-                                  revision: project.revision ?? 1,
-                                });
-                              }}
-                            >
-                              <Pencil size={14} />
-                              Rename project
-                            </DropdownMenuPrimitive.Item>
-                            <DropdownMenuPrimitive.Item
-                              onSelect={() => {
-                                const order = [
-                                  project.id,
-                                  ...orderedProjects.filter((row) => row.id !== project.id).map((row) => row.id),
-                                ];
-                                setProjectOrder(order);
-                                localStorage.setItem('datumm-project-order', JSON.stringify(order));
-                              }}
-                            >
-                              Move to top
-                            </DropdownMenuPrimitive.Item>
-                            {hosted && !chatMenuUnsupported.includes('projects') && (
-                              <DropdownMenuPrimitive.Item onSelect={() => void archiveProject(project)}>
-                                <Archive size={14} />
-                                {project.archived_at ? 'Restore project' : 'Archive project'}
-                              </DropdownMenuPrimitive.Item>
-                            )}
-                          </DropdownMenuPrimitive.Content>
-                        </DropdownMenuPrimitive.Portal>
-                      </DropdownMenuPrimitive.Root>
-                    </div>
-                    {(!collapsedProjects.includes(project.id) || Boolean(search)) && (
-                      <div className={styles.projectChats}>
-                        {visibleChats.filter((item) => item.projectId === project.id && !item.pinned_at).map(chatRow)}
-                        {!visibleChats.some((item) => item.projectId === project.id) && (
-                          <button type="button" className={styles.projectEmpty} disabled={mediaBusy || actionBusy || Boolean(project.archived_at)} onClick={() => newTask(project.id)}>
-                            <Plus size={12} />
-                            New chat
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </section>
-                ))}
-              </section>
-            {(!selectedProject || recentChats(visibleChats, showProjects, defaultProject, knownProjectIds).length > 0) && <section className={styles.chatGroup}>
-              <div className={styles.sectionHeading}>
-                <span>{historyView === 'archived' ? 'Archived chats' : 'Chats'}</span>
-                <DropdownMenuPrimitive.Root>
-                  <DropdownMenuPrimitive.Trigger asChild>
-                    <button className={styles.smallButton} aria-label="Chat filters">
-                      <Ellipsis size={15} />
-                    </button>
-                  </DropdownMenuPrimitive.Trigger>
-                  <DropdownMenuPrimitive.Portal>
-                    <DropdownMenuPrimitive.Content className="action-menu">
-                      <DropdownMenuPrimitive.Item onSelect={() => setProjectContextOpen(true)}>
-                        <FolderOpen size={14} />
-                        Projects & local files
-                      </DropdownMenuPrimitive.Item>
-                      <DropdownMenuPrimitive.Separator />
-                      {[
-                        ['', 'All chats'],
-                        ['in_progress', 'In progress'],
-                        ['needs_input', 'Needs input'],
-                        ['ready_review', 'Ready for review'],
-                      ].map(([id, label]) => (
-                        <DropdownMenuPrimitive.Item key={id} onSelect={() => setWorkflowFilter(id)}>
-                          {workflowFilter === id ? <Check size={14} /> : <span className="menu-spacer" />}
-                          {label}
-                        </DropdownMenuPrimitive.Item>
-                      ))}
-                    </DropdownMenuPrimitive.Content>
-                  </DropdownMenuPrimitive.Portal>
-                </DropdownMenuPrimitive.Root>
-              </div>
-              {recentChats(visibleChats, showProjects, defaultProject, knownProjectIds).map(chatRow)}
-            </section>}
-            {!visibleChats.length && (
-              <p className={styles.empty}>
-                {!workspaceReady ? 'Loading chat history...' : serviceError ? 'History could not refresh. Retry the workspace connection.' : search
-                  ? 'No matching chats.'
-                  : historyView === 'archived'
-                    ? 'No archived chats.'
-                    : selectedProject ? 'No chats in this project yet.' : 'Start a chat to save your work.'}
-              </p>
-            )}
+            {chatSections({
+              ...props, visibleChats, chatRow, projectSection, pendingOverview, setOverviewId, showProjects, hosted,
+              canCreateProject, selectedProject, knownProjectIds,
+            })}
           </div>
 
           {!navigationRail && <div className={styles.bottom}>
@@ -664,44 +371,10 @@ export function Sidebar(props: SidebarProps) {
           </div>}
         </aside>
       )}
-      {!left && !navigationRail && (
-        <nav className={cn('studio-nav-rail', styles.rail)} aria-label="Collapsed navigation">
-          <img src="/datumm-mark.png" className={styles.workspaceLogo} width={22} height={22} alt="DATUMM" />
-          <button type="button" aria-label="Expand navigation" title="Expand navigation" aria-controls="workspace-sidebar" aria-expanded={false} onClick={expandNavigation}>
-            <PanelLeftOpen size={18} />
-          </button>
-          <button type="button" aria-label="Search chats and projects" title="Search chats and projects" aria-haspopup="dialog" onClick={event => openSearch(event.currentTarget)}><Search size={16} /></button>
-          <button
-            type="button"
-            aria-label="New chat"
-            title="New chat"
-            disabled={mediaBusy || actionBusy}
-            onClick={() => newTask(selectedProject?.id)}
-          >
-            <SquarePen size={16} strokeWidth={1.9} />
-          </button>
-          <button type="button" aria-label="Projects" title="Projects" aria-controls="sidebar-projects" onClick={() => { setLeft(true); requestAnimationFrame(focusProjects); }}><Folder size={16} /></button>
-          <button type="button" aria-label="Connections" title="Connections" onClick={openConnections}><LayoutGrid size={16} /></button>
-          {showProjects && orderedProjects.map(project => <button key={project.id} type="button" aria-label={`Open project ${project.title}`} title={project.title}
-            onClick={() => { selectProjectFilter(project.id); setLeft(true); requestAnimationFrame(focusProjects); }}><Folder size={16} /></button>)}
-          <button type="button" aria-label="Activity" title="Activity" onClick={() => openStudioView('activity')}>
-            <Workflow size={18} />
-          </button>
-          <button
-            type="button"
-            aria-label="Scheduled tasks"
-            title="Scheduled tasks"
-            onClick={() => openStudioView('schedules')}
-          >
-            <Clock3 size={18} />
-          </button>
-          <button type="button" aria-label="Settings" title="Settings" onClick={() => changeSettingsOpen(true)}>
-            <Settings2 size={18} />
-          </button>
-          <div className={styles.railAccount}><AccountFooter compact authConfigured={authConfigured} openActivity={() => openStudioView('activity')} openSchedules={() => openStudioView('schedules')} openSettings={() => changeSettingsOpen(true)} openConnections={openConnections}
-            openArchived={() => { setHistoryView('archived'); setLeft(true); }} confirmDeleteAll={confirmDeleteAll} /></div>
-        </nav>
-      )}
+      {!left && !navigationRail && collapsedRail({
+        ...props, showProjects, selectedProjectId: selectedProject?.id, expandNavigation, openSearch, focusProjects,
+        openConnections, selectProjectFilter, confirmDeleteAll,
+      })}
     </>
   );
 }

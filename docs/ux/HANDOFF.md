@@ -2,7 +2,7 @@
 
 Overwritten at every checkpoint. Read [AGENTS.md](../../AGENTS.md) first, then this file, then the packet named under "Active phase". Older detail is in Git history and [docs/ux/history/](history/handoff-before-agui-progress-review-2026-11-16.md).
 
-Updated 17 November 2026, end of U1.
+Updated 17 November 2026, end of UI1.
 
 ## Now
 
@@ -28,6 +28,7 @@ Updated 17 November 2026, end of U1.
 | Q1 | Done 17 Nov: [packet and result](q1-rules-prerouter-latency.md) | Reply copy approved by the user 17 Nov; enable `entry_rules_enabled` only at G1 after a baseline trace window |
 | A3 | Done 17 Nov: [packet and result](a3-admin-model-registry.md) | Live provider tests, real prices and rollback behavior belong to G1 |
 | U1 | Done 17 Nov: [packet and result](u1-nextjs-security-upgrade.md) | Vercel build behavior is checked in the W1 preview log |
+| UI1 | Done 17 Nov: [packet and result](ui1-composer-and-sidebar.md); web live | Backend `modelInfo` (`95b2361`) goes live with the A3 backend release; next phase per the [parity plan](panda-parity-plan-2026-11-17.md) (H5 = A) |
 | H0 | [Harness decision](harness-decision-2026-11-17.md) approved 17 Nov | Keep the LangGraph backend, go live first, then UI1, T1, A4a, A4b, N5 |
 | G1 | [Go-live plan](g1-go-live-plan.md) approved 17 Nov (D1 to D12, all recommended options) | Read-only AWS checks done 17 Nov (live backend is `188ebc0`; production uses a Clerk development instance; see the plan's AWS check results). P5 done (about 35,900 documents; indexes are trivial). P3 done (stored admin config is empty, so the picker and effort do not change at deploy). Still open: P8 (Vercel env names), Q-10 (preview origin); then P11 to P13; AWS steps are run by the user and agents prepare commands (D8 A); each push, merge or deploy still needs its own approval. W1, A4 and N5 remain proposed |
 
@@ -37,7 +38,7 @@ Phase table: [PLAN.md](../../PLAN.md#phases). Packet format: [PACKET_TEMPLATE.md
 
 | Check | Result | Date / how |
 | --- | --- | --- |
-| `npm run typecheck`, `npm test` (769), `npm run build`, `lat check` | Passed on Next.js 16.4.6; build exit 0 in 5 of 5 runs (on 16.4.3 it stopped on an agent-only advisory reminder, see U1) | 17 Nov, Node 24.18.0, end of U1 |
+| `npm run typecheck`, `npm test` (788), `npm run build`, `lat check` | Passed on Next.js 16.4.6; build exit 0 in 5 of 5 runs (on 16.4.3 it stopped on an agent-only advisory reminder, see U1) | 17 Nov, Node 24.18.0, end of U1 |
 | Runtime smoke `--production` (18 checks; 3 `/api/chat` checks removed in C1) | Passed 18 / 18 | 17 Nov, fresh `next start` on port 3100, end of U1 |
 | Recorded source hashes (`artifacts/ux/agui-presentation/qualification.json`) | Superseded for files C1 edited; four web entries reported stale before C1 (see [C1 result](c1-capability-contract-and-config.md#11-result)) | 16 Nov, reviewer; not re-verified |
 | Backend suite (`uv run --frozen pytest`) | 530 + 26 subtests; `lat check` passed | 17 Nov, Python 3.12.10, end of A3 |

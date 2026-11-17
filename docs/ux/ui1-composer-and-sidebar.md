@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **approved 17 Nov, build in progress** |
+| Status | **done 17 Nov**: web live with this commit; backend `modelInfo` ships with the A3 backend release (section 11) |
 | Depends on | G1 (live site), H0 [harness decision](harness-decision-2026-11-17.md) §5 row 2; A3 for prices (optional, see UI1-a) |
 | Approved by / date | User, 17 Nov ("Approve UI1"): every decision UI1-a to UI1-i takes option A |
 | Base commits | Web `017bd0d` (`main`). Backend local `main` `387e687`; **live `70ce912`**, which has no A3 (`2e00ee3` is after it). Panda `panda-agent-ui/Panda-agent` on `claude/agent-ui-migrations`, checkout at `1bedf1c` (the brief names `7c78dea`, an ancestor; the files cited below were read at `1bedf1c`) |
@@ -100,6 +100,8 @@ The model submenu becomes provider groups: `DropdownMenuLabel` per provider insi
 Keyboard comes from Radix (arrows, Home/End, typeahead, Enter, Escape returns focus to the
 trigger). Trigger `aria-label` adds price when known. Ported from Panda `model-display.ts:19-25`
 (provider names, monogram not used) and `:40-45` (group ordering idea).
+*Build deviation:* the row's second line shows the facts only, not the provider, because the group
+label already names the provider and repeating it on every row adds noise without information.
 
 **Context meter** (`workspace/context-meter.tsx`, new, client). A 16 px SVG ring plus "12K / 200K"
 text in the composer's right group, before the model picker. Trigger is a `Button` that opens the
@@ -245,16 +247,16 @@ changes in either repo.
 6. **100-chat window:** date groups cover only the 100 newest tasks (`task_api.py:179`); older
    chats remain reachable only by search of loaded rows, as today.
 
-## 11. Result (fill at checkpoint)
+## 11. Result
+
+Built 17 Nov on `main` (web by a Sonnet agent, backend `modelInfo` by a Sonnet agent; independent Opus review; review fixes by two Opus agents). Backend commit `95b2361` (local; ships with the A3 backend release). Web: this commit.
 
 | Item | Outcome |
 | --- | --- |
-| Commit | |
-| Gates run (command, Node version, counts, date) | |
-| Browser evidence (tool, URL, scenario, result) | |
-| Not run or not verified | |
-| Limits found | |
-| Next step | |
-
-After filling this: overwrite [HANDOFF.md](HANDOFF.md), update the phase's row in
-[PLAN.md](../../PLAN.md), commit.
+| Review | 1 HIGH (a non-finite catalog price would 500 `/v1/config` and the workspace load), 3 MEDIUM (cache never warmed past the 2 s cap and no shared fetch; left resize stored a viewport-clamped chat width; "Needs attention" missed Revit "verification incomplete"), 10 LOW. All fixed with tests. A fix side effect (60 s fail-fast also blocking budget checks before paid calls) was caught by the orchestrator and limited to the `modelInfo` path. A README line-ending rewrite (about 1,880 lines of noise) was reverted to the 2 real lines |
+| Gates (orchestrator, Node 24.18.0, Python 3.12) | Web: typecheck clean, `npm test` 788 / 788, `lat check` passed, `npm run build` exit 0 in 5 of 5. Backend: 541 passed + 26 subtests, `lat check` passed |
+| Theme and fonts | Unchanged: no colour token or font line in the diff; the only `DESIGN.md` edit is the screen-map line for the sidebar |
+| Browser (built-in browser, real signed-in `localhost:3001` over the local backend, and `/dev/ux`) | Fixture: meter neutral 30%, warning 75%, danger 95%, "~40K / 200K" while estimating, "42K tokens" with no window, hidden with no reading; picker grouped by provider with prices, context and "Reads images", default first with a check, a row without facts, OpenRouter note; sidebar Today / Yesterday / Previous 7 days / Older with "Working" and "Needs attention" chips (incl. Revit verification incomplete) and the unread dot. Real site: `/v1/config` `modelInfo` on with all 6 served models filled from the live OpenRouter catalog; the picker shows them grouped OpenAI / Anthropic / Qwen / Google. 375 px: rings only, text hidden as designed |
+| Not run | Pointer drag and keyboard resize of the handle, screen-reader reading, light mode, a model-backed turn (no provider key locally, so no real meter reading on the real site) |
+| Limits | "Reads images" touches the menu's right edge on the widest row (cosmetic). `needsRevitCheck` mirrors `workflow-state.ts` and must change with it. "Revit build blocked", "Revit is busy" and "read timed out" no longer get a chip (strict UI1-h list); the user may want them back |
+| Next step | Push web live; A3 backend release with `modelInfo`; then UI2 per the [parity plan](panda-parity-plan-2026-11-17.md) |

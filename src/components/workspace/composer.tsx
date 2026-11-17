@@ -23,6 +23,9 @@ import { needsPluginSetup } from '@/lib/plugin-setup.mjs';
 import { PluginSetupGuide } from '../plugin-setup-guide';
 import { ComposerMedia } from '../composer-media';
 import { ModelPicker } from '../model-picker';
+import { ContextMeter } from './context-meter';
+import { featureEnabled } from '@/lib/capabilities.mjs';
+import { parseModelInfo } from '@/lib/model-display.mjs';
 import { useOutputWorkspace } from './output-workspace';
 import type { DisplayActionsApi } from './display-actions';
 import { type WorkspaceState, api, type Run, type Mode } from './use-workspace-state';
@@ -114,6 +117,8 @@ export type ComposerProps = Pick<
   | 'providerStatus'
   | 'act'
   | 'contextView'
+  | 'capabilities'
+  | 'openStudioView'
 > & {displayActions?: DisplayActionsApi};
 
 export function Composer(props: ComposerProps) {
@@ -193,6 +198,8 @@ export function Composer(props: ComposerProps) {
     drawingCurrent,
     switchDrawingToBuild,
     chatModels,
+    capabilities,
+    openStudioView,
     model,
     reasoningEffort,
     modelPreferenceInitialized,
@@ -577,6 +584,9 @@ export function Composer(props: ComposerProps) {
           </DropdownMenu>
 
           <div className="composer-right">
+            <ContextMeter usage={run?.data?.usage} taskId={run?.id}
+              running={['queued', 'running'].includes(run?.status ?? '')}
+              onOpenActivity={() => openStudioView('activity')} />
             <div className="studio-model-control">
               {desktopAvailable && !chatModels.length ? (
                 <Button type="button" variant="ghost" size="sm" onClick={() => changeSettingsOpen(true)}>
@@ -586,6 +596,8 @@ export function Composer(props: ComposerProps) {
                 <ModelPicker
                   model={model}
                   models={chatModels}
+                  defaultModel={runtimeConfig?.defaultModel}
+                  modelInfo={featureEnabled(capabilities, 'modelInfo') ? parseModelInfo(runtimeConfig?.modelInfo, chatModels) : undefined}
                   reasoningEffort={reasoningEffort}
                   onModelChange={(value) => {
                     modelPreferenceInitialized.current = true;

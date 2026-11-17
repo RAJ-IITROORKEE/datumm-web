@@ -66,7 +66,7 @@ A chat is unread only when it settled with a task version newer than the one las
 
 Hosted chats with project identifiers remain visible without desktop project groups.
 
-Chats of unlisted projects stay in Recent when hosted groups are shown. The list rules in `src/lib/sidebar-history.mjs` preserve pinned separation, desktop grouping and the server's newest-first order.
+Chats of unlisted projects stay in Recent when hosted groups are shown. The list rules in `src/lib/sidebar-history.mjs` preserve pinned separation, desktop grouping and the server's newest-first order. `groupChatsByDate` adds Today / Yesterday / Previous 7 days / Older groups by `created_at` without reordering, and `chatChip` is the one rule for the "Working" and "Needs attention" row chips.
 
 ## Plugin setup guide
 
@@ -106,7 +106,7 @@ The open routes are config, config history (list, one numeric revision, restore)
 
 The backend config's `capabilities` object is read as a tri-state per feature; anything missing or malformed is unknown, never off, so older backends keep working.
 
-Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. `adminTraces`, `feedback`, `adminHistory` and `adminModels` are the exception: unknown is off, because no deployed backend serves them yet. See `src/lib/capabilities.mjs`.
+Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. `adminTraces`, `feedback`, `adminHistory`, `adminModels` and `modelInfo` are the exception: unknown is off, because no deployed backend serves them yet. See `src/lib/capabilities.mjs`.
 
 ## Durable completion proof
 

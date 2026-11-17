@@ -2,14 +2,15 @@
 
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
-import { Archive, Check, CircleHelp, Pencil, Share2, Trash2 } from 'lucide-react';
+import { Archive, Check, Pencil, Share2, Trash2 } from 'lucide-react';
 import { Ellipsis, FolderOpen, Pin } from './sidebar-icons';
 import { cn } from '@/lib/utils';
 import { hasPendingQuestion, workflowState } from '@/lib/workflow-state';
+import { chatChip } from '@/lib/sidebar-history.mjs';
 import type { ProjectRow, Run } from './use-workspace-state';
 import styles from './sidebar.module.css';
 
-/** One minimal chat row: title only, status dots, inline rename and a row menu. */
+/** One minimal chat row: title only, a text status chip, inline rename and a row menu. */
 export function ChatRow({
   item, selected, busy, unread, dialogTrigger, onSelect, onHistory, onDelete, onProjects,
   onRename, moveTargets, onMove, onShare,
@@ -62,7 +63,7 @@ export function ChatRow({
       setEditing(true);
     }
   };
-  const running = ['queued', 'running'].includes(item.status) && workflowState(item).kind === 'in_progress';
+  const chip = chatChip(item, workflowState(item), hasPendingQuestion(item));
   return (
     <div className={cn(styles.row, selected && styles.selected)}>
       {editing ? (
@@ -93,13 +94,7 @@ export function ChatRow({
         <button type="button" ref={select} className={styles.chatButton} disabled={busy} onClick={onSelect}
           aria-current={selected ? 'page' : undefined}>
           <span title={item.title} dir="auto">{item.title}</span>
-          {running && <span className={styles.running} role="img" aria-label="Chat running" />}
-          {hasPendingQuestion(item) && (
-            <CircleHelp size={12} className={styles.attention} aria-label="Chat needs your answer" />
-          )}
-          {['failed', 'interrupted'].includes(item.status) && (
-            <span className={styles.failed} role="img" aria-label="Chat failed" />
-          )}
+          {chip && <span className={cn(styles.chip, chip === 'Working' ? styles.chipWorking : styles.chipAttention)}>{chip}</span>}
           {unread && <span className={styles.unread} role="img" aria-label="Unread result" />}
         </button>
       )}
