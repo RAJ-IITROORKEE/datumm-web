@@ -359,3 +359,11 @@ Cannot be rolled back: admin config revisions and restores (history and audit ar
 - **G1 status: backend (`70ce912`) and web (`017bd0d`) are live.** Remaining: A3 as the second backend release; a live Ask/Plan turn on the new stack (model credit; not yet run); Q1 and N4 flags stay off (L1).
 - Standing user instruction from now on: after each phase is verified on localhost, push `main` and redeploy (memory `main-only-then-live`).
 
+## 12. Second backend release: A3 + UI1 `modelInfo` (17 Nov, under the user's standing instruction)
+
+- Image built from backend `95b2361` (build `eacd0d88`): all packaged checks and smoke tests passed; digest `sha256:70f618ff…`, tag `g1-backend-a3-95b2361515df-51`.
+- Rehearsal (build `7717e7aa`) on a copy of `20261116T230736Z`: healthy in 3,364 ms; `/v1/config` still served all 6 models (default GPT-6 Luna) after the startup migration; 6 `legacy:` rows and the `model_registry` marker written; `adminModels` and `modelInfo` on; no traceback. Staged copy deleted. Rehearsal now checks served models and the migration (backend `1b64a2c`).
+- Quiet: no active run (last run 16 Nov 23:35 UTC, `needs_input`). Backup `20261117T052219Z.archive.gz`, 31.5 MiB. Change set `g1-backend-a3-95b2361` touched only `Task` and `Service`; executed 05:23:09 UTC; `/health` `70ce912` → down → `95b2361` at 05:24:23 (about one minute); rollout `COMPLETED`; image `70f618ff…`; anonymous 401 on `/v1/config`, `/v1/admin/models`, `/v2/tasks`; no traceback. Live database: 6 legacy rows, marker present.
+- Live (built-in browser, signed in): `/admin/models` shows 6 enabled, 7-day usage $0.6039 (GPT-6 Luna 519 calls $0.428, GPT-6 Sol 7 calls $0.066), catalog prices, "Legacy · not tested". The composer picker shows real prices, context sizes and "Reads images" grouped by provider. Projects show in the sidebar after the projects fix (web `ab48be5`, smoke 18 / 18).
+- Rollback: same update with `ImageUri` = `sha256:bb926402…` (70ce912); note the A3 migration marker stays (section 5).
+

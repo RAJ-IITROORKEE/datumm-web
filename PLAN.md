@@ -22,11 +22,11 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | A2 | Admin: versioned config and audit | Done 16 Nov (local, not pushed) | [Packet](docs/ux/a2-admin-versioned-config-audit.md) |
 | N4 | Evidence-backed compositions | Done 16 Nov (local, not pushed) | [Packet](docs/ux/n4-evidence-backed-compositions.md) |
 | Q1 | Rules pre-router and latency measurement (model router deferred) | Done 17 Nov (local, not pushed; flag off by default) | [Packet](docs/ux/q1-rules-prerouter-latency.md) |
-| A3 | Admin: model registry | Done 17 Nov (local, not pushed) | [Packet](docs/ux/a3-admin-model-registry.md) |
+| A3 | Admin: model registry | Done 17 Nov; **live** (backend `95b2361`) | [Packet](docs/ux/a3-admin-model-registry.md) |
 | U1 | Next.js security upgrade (16.4.3 to 16.4.6) | Done 17 Nov (local, not pushed); `next` pinned at 16.4.6, 5 of 5 builds exit 0 | [Packet](docs/ux/u1-nextjs-security-upgrade.md) |
-| G1 | Go-live: backend on AWS, web on Vercel (**live 17 Nov: backend `70ce912`, web `017bd0d`**; A3 backend release pending) | Plan approved 17 Nov with all recommended options (D1 to D12); nothing pushed or deployed. Each push, merge, deploy and AWS step needs its own approval; AWS steps are run by the user (D8 option A). [AWS checks runbook](docs/ux/g1-aws-checks.md) prepared, not yet run | [Go-live plan](docs/ux/g1-go-live-plan.md) |
+| G1 | Go-live: backend on AWS, web on Vercel (**live 17 Nov: backend `95b2361` with A3, web `ab48be5`**) | Plan approved 17 Nov with all recommended options (D1 to D12); nothing pushed or deployed. Each push, merge, deploy and AWS step needs its own approval; AWS steps are run by the user (D8 option A). [AWS checks runbook](docs/ux/g1-aws-checks.md) prepared, not yet run | [Go-live plan](docs/ux/g1-go-live-plan.md) |
 | H0 | Harness decision: keep the LangGraph backend, port Panda-agent features | Approved 17 Nov (H1 to H4, recommended options) | [Decision](docs/ux/harness-decision-2026-11-17.md) |
-| UI1 | Composer and sidebar: model picker, context-window meter, sidebar groups and Ctrl K | Done 17 Nov (web live; `modelInfo` with the A3 backend release) | [Packet](docs/ux/ui1-composer-and-sidebar.md) |
+| UI1 | Composer and sidebar: model picker, context-window meter, sidebar groups and Ctrl K | Done 17 Nov; **live** (web and `modelInfo`) | [Packet](docs/ux/ui1-composer-and-sidebar.md) |
 | P0 | Panda-agent parity plan: every Panda feature, step by step, live after each | Approved 17 Nov; H5 = A (port onto the LangGraph backend) | [Parity plan](docs/ux/panda-parity-plan-2026-11-17.md) |
 | T1 | Tavily web search with DATUMM's own key | Proposed (after H0) | Decision §5 |
 | A4a | Admin: tools and skills registry | Proposed (after H0) | Decision §5 |
