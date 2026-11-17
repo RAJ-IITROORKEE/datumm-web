@@ -74,7 +74,7 @@ Final answers are delivered after validation, not as true provider token streami
 | `../datumm-web-ask-recovery` | `codex/independent-ask` | Unmerged, two uncommitted files; untouched |
 | `../_archive/datumm-web-artifacts-archive-2026-11-16` | n/a | Archived evidence from the cleanup; old packets cite it as `artifacts/ux/<name>` |
 
-Live backend since 17 Nov 07:15 UTC: `1e67551` (T1 code, A4a), image `sha256:b0c06874…`; before that `95b2361` (A3 + UI1 `modelInfo`, `70f618ff…`); before that `70ce912` (`bb926402…`) from 16 Nov 23:09 UTC. Original: source 188, image `sha256:6af54c878220f1117b316c3a414dda35f88f93ec3cee3dd7470270f4e88d378c`; not revalidated on AWS since.
+Live backend since 17 Nov 08:00 UTC: `115980f` (A4b; images now from the public.ecr.aws mirror), image `sha256:f97db082…`; before that `1e67551` (T1 code, A4a, `b0c06874…`); before that `95b2361` (A3 + UI1 `modelInfo`, `70f618ff…`); before that `70ce912` (`bb926402…`) from 16 Nov 23:09 UTC. Original: source 188, image `sha256:6af54c878220f1117b316c3a414dda35f88f93ec3cee3dd7470270f4e88d378c`; not revalidated on AWS since.
 
 ## Guardrails that carry across phases
 

@@ -376,3 +376,12 @@ Cannot be rolled back: admin config revisions and restores (history and audit ar
 - Tavily needs `TAVILY_API_KEY` in the runtime secret plus the template change (T1 packet).
 - Rollback: `ImageUri` = `sha256:70f618ff…` (`95b2361`).
 
+## 14. Fourth backend release: A4b skills registry (17 Nov, standing instruction)
+
+- First attempt (builds `3905caa4`, `b5b4902b`) failed before any live change: Docker Hub answered 429 (anonymous pull limit) for `node`, `python` and `mongo` in CodeBuild. Fix `115980f`: the Dockerfile and the release kit pull the same official images and the same pinned Mongo digest from `public.ecr.aws/docker/library` (already used by the live stack for Mongo).
+- Image from `115980f`: tag `g1-backend-a4b-115980f181e7-57`, digest `sha256:f97db082a30e691b13b83597e3720f22c79d64587615a05a2a4e8162cf393916`.
+- Rehearsal on `20261117T071303Z` (36,139 documents): healthy in 3,406 ms, models served, no traceback; staged copy deleted.
+- Quiet; backup `20261117T075832Z.archive.gz` 31.5 MiB; change set `g1-backend-a4b-115980f` touched only `Task` and `Service`; executed 07:59:21 UTC; `/health` `1e67551` → down → `115980f` at 08:00:51; rollout `COMPLETED`; no traceback.
+- Live (built-in browser, signed in): `/admin/skills` shows the registry; `skillsOnDemand` on; `POST admin/skills/preview` 200 `{listed: [], attached: null}` (no skills configured live).
+- Rollback: `ImageUri` = `sha256:b0c06874…` (`1e67551`). Before rolling back to it, reset the Skills tool row to its default if it was ever saved (A4b packet).
+

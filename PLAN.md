@@ -24,14 +24,14 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | Q1 | Rules pre-router and latency measurement (model router deferred) | Done 17 Nov (local, not pushed; flag off by default) | [Packet](docs/ux/q1-rules-prerouter-latency.md) |
 | A3 | Admin: model registry | Done 17 Nov; **live** (backend `95b2361`) | [Packet](docs/ux/a3-admin-model-registry.md) |
 | U1 | Next.js security upgrade (16.4.3 to 16.4.6) | Done 17 Nov (local, not pushed); `next` pinned at 16.4.6, 5 of 5 builds exit 0 | [Packet](docs/ux/u1-nextjs-security-upgrade.md) |
-| G1 | Go-live: backend on AWS, web on Vercel (**live 17 Nov: backend `1e67551` (A3, T1 code, A4a), web `8dde118`**) | Plan approved 17 Nov with all recommended options (D1 to D12); nothing pushed or deployed. Each push, merge, deploy and AWS step needs its own approval; AWS steps are run by the user (D8 option A). [AWS checks runbook](docs/ux/g1-aws-checks.md) prepared, not yet run | [Go-live plan](docs/ux/g1-go-live-plan.md) |
+| G1 | Go-live: backend on AWS, web on Vercel (**live 17 Nov: backend `115980f` (A3, T1 code, A4a, A4b), web `8c478f6`**) | Plan approved 17 Nov with all recommended options (D1 to D12); nothing pushed or deployed. Each push, merge, deploy and AWS step needs its own approval; AWS steps are run by the user (D8 option A). [AWS checks runbook](docs/ux/g1-aws-checks.md) prepared, not yet run | [Go-live plan](docs/ux/g1-go-live-plan.md) |
 | H0 | Harness decision: keep the LangGraph backend, port Panda-agent features | Approved 17 Nov (H1 to H4, recommended options) | [Decision](docs/ux/harness-decision-2026-11-17.md) |
 | UI1 | Composer and sidebar: model picker, context-window meter, sidebar groups and Ctrl K | Done 17 Nov; **live** (web and `modelInfo`) | [Packet](docs/ux/ui1-composer-and-sidebar.md) |
 | P0 | Panda-agent parity plan: every Panda feature, step by step, live after each | Approved 17 Nov; H5 = A (port onto the LangGraph backend) | [Parity plan](docs/ux/panda-parity-plan-2026-11-17.md) |
 | UI2 | Composer extras: prompt queue, Send now, Tab to accept follow-up, retry on another model, attachment UI (flagged) | Done 17 Nov; **live** | [Packet](docs/ux/ui2-composer-extras.md) |
 | T1 | Tavily web search with DATUMM's own key | Approved 17 Nov; building. Live use needs the user's key in the runtime secret and a template go-ahead | [Packet](docs/ux/t1-tavily-web-search.md) |
 | A4a | Tool catalog, per-mode switches, approval modes and risk classes | Done 17 Nov; **live** (backend `1e67551`) | [Packet](docs/ux/a4a-tools-and-approvals.md) |
-| A4b | Skills registry: SKILL.md, versions, on-demand loading | Done 17 Nov; web live, backend with the next release | [Packet](docs/ux/a4b-skills-registry.md) |
+| A4b | Skills registry: SKILL.md, versions, on-demand loading | Done 17 Nov; **live** (backend `115980f`) | [Packet](docs/ux/a4b-skills-registry.md) |
 | A4c | MCP registry (official Python MCP SDK) | Proposed | [Parity plan](docs/ux/panda-parity-plan-2026-11-17.md) |
 | N5 | Provider streaming and measured performance | Proposed | Roadmap |
 | W1 | Right work area on AG-UI state | Proposed; separate go or no-go | Roadmap |
