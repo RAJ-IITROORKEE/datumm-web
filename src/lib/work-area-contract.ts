@@ -3,6 +3,7 @@ import type { AnswerOutput } from '@/lib/answer-outputs.mjs';
 import type { ReviewReport } from '@/lib/review-report.mjs';
 import type { ComposerSource } from '@/components/composer-media';
 import type { AnswerFeedbackBody, FeedbackKind } from '@/lib/answer-feedback.mjs';
+import type { WorkMode } from '@/lib/work-modes.mjs';
 export type WorkAreaSection = 'design' | 'activity' | 'assets' | 'exports';
 export interface WorkScope { key: string; epoch: number; accountKey: string; taskId: string | null; sourceKey: string }
 export interface PlanIdentity { planId: string; version: number; fingerprint: string }
@@ -19,15 +20,25 @@ export interface WorkAreaActions {
   openDrawing(opener?: HTMLElement | null): void;
   openAnswerOutput(outputId: string, opener?: HTMLElement | null): void;
   openSavedReport(opener?: HTMLElement | null, revision?: SavedReportRevision): void;
+  /** Opens the Review mode; a display change only, never an approval. */
+  openReview(): void;
   closePreview(): void;
   returnToDrawing(): void;
   focusReview(selector: string): void;
 }
 export interface InspectorProps {
-  scope: WorkScope; section: WorkAreaSection; preview: WorkAreaPreview;
+  scope: WorkScope; section: WorkAreaSection; mode?: WorkMode; preview: WorkAreaPreview;
   propertiesOpen: boolean; actions: WorkAreaActions;
+  /** Left of the header: the Design | Review switch and the Details button. */
+  headerLead?: ReactNode;
   headerAction?: ReactNode;
-  slots: { design: ReactNode; properties: ReactNode; activity: ReactNode; assets: ReactNode; exports: ReactNode; assetPreview?: ReactNode };
+  slots: {
+    design: ReactNode; properties: ReactNode; review?: ReactNode;
+    /** Activity, Files and Exports open in the Details drawer, not as work-area tabs. */
+    activity: ReactNode; assets: ReactNode; exports: ReactNode; technical?: ReactNode;
+    /** A full work-area page (the sidebar's Activity and Scheduled views); absent otherwise. */
+    page?: ReactNode; assetPreview?: ReactNode;
+  };
 }
 export interface AlternativeSelection { scope: WorkScope; taskId: string; briefId: string; plan: PlanIdentity }
 export interface PlanDetailsSelectionProps {

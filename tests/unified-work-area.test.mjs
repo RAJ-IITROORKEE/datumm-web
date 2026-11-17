@@ -62,33 +62,33 @@ test('queued output focus restoration cannot return to a previous A epoch',()=>{
  let value=render('a');value.register('answer',[answer('a')]);value=render('a');value.openOutput('table',opener);value=render('a');value.closeOutput();render('b');render('a');h.frames();assert.equal(focused,0);
 });
 
-test('four-section tabs wrap, Home/End select correctly, and Design retains the same slot position',()=>{
+test('the work area has no section tabs; the header leads with the mode switch and Design keeps its slot',()=>{
  const h=harness('src/components/workspace/inspector.tsx'),calls=[],design=React.createElement('viewer');
- const grip=React.createElement('header-action',{type:'button'});
- const props={scope:scope('a'),section:'design',preview:{kind:'drawing',scope:scope('a')},propertiesOpen:false,actions:{selectSection:value=>calls.push(value)},headerAction:grip,slots:{design,properties:null,activity:'activity',assets:'assets',exports:'exports'}};
- const tree=h.render('Inspector',props),tabs=elements(tree).filter(node=>node.props.role==='tab');assert.equal(tabs.length,4);assert.equal(tabs[0].props.tabIndex,0);
- assert.ok(elements(tree).some(node=>node.type==='header-action'));assert.equal(elements(elements(tree).find(node=>node.props.role==='tablist')).some(node=>node.type==='header-action'),false,'The close button remains a sibling of the tablist so tab keyboard navigation is unchanged');
- tabs[0].props.onKeyDown({key:'ArrowLeft',preventDefault(){}});tabs[3].props.onKeyDown({key:'ArrowRight',preventDefault(){}});tabs[1].props.onKeyDown({key:'End',preventDefault(){}});tabs[2].props.onKeyDown({key:'Home',preventDefault(){}});assert.deepEqual(calls,['exports','design','exports','design']);
- const next=h.render('Inspector',{...props,section:'activity'}),panel=elements(next).find(node=>node.props.id==='work-area-test-design-panel');assert.equal(panel.props.hidden,true);assert.equal(panel.props.inert,true);assert.equal(panel.props.children[0].props.children,design);
+ const grip=React.createElement('header-action',{type:'button'}),lead=React.createElement('mode-switch');
+ const props={scope:scope('a'),section:'design',preview:{kind:'drawing',scope:scope('a')},propertiesOpen:false,actions:{selectSection:value=>calls.push(value),closePreview(){}},headerLead:lead,headerAction:grip,slots:{design,properties:null,review:React.createElement('review-screen'),activity:'activity',assets:'assets',exports:'exports',page:null}};
+ const panelOf=tree=>elements(tree).find(node=>node.props.hidden!==undefined&&elements(node).some(child=>child.type==='viewer'));
+ let tree=h.render('Inspector',props);
+ assert.equal(elements(tree).filter(node=>node.props.role==='tab'||node.props.role==='tablist').length,0,'Activity, Assets and Exports are no longer work-area tabs');
+ assert.ok(elements(tree).some(node=>node.type==='mode-switch'));assert.ok(elements(tree).some(node=>node.type==='header-action'));
+ assert.equal(panelOf(tree).props.hidden,false);assert.equal(elements(tree).some(node=>node.type==='review-screen'),false,'Review mounts only in Review mode');
+ for(const section of ['activity','assets','exports'])assert.equal(panelOf(h.render('Inspector',{...props,section})).props.hidden,false,section+' opens the drawer over Design, which stays put');
+ tree=h.render('Inspector',{...props,mode:'review'});assert.equal(panelOf(tree).props.hidden,true);assert.equal(panelOf(tree).props.inert,true);assert.ok(elements(tree).some(node=>node.type==='review-screen'));
+ assert.equal(elements(tree).filter(node=>node.type==='viewer').length,1,'The drawing stays mounted behind Review');
+ tree=h.render('Inspector',{...props,slots:{...props.slots,page:React.createElement('studio-page')}});assert.equal(panelOf(tree).props.hidden,true);assert.ok(elements(tree).some(node=>node.type==='studio-page'));
+ assert.equal(elements(h.render('Inspector',{...props,headerLead:undefined,headerAction:undefined})).some(node=>node.type==='mode-switch'),false);
 });
 
-test('preview navigation retains the drawing and report while the active tab names its visible panel',()=>{
+test('an open answer or report replaces Design in place and Back returns to the drawing',()=>{
  const h=harness('src/components/workspace/inspector.tsx'),closed=[],drawingMarker={},reportMarker={},drawing=React.createElement('viewer',{marker:drawingMarker}),report=React.createElement('report',{revision:1,marker:reportMarker});
  const base={scope:scope('a'),preview:{kind:'saved-report',scope:scope('a'),taskId:'a',openId:7},propertiesOpen:false,actions:{selectSection(){},closePreview:()=>closed.push('close')},slots:{design:drawing,properties:null,activity:'activity',assets:'assets',exports:'exports',assetPreview:report}};
- for(const section of ['assets','exports','design','activity','assets']){
-  const tree=h.render('Inspector',{...base,section}),all=elements(tree),tab=all.find(node=>node.props.role==='tab'&&node.props['aria-selected']);
-  const panel=all.find(node=>node.props.id===tab.props['aria-controls']);
-  assert.ok(panel,`${section} tab controls an existing panel`);assert.equal(panel.props.hidden,false,`${section} tab controls its visible panel`);
+ for(const mode of ['design','review'])for(const section of ['design','assets','exports']){
+  const all=elements(h.render('Inspector',{...base,section,mode}));
   assert.equal(all.filter(node=>node.type==='viewer').length,1);assert.equal(all.find(node=>node.type==='viewer').props.marker,drawingMarker);
   assert.equal(all.filter(node=>node.type==='report').length,1);assert.equal(all.find(node=>node.type==='report').props.marker,reportMarker);
-  if(section==='assets'||section==='exports'){
-   assert.equal(elements(panel).find(node=>node.type==='report')?.props.marker,reportMarker);
-   const back=elements(panel).find(node=>node.type==='button'&&React.Children.toArray(node.props.children).join('').startsWith('Back to'));
-   assert.equal(React.Children.toArray(back.props.children).join(''),`Back to ${section}`);
-   back.props.onClick();
-  }
+  const panel=all.find(node=>node.props.hidden===false&&elements(node).some(child=>child.type==='report'));assert.ok(panel,'the preview panel is visible');
+  const back=elements(panel).find(node=>node.type==='button'&&React.Children.toArray(node.props.children).join('')==='Back to drawing');back.props.onClick();
  }
- assert.deepEqual(closed,['close','close','close']);
+ assert.deepEqual(closed.length,6);
 });
 
 function selectionHarness(){

@@ -1,5 +1,6 @@
 import { drawingExportName, safeDrawingSegment } from '../src/lib/drawing-export-identity.mjs';
 import * as viewport from '../src/lib/plan-viewport.mjs';
+import * as shortcuts from '../src/lib/canvas-shortcuts.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -74,6 +75,9 @@ function canvasHarness(drawingExports = {}) {
     '@/lib/plan-viewport.mjs': viewport,
     './plan-canvas-annotations': { createCanvasAnnotationStore: () => ({ load() {}, getSnapshot: () => annotations }), EMPTY_ANNOTATIONS: { comments: [], draft: null }, EMPTY_ANNOTATION_SNAPSHOT: annotations },
     './plan-drawing': { PlanDrawing: 'PlanDrawing', ...drawingExports },
+    '@/lib/canvas-shortcuts.mjs': shortcuts,
+    './canvas-dock': { CanvasDock: 'CanvasDock', DockButton: 'DockButton', DockSep: 'DockSep' },
+    './canvas-shortcut-help': { CanvasShortcutHelp: 'CanvasShortcutHelp' },
   }, { window: {}, document, getComputedStyle: () => ({ visibility: 'visible' }) });
   return { ...harness, document };
 }

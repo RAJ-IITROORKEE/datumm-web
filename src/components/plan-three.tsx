@@ -2,7 +2,6 @@
 import {type RefObject,useEffect,useRef,useState} from 'react';
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {House,Scan} from 'lucide-react';
 import {arcOf,roomCentre,wallLength} from '@/lib/plan-geometry.mjs';
 import {curvedWallPositions,placeOpening,roomOutline,sampleArc} from '@/lib/plan-3d-geometry.mjs';
 import type {PlanGraph} from './plan-canvas';
@@ -186,8 +185,8 @@ export function paintPlanScene(model:THREE.Group,groundGrid:THREE.GridHelper|nul
  });
  return cutHeight;
 }
-export function PlanThree({graph,fingerprint,room,onSelect,onSelectElement,highlights=[],displayStyle,showGrid,showLabels,tool='select',comments=[],selectedCommentId,onSelectComment,onAddComment,fitRequest,cutMm=0,captureRef}:{graph:PlanGraph;fingerprint:string;room:string;onSelect:(key:string)=>void;onSelectElement?:(element:PlanElementSelection)=>void;highlights?:string[];displayStyle:DisplayStyle;onDisplayStyleChange:(style:DisplayStyle)=>void;showGrid:boolean;onShowGridChange:(show:boolean)=>void;showLabels:boolean;onShowLabelsChange:(show:boolean)=>void;tool?:PlanTool;comments?:PlanComment[];selectedCommentId?:string;onSelectComment?:(id:string)=>void;onAddComment?:(anchor:{roomKey:string;x:number;y:number})=>void;fitRequest?:number;cutMm?:number;captureRef?:RefObject<(()=>HTMLCanvasElement)|null>}){
- const host=useRef<HTMLDivElement>(null),scene=useRef<THREE.Group|null>(null),grid=useRef<THREE.GridHelper|null>(null),fit=useRef<(view?:CameraView)=>void>(()=>{}),select=useRef(onSelect),addComment=useRef(onAddComment),toolRef=useRef(tool),controlsRef=useRef<OrbitControls|null>(null),cameraRef=useRef<THREE.OrthographicCamera|null>(null),invalidate=useRef<()=>void>(()=>{}),commentPins=useRef(new Map<string,HTMLButtonElement>()),commentsRef=useRef(comments),labelsRef=useRef({show:showLabels,room}),zoomOutput=useRef<HTMLOutputElement>(null),rendererRef=useRef<THREE.WebGLRenderer|null>(null),cutPlane=useRef(new THREE.Plane(new THREE.Vector3(0,-1,0),0)),builtCut=useRef(0);
+export function PlanThree({graph,fingerprint,room,onSelect,onSelectElement,highlights=[],displayStyle,showGrid,showLabels,tool='select',comments=[],selectedCommentId,onSelectComment,onAddComment,fitRequest,zoomRequest,cutMm=0,captureRef}:{graph:PlanGraph;fingerprint:string;room:string;onSelect:(key:string)=>void;onSelectElement?:(element:PlanElementSelection)=>void;highlights?:string[];displayStyle:DisplayStyle;onDisplayStyleChange:(style:DisplayStyle)=>void;showGrid:boolean;onShowGridChange:(show:boolean)=>void;showLabels:boolean;onShowLabelsChange:(show:boolean)=>void;tool?:PlanTool;comments?:PlanComment[];selectedCommentId?:string;onSelectComment?:(id:string)=>void;onAddComment?:(anchor:{roomKey:string;x:number;y:number})=>void;fitRequest?:number;/** The canvas dock asks for zoom here; each new `id` applies `delta` once. */zoomRequest?:{id:number;delta:number};cutMm?:number;captureRef?:RefObject<(()=>HTMLCanvasElement)|null>}){
+ const host=useRef<HTMLDivElement>(null),scene=useRef<THREE.Group|null>(null),grid=useRef<THREE.GridHelper|null>(null),fit=useRef<(view?:CameraView)=>void>(()=>{}),select=useRef(onSelect),addComment=useRef(onAddComment),toolRef=useRef(tool),controlsRef=useRef<OrbitControls|null>(null),cameraRef=useRef<THREE.OrthographicCamera|null>(null),invalidate=useRef<()=>void>(()=>{}),commentPins=useRef(new Map<string,HTMLButtonElement>()),commentsRef=useRef(comments),labelsRef=useRef({show:showLabels,room}),rendererRef=useRef<THREE.WebGLRenderer|null>(null),cutPlane=useRef(new THREE.Plane(new THREE.Vector3(0,-1,0),0)),builtCut=useRef(0);
  const selectElement=useRef(onSelectElement);selectElement.current=onSelectElement;select.current=onSelect;addComment.current=onAddComment;toolRef.current=tool;commentsRef.current=comments;labelsRef.current={show:showLabels,room};
  const [error,setError]=useState(''),[retry,setRetry]=useState(0),[orientation,setOrientation]=useState<'iso'|'top'|'front'>('iso');
  useEffect(()=>{
@@ -243,10 +242,10 @@ export function PlanThree({graph,fingerprint,room,onSelect,onSelectElement,highl
    }
   };
   const lost=(e:Event)=>{e.preventDefault();alive=false;if(captureRef)captureRef.current=null;cancelAnimationFrame(animation);setError('3D context was lost. Your design and 2D drawing are retained.');};
-  renderer.domElement.setAttribute('aria-label','Schematic 3D graph preview. Drag to orbit; scroll to zoom. Use room selection for keyboard access.');renderer.domElement.setAttribute('role','img');
+  renderer.domElement.setAttribute('aria-label','Simplified 3D view of the proposed plan. Drag to orbit; scroll to zoom. Use room selection for keyboard access.');renderer.domElement.setAttribute('role','img');
   renderer.domElement.addEventListener('pointerdown',start);renderer.domElement.addEventListener('pointerup',end);renderer.domElement.addEventListener('webglcontextlost',lost);
   const layoutLabels=()=>layoutPlanLabels(model,camera,renderer.domElement.clientWidth,renderer.domElement.clientHeight,labelsRef.current.show,labelsRef.current.room);
-  let animation=0,alive=true;const render=()=>{animation=0;if(!alive)return;controls.update();layoutLabels();renderer.render(world,camera);positionPins();if(zoomOutput.current)zoomOutput.current.textContent=`${Math.round(camera.zoom*100)}%`;};const requestRender=()=>{if(alive&&!animation)animation=requestAnimationFrame(render);};invalidate.current=requestRender;controls.addEventListener('change',requestRender);requestRender();
+  let animation=0,alive=true;const render=()=>{animation=0;if(!alive)return;controls.update();layoutLabels();renderer.render(world,camera);positionPins();};const requestRender=()=>{if(alive&&!animation)animation=requestAnimationFrame(render);};invalidate.current=requestRender;controls.addEventListener('change',requestRender);requestRender();
   if(captureRef)captureRef.current=()=>{layoutLabels();renderer.render(world,camera);return renderer.domElement;};
   return()=>{alive=false;if(captureRef)captureRef.current=null;rendererRef.current=null;cancelAnimationFrame(animation);invalidate.current=()=>{};resize.disconnect();controls.removeEventListener('change',requestRender);controls.dispose();controlsRef.current=null;cameraRef.current=null;renderer.domElement.removeEventListener('pointerdown',start);renderer.domElement.removeEventListener('pointerup',end);renderer.domElement.removeEventListener('webglcontextlost',lost);disposePlanScene(model);groundGrid.geometry.dispose();for(const material of Array.isArray(groundGrid.material)?groundGrid.material:[groundGrid.material])material.dispose();renderer.dispose();renderer.forceContextLoss();renderer.domElement.remove();scene.current=null;grid.current=null;};
  },[fingerprint,retry]);
@@ -258,11 +257,12 @@ export function PlanThree({graph,fingerprint,room,onSelect,onSelectElement,highl
   invalidate.current();},[room,fingerprint,retry,highlights.join(','),displayStyle,showGrid,showLabels,comments,selectedCommentId,cutMm]);
  const cameraView=(view:'iso'|'top'|'front')=>{setOrientation(view);fit.current(view);};
  const zoomBy=(amount:number)=>{const camera=cameraRef.current,controls=controlsRef.current;if(!camera||!controls)return;camera.zoom=THREE.MathUtils.clamp(camera.zoom+amount,controls.minZoom,controls.maxZoom);camera.updateProjectionMatrix();controls.update();invalidate.current();};
+ useEffect(()=>{if(zoomRequest)zoomBy(zoomRequest.delta);},[zoomRequest]);
  return <div className={`${styles.root} threeDView`}>
   <div className={`${styles.viewport} threeViewport`}>
    {error&&<div className={`${styles.error} threeError`} role="alert">{error} <Button variant="secondary" onClick={()=>setRetry(n=>n+1)}>Retry 3D</Button></div>}
    <div className={`${styles.stage} plan-three-stage threeStage`} ref={host}/>
-   <div className={styles.provenance}>Schematic 3D · graph preview<br/>Zoom in or select a room to read crowded labels.</div>
+   <div className={styles.provenance}>Simplified 3D view of the proposed plan, not a measured Revit model</div>
    <div className={styles.pins} aria-label="Plan comments" hidden={Boolean(error)}>{comments.filter(comment=>comment.status==='open').map(comment=><button key={comment.id} ref={pin=>{if(pin)commentPins.current.set(comment.id,pin);else commentPins.current.delete(comment.id);}} className={styles.pin} type="button" aria-label={`Comment ${comment.number} in ${comment.roomKey}: ${comment.text}`} aria-pressed={selectedCommentId===comment.id} title={comment.text} onClick={()=>onSelectComment?.(comment.id)}>{comment.number}</button>)}</div>
    <div className={styles.orientation} role="group" aria-label="3D orientation">
     <div className={styles.triad}>
@@ -271,13 +271,6 @@ export function PlanThree({graph,fingerprint,room,onSelect,onSelectElement,highl
      <button className={styles.axisY} type="button" aria-label="Isometric view" title="Isometric" aria-pressed={orientation==='iso'} onClick={()=>cameraView('iso')}>Y</button>
     </div>
     <div className={styles.presets} role="group" aria-label="Camera presets">{(['iso','top','front'] as const).map(view=><button key={view} type="button" aria-pressed={orientation===view} onClick={()=>cameraView(view)}>{view.toUpperCase()}</button>)}</div>
-   </div>
-   <div className={styles.zoomControls} aria-label="3D zoom controls">
-    <button type="button" aria-label="Home view" title="Home view" onClick={()=>{setOrientation('iso');fit.current('iso');}}><House aria-hidden="true"/></button>
-    <button type="button" aria-label="Zoom out" title="Zoom out" onClick={()=>zoomBy(-.25)}>−</button>
-    <output ref={zoomOutput} aria-live="polite">100%</output>
-    <button type="button" aria-label="Zoom in" title="Zoom in" onClick={()=>zoomBy(.25)}>+</button>
-    <button type="button" aria-label="Fit view" title="Fit view" onClick={()=>fit.current('fit')}><Scan aria-hidden="true"/></button>
    </div>
   </div>
  </div>;

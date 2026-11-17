@@ -158,8 +158,8 @@ test('unowned global plans are labeled and an indexed empty todo snapshot cannot
  const run=task('task-a',[{prompt:'First',answer:'Earlier'},{prompt:'Follow up',answer:'Latest'}]);
  run.data.agent_task_plan={steps:[{key:'inspect',title:'Recorded task step'}],progress:[{key:'inspect',status:'running'}]};
  let nodes=render(props(run));
- let plan=nodes.find(node=>node.type==='PlanDock');assert.equal(plan.props.title,'Run plan · turn not recorded');assert.equal(plan.props.items[0].status,'unconfirmed');
- nodes=render(props(run,{savedTurns:[{conversationIndex:1,result:{todos:[]}}]}));assert.equal(nodes.find(node=>node.type==='PlanDock').props.title,'Run plan · turn not recorded','A real task plan remains inspectable even without native todos');
+ let plan=nodes.find(node=>node.type==='PlanDock');assert.equal(plan.props.title,'Plan · message not recorded');assert.equal(plan.props.items[0].status,'unconfirmed');
+ nodes=render(props(run,{savedTurns:[{conversationIndex:1,result:{todos:[]}}]}));assert.equal(nodes.find(node=>node.type==='PlanDock').props.title,'Plan · message not recorded','A real task plan remains inspectable even without native todos');
  run.data.agent_task_plan=undefined;
  nodes=render(props(run,{savedTurns:[{conversationIndex:1,result:{todos:[]}}],nativeTodos:[{content:'Unowned native todo',status:'completed'}]}));assert.equal(nodes.filter(node=>node.type==='PlanDock').length,0);
  nodes=render(props(run,{traceTurns:[[],[event(1,'agent_stage_start'),event(2,'agent_stage_complete')]]}));assert.equal(nodes.filter(node=>node.type==='PlanDock').length,0,'Tool and stage events cannot manufacture a plan');
@@ -202,7 +202,7 @@ test('ambiguous clarification does not attach unowned live checklist or manifest
  assert.equal(tree.some(node=>node.type==='PlanDock'),false);
  run.data.agent_task_plan={steps:[{key:'one',title:'Task-scoped step'}],progress:[{key:'one',status:'running'}]};
  tree=render(p);
- const plan=tree.find(node=>node.type==='PlanDock');assert.equal(plan.props.title,'Run plan · turn not recorded');assert.equal(plan.props.items[0].title,'Task-scoped step');
+ const plan=tree.find(node=>node.type==='PlanDock');assert.equal(plan.props.title,'Plan · message not recorded');assert.equal(plan.props.items[0].title,'Task-scoped step');
 });
 
 test('historical process retains its recorded failure after a later successful followup',()=>{

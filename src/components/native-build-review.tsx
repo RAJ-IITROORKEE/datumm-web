@@ -63,14 +63,18 @@ export function NativeBuildReview({value,pending,onAction,onCorrection,onRefresh
  {!furnitureOnly&&typeRows.length>0&&<dl className={styles.facts} aria-label="Selected construction types">{typeRows.map((type:any)=>{const dimensions=Object.entries(sizeLabels).filter(([key])=>Number.isFinite(type.sizes?.[key])).map(([key,label])=>`${label} ${Number(type.sizes[key].toFixed(3))} mm`).join(' · ');return <div key={type.id}><dt>{type.kind.replaceAll('_',' ')} · {type.count}</dt><dd>{type.name||type.kind}{dimensions&&<small>{dimensions}</small>}</dd></div>;})}</dl>}
  {!colorOnly&&value.svg&&preview&&<img className={nativeStyles.drawing} src={'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(value.svg)} alt={furnitureOnly?'Proposed furniture insertion points only; schematic SVG':'Exact proposed native paths and opening positions; schematic SVG'}/>}
  <div className={nativeStyles.approval}>
+  {preview&&<dl className={nativeStyles.identity} aria-label="Approval expiry">
+   <div><dt>Expires</dt><dd>{Number.isFinite(expiresAt)?<time dateTime={value.proposal.expiresAt}>{new Date(expiresAt).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'long'})}</time>:'Expiry unavailable — refresh required'}</dd></div>
+  </dl>}
+  <details className={styles.details}><summary>Exact details</summary>
   <dl className={nativeStyles.identity} aria-label="Exact native proposal identity">
    <div><dt>Document</dt><dd><code>{value.changes.documentId}</code></dd></div>
    <div><dt>Reviewed revision</dt><dd>{value.changes.expectedRevision}</dd></div>
    <div><dt>Proposal</dt><dd><code>{value.proposal.proposalId}</code></dd></div>
    <div><dt>Approval hash</dt><dd><code>{value.proposal.approvalHash}</code></dd></div>
-   {preview&&<div><dt>Expires</dt><dd>{Number.isFinite(expiresAt)?<time dateTime={value.proposal.expiresAt}>{new Date(expiresAt).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'long'})}</time>:'Expiry unavailable — refresh required'}</dd></div>}
    {value.operationId&&<div><dt>Original operation</dt><dd><code>{value.operationId}</code><small>Retries inspect this ID.</small></dd></div>}
   </dl>
+  </details>
   {preview&&<p className={styles.note}>Approval binds these exact operations, document and revision. Review placement, types, hosts and affected elements before approving.</p>}
   <div className={styles.actions}>
    {preview?<>

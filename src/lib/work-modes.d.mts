@@ -1,0 +1,12 @@
+export type WorkMode = 'design' | 'review';
+export type DrawerTab = 'activity' | 'files' | 'exports' | 'technical';
+export type WorkSection = 'design' | 'activity' | 'assets' | 'exports';
+export const WORK_MODES: readonly WorkMode[];
+export const DRAWER_TABS: readonly DrawerTab[];
+export function workStateFromSection(section: string): { mode: 'design'; drawer: Exclude<DrawerTab, 'technical'> | null };
+export function sectionForDrawerTab(tab: string): Exclude<WorkSection, 'design'> | null;
+export function reviewVersionOf(input?: { planVersion?: number; proposalHash?: string }): string;
+export function reviewOpened(taskId: string | null | undefined, version: string | number): boolean;
+export function markReviewOpened(taskId: string | null | undefined, version: string | number): void;
+export function subscribeReviewOpened(listener: () => void): () => void;
+export function resetReviewOpened(): void;

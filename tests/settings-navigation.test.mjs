@@ -10,7 +10,7 @@ import { filterSettingsSections, modelIdentity, settingsSections } from '../src/
 
 test('settings search retains actual section order and filters by all entered terms', () => {
   assert.deepEqual(filterSettingsSections('  '), settingsSections);
-  assert.deepEqual(filterSettingsSections(' PERSONAL ').map(item => item.id), ['account', 'general', 'appearance', 'permissions']);
+  assert.deepEqual(filterSettingsSections(' PERSONAL ').map(item => item.id), ['account', 'general', 'appearance', 'permissions', 'data']);
   assert.deepEqual(filterSettingsSections('workspace model').map(item => item.id), ['models']);
   assert.deepEqual(filterSettingsSections('sign in security').map(item => item.id), ['account']);
   assert.deepEqual(filterSettingsSections('model security'), []);
@@ -19,9 +19,30 @@ test('settings search retains actual section order and filters by all entered te
 
 test('settings groups contain only the supported individual sections', () => {
   assert.deepEqual(settingsSections.map(item => [item.id, item.group]), [
-    ['account', 'Personal'], ['general', 'Personal'], ['appearance', 'Personal'], ['permissions', 'Personal'],
+    ['account', 'Personal'], ['general', 'Personal'], ['appearance', 'Personal'], ['permissions', 'Personal'], ['data', 'Personal'],
     ['models', 'Workspace'], ['revit', 'Workspace'], ['usage', 'Workspace'], ['billing', 'Workspace'], ['capabilities', 'Workspace'],
   ]);
+});
+
+test('Data & privacy is a Personal section that search finds by retention, delete and privacy', () => {
+  assert.ok(settingsSections.some(item => item.id === 'data' && item.group === 'Personal'));
+  for (const term of ['retention', 'delete', 'privacy']) assert.ok(filterSettingsSections(term).some(item => item.id === 'data'), term);
+});
+
+test('the Data page states the verified retention facts and adds no actions', () => {
+  const exports = {};
+  runInNewContext(ts.transpileModule(readFileSync(new URL('../src/components/data-settings.tsx', import.meta.url), 'utf8'),
+    { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText,
+  { exports, require: name => name === 'react/jsx-runtime' ? jsxRuntime : { default: {} } });
+  const walk = node => (React.isValidElement(node) ? [node, ...React.Children.toArray(node.props.children).flatMap(walk)] : []);
+  const nodes = walk(exports.DataSettings());
+  const copy = nodes.flatMap(n => React.Children.toArray(n.props.children).filter(c => typeof c === 'string')).join(' ');
+  assert.deepEqual(nodes.filter(n => n.type === 'h2').map(n => n.props.children),
+    ['What we keep', 'How long', 'Share links', 'Deleting or exporting a chat', 'Revit']);
+  assert.match(copy, /180 days/);
+  assert.match(copy, /30 days/);
+  assert.match(copy, /never changes your Revit model without your exact approval/);
+  assert.equal(nodes.filter(n => n.type === 'button' || n.type === 'a').length, 0);
 });
 
 test('model identity preserves reported names and never guesses a provider', () => {

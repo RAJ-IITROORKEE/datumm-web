@@ -22,22 +22,11 @@
   container: drawing / inline-size;
 }
 
-.tabs { position: relative; z-index: 5; display: flex; flex: 0 0 auto; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
-.viewTabs { display: flex; min-width: 0; flex: 1 1 auto; align-items: center; gap: 2px; padding: 3px; border-radius: 10px; background: var(--tray); }
-.tab { display: flex; min-width: 0; min-height: 26px; align-items: center; justify-content: center; padding: 3px 9px; border: 0; border-radius: 7px; background: transparent; color: var(--text); font: inherit; text-align: left; }
-.tab:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
-.tab[aria-selected='true'] { background: var(--select); color: var(--ink); }
-.tab:disabled { color: var(--faint); cursor: not-allowed; }
-.thumbnail,.tabCopy small { display: none; }
-.tabCopy { min-width: 0; }
-.tabCopy strong { display: block; overflow: hidden; font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.tabs { position: relative; z-index: 5; display: flex; flex: 0 0 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; padding: 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
 
-.annotateButton,.displayButton,.addContextButton,.selectionProperties > summary { display: inline-flex; min-height: 28px; flex: 0 0 auto; align-items: center; justify-content: center; gap: 6px; padding: 4px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--text); font: inherit; cursor: pointer; }
-.annotateButton:hover:not(:disabled),.displayButton:hover,.addContextButton:hover,.selectionProperties > summary:hover { background: var(--hover); color: var(--ink); }
-.annotateButton.active { background: var(--select); color: var(--accent); }
-.annotateButton:disabled { color: var(--faint); cursor: not-allowed; }
-.displayControl { position: relative; flex: 0 0 auto; }
-.displayPanel { position: absolute; z-index: 12; top: calc(100% + 8px); right: 0; display: grid; width: min(280px, calc(100vw - 40px)); gap: 12px; padding: 16px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--tray); box-shadow: 0 8px 24px var(--shadow-ink); color: var(--text); }
+.addContextButton,.selectionProperties > summary { display: inline-flex; min-height: 28px; flex: 0 0 auto; align-items: center; justify-content: center; gap: 6px; padding: 4px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--text); font: inherit; cursor: pointer; }
+.addContextButton:hover,.selectionProperties > summary:hover { background: var(--hover); color: var(--ink); }
+.displayPanel { position: absolute; z-index: 12; right: 0; bottom: calc(100% + 8px); display: grid; width: min(280px, calc(100vw - 40px)); gap: 12px; padding: 16px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--tray); box-shadow: 0 8px 24px var(--shadow-ink); color: var(--text); }
 .displayPanel > strong { color: var(--ink); font-size: 13px; font-weight: 500; }
 .displayOptions { display: flex; gap: 2px; padding: 3px; border-radius: 8px; background: var(--panel); }
 .displayOptions button { min-width: 0; min-height: 28px; flex: 1; padding: 4px 6px; border: 0; border-radius: 6px; background: transparent; color: var(--text); font: inherit; font-size: 12px; line-height: 16px; }
@@ -75,28 +64,18 @@
 .selectedPin { stroke: var(--pd-accent); stroke-width: 120; }
 .commentPin:focus-visible { outline: 2px solid var(--pd-accent); outline-offset: 2px; }
 
-.viewCaption { position: absolute; z-index: 3; top: 12px; left: 58px; display: grid; gap: 2px; max-width: calc(100% - 76px); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); pointer-events: none; }
+.viewCaption { position: absolute; z-index: 3; top: 12px; left: 12px; display: grid; gap: 2px; max-width: calc(100% - 24px); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); pointer-events: none; }
 .viewCaption span,.viewCaption small { color: var(--text); font-size: 12px; line-height: 16px; }
 .viewCaption strong { overflow: hidden; color: var(--ink); font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
-.toolPalette { position: absolute; z-index: 5; top: 96px; left: 12px; display: grid; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); box-shadow: 0 2px 8px var(--shadow-ink); }
-.toolPalette button { position: relative; display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--text); }
-.toolPalette button:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
-.toolPalette button:disabled { color: var(--faint); cursor: not-allowed; }
-.toolPalette button.toolActive { background: var(--select); color: var(--accent); }
+/* The dock sits bottom centre; in 3D it rides above the small provenance chip at the bottom edge. */
+.dockRail { position: absolute; z-index: 6; right: 12px; bottom: 12px; left: 12px; display: flex; justify-content: center; pointer-events: none; }
+.dockRail[data-view='3d'] { bottom: 52px; }
+.dockAnchor { position: relative; display: flex; min-width: 0; max-width: 100%; pointer-events: auto; }
+.dockGroup { display: flex; flex: 0 0 auto; align-items: center; gap: 2px; }
+.zoomValue { min-width: 40px; flex: 0 0 auto; color: var(--text); font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; text-align: center; }
 .commentCount { position: absolute; top: -4px; right: -4px; display: grid; min-width: 16px; height: 16px; place-items: center; padding: 0 3px; border-radius: 8px; background: var(--primary); color: var(--primary-fg); font-size: 10px; line-height: 16px; }
-.canvasFoot { position: absolute; z-index: 4; right: 12px; bottom: 12px; left: 12px; display: flex; align-items: end; justify-content: flex-end; pointer-events: none; }
-.navigationHelp { position: absolute; z-index: 4; left: 12px; bottom: 12px; color: var(--text); font-size: 12px; line-height: 16px; }
-.navigationHelp summary { display: flex; min-height: 34px; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); cursor: pointer; list-style: none; }
-.navigationHelp summary::-webkit-details-marker { display: none; }
-.navigationHelp summary:hover { color: var(--ink); background: var(--hover); }
-.navigationHelp p { position: absolute; bottom: calc(100% + 8px); left: 0; width: min(300px, calc(100vw - 48px)); margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); overflow-wrap: anywhere; }
-.zoomControls { display: flex; align-items: center; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); box-shadow: 0 2px 8px var(--shadow-ink); pointer-events: auto; }
-.zoomControls button { display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--text); }
-.zoomControls button:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
-.zoomControls button:disabled { color: var(--faint); }
-.zoomControls output { min-width: 40px; color: var(--text); font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; text-align: center; }
 
-.commentPopover { position: absolute; z-index: 10; top: 12px; right: 12px; display: flex; width: min(420px, calc(100% - 70px)); max-height: calc(100% - 64px); flex-direction: column; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--drawing-comment-panel); box-shadow: 0 2px 8px var(--shadow-ink); color: var(--text); }
+.commentPopover { position: absolute; z-index: 10; top: 12px; right: 12px; display: flex; width: min(420px, calc(100% - 70px)); max-height: calc(100% - 88px); flex-direction: column; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--drawing-comment-panel); box-shadow: 0 2px 8px var(--shadow-ink); color: var(--text); }
 .commentTop { display: flex; align-items: center; gap: 8px; padding: 10px 10px 10px 16px; border-bottom: 1px solid var(--line); }
 .commentTop strong { min-width: 0; overflow: hidden; color: var(--ink); font-size: 13px; line-height: 20px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 .commentTotal { color: var(--text); font-size: 12px; line-height: 16px; }
@@ -164,24 +143,17 @@
 .planCanvas :is(button,summary,select,textarea,input):focus-visible,.viewport:focus-visible,.drawingFrame:focus-visible,.commentPopover:focus-visible { outline: 2px solid var(--ui-as-focus); outline-offset: 2px; }
 
 @container drawing (max-width: 650px) {
-  .viewTabs { flex: 1 1 100%; }
-  .tab { flex: 1; }
-  .annotateButton { margin-right: auto; }
   .addContextButton > span { max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .selectionProperties > summary > span { display: none; }
   .canvasStatus > span:last-child { display: none; }
 }
 @container drawing (max-width: 390px) {
   .tabs { gap: 2px; padding: 6px; }
-  .annotateButton { font-size: 0; gap: 0; }
-  .annotateButton svg { width: 16px; height: 16px; }
-  .displayButton { padding: 4px 6px; }
   .addContextButton > span { max-width: 95px; }
   .commentPopover,.persistenceAlert { right: 6px; width: calc(100% - 54px); }
-  .navigationHelp summary span { display: none; }
 }
 @media (pointer: coarse) {
-  .toolPalette button,.zoomControls button,.commentTop button,.commentActions button,.surfaceControls button,.navigationHelp summary { min-width: 44px; min-height: 44px; }
+  .commentTop button,.commentActions button,.surfaceControls button { min-width: 44px; min-height: 44px; }
   .commentBody textarea { font-size: 16px; }
 }
 :global(.studio-drawing-content) .viewport,:global(.studio-drawing-content) .drawingFrame { min-height: 0; }

@@ -228,7 +228,7 @@ export type ConversationPanelProps = Pick<
   | 'providerStatus'
   | 'contextView'
   | 'openStudioView'
-> & {workAreaActions: WorkAreaActions; displayActions?: DisplayActionsApi};
+> & {workAreaActions: WorkAreaActions; displayActions?: DisplayActionsApi; reviewGate?: {locked: boolean}};
 
 export function ConversationPanel(props: ConversationPanelProps) {
   const {workAreaActions, runId, scene} = props;
@@ -611,7 +611,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                                 ) : undefined
                               }
                             >
-                              {todos.length > 0 && <PlanDock items={todos} title={unboundPlan ? 'Run plan · turn not recorded' : last ? 'Plan' : 'Previous plan'} />}
+                              {todos.length > 0 && <PlanDock items={todos} title={unboundPlan ? 'Plan · message not recorded' : last ? 'Plan' : 'Previous plan'} />}
                             </TurnProcess>}
                             {last && currentResult?.note && <p className="conversation-outcome" role="status">{currentResult.note}</p>}
                             {recovery && <div className="conversation-outcome" role="status">
@@ -657,7 +657,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                         <Mark /> DATUMM
                       </div>
                     )}
-                    {message.role === 'assistant' && !executing && message.id === messages.findLast(row => row.role === 'assistant')?.id && todoItems.length > 0 && <PlanDock items={todoItems} title={traceTurns.length > 1 ? 'Run plan · turn not recorded' : 'Plan'} />}
+                    {message.role === 'assistant' && !executing && message.id === messages.findLast(row => row.role === 'assistant')?.id && todoItems.length > 0 && <PlanDock items={todoItems} title={traceTurns.length > 1 ? 'Plan · message not recorded' : 'Plan'} />}
                     <MessageContent>
                       {message.parts
                         .filter((p) => p.type === 'text')
@@ -687,7 +687,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                       <Mark /> DATUMM
                     </div>
                     <MessageContent>
-                      {todoItems.length > 0 && <PlanDock items={todoItems} title={traceTurns.length > 1 ? 'Run plan · turn not recorded' : 'Plan'} />}
+                      {todoItems.length > 0 && <PlanDock items={todoItems} title={traceTurns.length > 1 ? 'Plan · message not recorded' : 'Plan'} />}
                       <ConversationAnswer text={run.data.answer} completed={run.status === 'completed'} source={{ key: `${run.id}:answer:0`, taskId: run.id, conversationIndex: 0, state: run.status === 'completed' ? 'saved' : 'partial' }} />
                     </MessageContent>
                   </Message>
@@ -706,7 +706,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                     waiting={nativeQuestions.length > 0}
                     status={run?.status}
                   >
-                    {todoItems.length > 0 && <PlanDock items={todoItems} title={traceTurns.length > 1 ? 'Run plan · turn not recorded' : 'Plan'} />}
+                    {todoItems.length > 0 && <PlanDock items={todoItems} title={traceTurns.length > 1 ? 'Plan · message not recorded' : 'Plan'} />}
                   </TurnProcess>
                 </Message>
               )}
@@ -826,6 +826,8 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   operations={run.data.compiled?.changes?.operations}
                   canRefresh={Boolean((run.data.variable_selection||run.data.m09_revision)&&!committedBuild)}
                   onAction={async action=>{await act(action);}}
+                  reviewLocked={props.reviewGate?.locked}
+                  onReview={props.reviewGate?()=>workAreaActions.openReview():undefined}
                   onConfigureAccess={run.data.agent_execution&&!run.data.proposal?.deletions?.length?trigger=>{
                     dialogTrigger.current=trigger;setAccessBatches(plannedAccessBatches);setAccessMargin(0);setAccessReview(null);setAccessDialog(true);
                   }:undefined}
@@ -835,7 +837,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
               {run?.data.build_type_review && (
                 <div className="agent-evidence-card" aria-label="Native type size review">
                   <div className="section-caption">
-                    NATIVE SIZE REVIEW · REVISION {run.data.build_type_review.revision}
+                    SIZE REVIEW
                   </div>
                   <p>{run.data.build_type_review.resolution}</p>
                   <details open>
@@ -865,7 +867,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
               )}
               {run?.data.concept && !run.data.agent_design?.conceptImage && (
                 <div className="saved-plan-card">
-                  <div className="section-caption">AI CONCEPT · {run.data.concept.model.split('/')[1]}</div>
+                  <div className="section-caption">AI CONCEPT</div>
                   <img
                     style={{ width: '100%', borderRadius: 8 }}
                     src={`/api/service/runs/${run.id}/export/concept`}
@@ -1029,6 +1031,8 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   showPlacement={Boolean(planAccepted&&run.mode==='build'&&!run.data.compiled)}
                   onRequestChanges={()=>{if(props.preparePlanRevision())workAreaActions.focusReview('textarea[aria-label="Message DATUMM"]');}}
                   onDetails={()=>{workAreaActions.openProperties();}}
+                  reviewLocked={props.reviewGate?.locked}
+                  onReview={props.reviewGate?()=>workAreaActions.openReview():undefined}
                   onAccept={acceptDrawing}
                   onSwitchToBuild={switchDrawingToBuild}
                   onPrepare={()=>buildVariable()}
@@ -1105,8 +1109,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
               {run?.data.agent_inspection && (
                 <div className="agent-evidence-card">
                   <div className="section-caption">
-                    {outcome?.verified ? 'PRE-BUILD MODEL ANALYSIS' : 'MODEL ANALYSIS'} · REVISION{' '}
-                    {run.data.agent_inspection.revision}
+                    {outcome?.verified ? 'PRE-BUILD MODEL ANALYSIS' : 'MODEL ANALYSIS'}
                   </div>
                   <div className="plan-facts">
                     {Object.entries(run.data.agent_inspection.counts).map(([name, count]) => (
@@ -1136,7 +1139,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
               {outcome?.verified && run?.data.agent_postbuild_inventory && (
                 <div className="agent-evidence-card" aria-label="Model after build">
                   <div className="section-caption">
-                    MODEL AFTER BUILD · REVISION {run.data.agent_postbuild_inventory.revision}
+                    MODEL AFTER BUILD
                   </div>
                   <div className="plan-facts">
                     {Object.entries(run.data.agent_postbuild_inventory.counts).map(([name, count]) => (
@@ -1145,13 +1148,13 @@ export function ConversationPanel(props: ConversationPanelProps) {
                       </span>
                     ))}
                   </div>
-                  <small>Native inventory at this revision. Per-element checks and batch history appear below.</small>
+                  <small>Counts from your Revit project after the build. Per-element checks and batch history appear below.</small>
                 </div>
               )}
               {run?.data.plan && previewSvg && (
                 <div className="saved-plan-card">
                   <div className="section-caption">
-                    PLAN REVISION {run.data.plan.version}
+                    PLAN VERSION {run.data.plan.version}
                     <span>No model changes</span>
                   </div>
                   <div className="plan-facts">
@@ -1185,7 +1188,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   </details>
                   <p>Describe a change below, or build this version in your connected Revit project.</p>
                   <div className="plan-actions">
-                    <small>Concept plan · Exact proposal approval required before building.</small>
+                    <small>Concept plan · You approve the exact changes before anything is built.</small>
                     <Button disabled={busy || run.status !== 'completed'} onClick={() => void buildLegacy()}>
                       Build this plan
                     </Button>
@@ -1217,9 +1220,9 @@ export function ConversationPanel(props: ConversationPanelProps) {
                         : run?.data.variable_selection
                           ? `Selected concept version ${run.data.variable_selection.version} · `
                           : run?.data.selected_plan
-                            ? `Saved plan revision ${run.data.selected_plan.version} · `
+                            ? `Saved plan version ${run.data.selected_plan.version} · `
                             : 'Verified demonstration · '}
-                      {run?.data.recovery ? 'Verified by operation-status recovery' : 'Verified after build'} · No Revit
+                      {run?.data.recovery ? 'Verified after recovery' : 'Verified after build'} · No Revit
                       warnings
                     </small>
                     {verifiedBreakdown && <small>{verifiedBreakdown}</small>}
@@ -1550,9 +1553,9 @@ export function ConversationPanel(props: ConversationPanelProps) {
                 ? 'Offline check ready · AI and Revit unavailable'
                 : selectedDevice?.online && revitSessions === 1
                   ? 'Revit connected'
-                  : 'Models connected · Revit not connected'}
+                  : 'AI connected · Revit not connected'}
         </span>
-        <span>{mode === 'build' ? 'Revit changes require approval' : 'Hosted conversation context'}</span>
+        <span>{mode === 'build' ? 'Revit changes require approval' : 'Chat saved online'}</span>
       </footer>
     </main>
   );

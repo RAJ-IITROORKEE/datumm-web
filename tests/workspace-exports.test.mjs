@@ -89,7 +89,7 @@ test('empty Ask defaults to chat while artifacts reveal the work area without ov
 
 test('drawing, reports, outputs and properties explicitly reopen the controlled work area',()=>{
  let reveals=0;const calls=[];
- const actions=shellCallback('actions',{scope,matches:()=>true,showWorkArea:()=>reveals++,dismissOutput(){},setReportSelection(){},setReportRecord(){},reportTrigger:{current:null},nextReportOpenId:{current:0},activeOutput:null,report:null,
+ const actions=shellCallback('actions',{scope,matches:()=>true,showWorkArea:()=>reveals++,modes:{setMode(){}},dismissOutput(){},setReportSelection(){},setReportRecord(){},reportTrigger:{current:null},nextReportOpenId:{current:0},activeOutput:null,report:null,
   document:{activeElement:null},HTMLElement:class{},w:{run:{id:scope.taskId},runtimeConfig:null,selectWorkAreaSection:section=>calls.push(section),openProperties:()=>calls.push('properties'),closeProperties(){},setCanvasOpen(){}},
   outputWorkspace:{openOutput:id=>calls.push(id)},closeOutput(){},closeReport(){}});
  actions.openDrawing();actions.openSavedReport('report');actions.openAnswerOutput('answer');actions.openProperties();actions.returnToDrawing();

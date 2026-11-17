@@ -1,0 +1,4 @@
+.panel { display: grid; gap: 24px; min-width: 0; color: var(--text); font-size: 13px; line-height: 20px; }
+.panel h2 { margin: 0 0 8px; color: var(--ink); font-size: 14px; font-weight: 500; }
+.panel ul { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.panel li { padding-top: 10px; border-top: 1px solid var(--border); overflow-wrap: anywhere; }

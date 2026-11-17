@@ -1,9 +1,6 @@
 .host{display:flex;flex-direction:column;min-width:0;min-height:0;height:100%;background:var(--panel)}
-.header{display:flex;align-items:center;flex:none;min-width:0;padding-right:10px;border-bottom:1px solid var(--separator)}
-.header>.tabs{flex:1;min-width:0;border-bottom:0}
-.tabs{display:flex;align-items:center;gap:4px;min-height:44px;padding:5px 10px;border-bottom:1px solid var(--separator);flex:none;overflow-x:auto}
-.tabs button{flex:none;min-height:32px;padding:6px 10px;border:0;border-radius:6px;background:transparent;color:var(--muted-foreground);font:inherit;white-space:nowrap}
-.tabs button:hover,.tabs button[aria-selected=true]{background:var(--secondary);color:var(--foreground)}
+.header{display:flex;align-items:center;flex:none;min-width:0;min-height:44px;padding:0 10px;border-bottom:1px solid var(--separator)}
+.lead{flex:1;min-width:0;overflow-x:auto}
 .design{display:flex;position:relative;flex:1;min-width:0;min-height:0;overflow:hidden}
 .preview{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;overflow:hidden}
 .properties{position:absolute;inset:0 0 0 auto;width:min(340px,100%);display:flex;flex-direction:column;background:var(--tray);border-left:1px solid var(--separator);z-index:12}
@@ -13,7 +10,7 @@
 .properties>div,.scroll{overflow:auto;overscroll-behavior:contain;min-height:0;padding:16px}
 .scroll{flex:1}
 .host [hidden]{display:none!important}
-@media(max-width:500px){.tabs{padding:5px 6px}.tabs button{padding:6px 8px}.scroll{padding:12px}}
+@media(max-width:500px){.header{padding:0 6px}.scroll{padding:12px}}
 
 .assetPreview{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0;overflow:hidden}
 .back{align-self:flex-start;margin:8px 12px;padding:6px 8px;border:0;border-radius:6px;background:transparent;color:var(--muted-foreground);font:inherit;cursor:pointer}

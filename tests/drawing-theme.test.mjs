@@ -8,6 +8,7 @@ import * as React from 'react';
 import * as jsxRuntime from 'react/jsx-runtime';
 import ts from 'typescript';
 import * as geometry from '../src/lib/plan-geometry.mjs';
+import * as shortcuts from '../src/lib/canvas-shortcuts.mjs';
 
 const read = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
 const canvasCss = read('src/components/plan-canvas.module.css');
@@ -45,6 +46,9 @@ function harness(file = 'src/components/plan-canvas.tsx', extra = {}, globals = 
     './plan-canvas-annotations': {createCanvasAnnotationStore: () => ({load() {}, getSnapshot: () => annotationState}), EMPTY_ANNOTATIONS: annotationState.data, EMPTY_ANNOTATION_SNAPSHOT: annotationState},
     './plan-drawing': {PlanDrawing: 'PlanDrawing'},
     './ui/button': {Button: 'Button'},
+    '@/lib/canvas-shortcuts.mjs': shortcuts,
+    './canvas-dock': {CanvasDock: 'CanvasDock', DockButton: 'DockButton', DockSep: 'DockSep'},
+    './canvas-shortcut-help': {CanvasShortcutHelp: 'CanvasShortcutHelp'},
     ...extra,
   };
   const exports = {};
@@ -216,7 +220,7 @@ test('2D surface selection and keyboard, wheel, and touch navigation update the 
  const event=(id,x,y)=>({pointerId:id,pointerType:'touch',button:0,clientX:x,clientY:y,currentTarget:dom,preventDefault(){}});
  region2.props.onPointerDown(event(1,200,200));region2.props.onPointerDown(event(2,300,200));region2.props.onPointerMove(event(2,360,200));region2.props.onPointerUp(event(1,200,200));region2.props.onPointerUp(event(2,360,200));
  tree=h.render('PlanCanvas',{drawing});assert.ok(Number(elements(tree).find(node=>node.type==='output').props.children[0])>125);
- control(tree,'Fit drawing').props.onClick();tree=h.render('PlanCanvas',{drawing});assert.equal(elements(tree).find(node=>node.type==='output').props.children[0],100);
+ control(tree,'Fit drawing to view').props.onClick();tree=h.render('PlanCanvas',{drawing});assert.equal(elements(tree).find(node=>node.type==='output').props.children[0],100);
  let activeRegion=elements(tree).find(node=>node.props['aria-label']==='Plan drawing');
  activeRegion.props.onPointerDown(event(3,100,100));activeRegion.props.onPointerMove(event(3,140,130));activeRegion.props.onPointerUp(event(3,140,130));
  tree=h.render('PlanCanvas',{drawing});assert.match(elements(tree).find(node=>node.props.className==='drawingLayers').props.style.transform,/translate\(40px, 30px\)/);
@@ -260,20 +264,62 @@ test('hidden zero-size observations preserve the 2D pan; a real resize reclamps 
  const x=Number(transform().match(/translate\(([-.\d]+)px/)[1]);assert.ok(x>0&&x<200,`reclamped x ${x}`);
 });
 
-test('navigation help starts closed, describes the drawing, and owns Escape only while open', () => {
+test('navigation help is a hidden drawing description; the dock buttons keep 32px and 44px targets',()=>{
  const h=harness();const tree=h.render('PlanCanvas',{drawing});
- const help=elements(tree).find(node=>node.type==='details'&&node.props.className==='navigationHelp');
- const summary=elements(help).find(node=>node.type==='summary');const instructions=elements(help).find(node=>node.type==='p');
- assert.equal(help.props.open,undefined);assert.equal(summary.props['aria-label'],'Navigation help');
- assert.equal(control(tree,'Plan drawing').props['aria-describedby'],instructions.props.id);
- assert.match(React.Children.toArray(instructions.props.children).join(''),/Arrow keys pan/);
- let focused=false,prevented=false,stopped=false;
- const details={open:true,querySelector:()=>({focus(){focused=true;}})};
- help.props.onKeyDown({key:'Escape',currentTarget:details,defaultPrevented:false,preventDefault(){prevented=true;},stopPropagation(){stopped=true;}});
- assert.equal(details.open,false);assert.ok(focused&&prevented&&stopped);
- prevented=false;help.props.onKeyDown({key:'Escape',currentTarget:details,defaultPrevented:false,preventDefault(){prevented=true;},stopPropagation(){}});assert.equal(prevented,false);
- assert.match(canvasCss,/\.navigationHelp summary[^}]*min-height:\s*34px/);
- assert.match(canvasCss,/\.surfaceControls button,\.navigationHelp summary\s*\{[^}]*min-height:\s*44px/);
+ const description=elements(tree).find(node=>node.type==='p'&&node.props.id==='drawing-theme-test-navigation-help');
+ assert.equal(control(tree,'Plan drawing').props['aria-describedby'],description.props.id);
+ assert.match(React.Children.toArray(description.props.children).join(''),/arrow keys pan/);
+ assert.equal(elements(tree).some(node=>node.type==='details'&&node.props.className==='navigationHelp'),false);
+ const dockCss=read('src/components/canvas-dock.module.css');
+ assert.match(dockCss,/\.btn\s*\{[^}]*min-width:\s*32px;\s*height:\s*32px/);
+ assert.match(dockCss,/pointer:\s*coarse\)\s*\{\s*\.btn\s*\{[^}]*min-width:\s*44px;\s*height:\s*44px/);
+ assert.match(canvasCss,/\.surfaceControls button\s*\{[^}]*min-height:\s*44px/);
+});
+
+test('one dock holds every tool, view, zoom, display and help action once, with pressed state and shortcut tips',()=>{
+ const h=harness();let tree=h.render('PlanCanvas',{drawing});
+ const dock=elements(tree).find(node=>node.type==='CanvasDock');
+ const buttons=elements(dock).filter(node=>node.type==='DockButton');
+ const names=buttons.map(node=>node.props['aria-label']);
+ assert.deepEqual(names,['Select element','Pan drawing','Measure distance','Add comment','All comments, 0 open','2D floor plan','3D cutaway','Zoom out','Zoom in','Fit drawing to view','Display options','Keyboard shortcuts']);
+ assert.equal(new Set(names).size,names.length);
+ for(const node of buttons)assert.ok(node.props.tip,node.props['aria-label']+' has a tooltip');
+ assert.equal(control(tree,'Select element').props['aria-pressed'],true);
+ assert.equal(control(tree,'Pan drawing').props.tip,'Pan · H');
+ for(const old of ['Home view','Canvas tools'])assert.equal(control(tree,old),undefined,old+' is merged into the dock');
+ control(tree,'Pan drawing').props.onClick();tree=h.render('PlanCanvas',{drawing});
+ assert.equal(control(tree,'Pan drawing').props['aria-pressed'],true);assert.equal(control(tree,'Select element').props['aria-pressed'],false);
+ assert.match(elements(tree).find(node=>node.props.role==='status').props.children,/Pan tool/);
+ tab(tree,'3d').props.onClick();tree=h.render('PlanCanvas',{drawing});h.flush();
+ assert.equal(control(tree,'Measure distance'),undefined,'measure is 2D only');
+ control(tree,'Zoom in').props.onClick();tree=h.render('PlanCanvas',{drawing});h.flush();
+ const three=elements(tree).find(node=>node.type==='PlanThree');
+ assert.deepEqual({delta:three.props.zoomRequest.delta,id:three.props.zoomRequest.id},{delta:.25,id:1},'the dock drives 3D zoom');
+ control(tree,'Zoom out').props.onClick();tree=h.render('PlanCanvas',{drawing});
+ {const request=elements(tree).find(node=>node.type==='PlanThree').props.zoomRequest;assert.equal(request.id,2);assert.equal(request.delta,-.25);}
+ assert.ok(control(tree,'Fit drawing to view'));
+ assert.equal(elements(tree).find(node=>node.props.className==='dockRail').props['data-view'],'3d');
+});
+
+test('shortcuts act only inside the canvas region and never while typing or from the help dialog',()=>{
+ const h=harness();let tree=h.render('PlanCanvas',{drawing});
+ const panel=()=>elements(tree).find(node=>node.props.role==='tabpanel');
+ const inside={contains:()=>true},outside={contains:()=>false};
+ const key=(name,extra={})=>{let prevented=false;panel().props.onKeyDown({key:name,target:{tagName:'DIV'},currentTarget:inside,preventDefault(){prevented=true;},...extra});tree=h.render('PlanCanvas',{drawing});return prevented;};
+ assert.equal(key('h'),true);assert.equal(control(tree,'Pan drawing').props['aria-pressed'],true);
+ assert.equal(key('m'),true);assert.equal(control(tree,'Measure distance').props['aria-pressed'],true);
+ assert.equal(key('c'),true);assert.equal(control(tree,'Add comment').props['aria-pressed'],true);
+ assert.equal(key('v'),true);assert.equal(control(tree,'Select element').props['aria-pressed'],true);
+ assert.equal(key('h',{target:{tagName:'TEXTAREA'}}),false);assert.equal(control(tree,'Pan drawing').props['aria-pressed'],false);
+ assert.equal(key('h',{ctrlKey:true}),false);
+ assert.equal(key('h',{currentTarget:{contains:()=>false}}),false,'portalled dialog keys are ignored');
+ assert.equal(elements(tree).find(node=>node.type==='CanvasShortcutHelp').props.open,false);
+ assert.equal(key('?'),true);assert.equal(elements(tree).find(node=>node.type==='CanvasShortcutHelp').props.open,true);
+ elements(tree).find(node=>node.type==='CanvasShortcutHelp').props.onOpenChange(false);tree=h.render('PlanCanvas',{drawing});
+ assert.equal(elements(tree).find(node=>node.type==='CanvasShortcutHelp').props.open,false);
+ assert.equal(key('3'),true);assert.equal(tab(tree,'3d').props['aria-selected'],true);
+ assert.equal(key('2'),true);assert.equal(tab(tree,'2d').props['aria-selected'],true);
+ assert.equal(key('f'),true);
 });
 
 test('geometry properties keep room metrics visible and technical identity in a closed source disclosure',()=>{

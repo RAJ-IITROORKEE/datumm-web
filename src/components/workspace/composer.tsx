@@ -422,11 +422,10 @@ export function Composer(props: ComposerProps) {
           <div className="saved-source-strip" aria-label="Draft design references">
             {draftReferences.map((row, i) => (
               <span className="draft-reference-chip" key={i}>
-                {row.target.kind === 'source' ? 'Source region' : row.target.key} / {row.intent} /{' '}
-                {row.fingerprint.slice(0, 10)}
+                {row.target.kind === 'source' ? 'Source region' : row.target.key} · {row.intent}
                 {queueData?.design?.candidates.some((candidate) => candidate.fingerprint === row.fingerprint)
                   ? ''
-                  : ' / saved version, review against current geometry'}
+                  : ' · from an earlier version, check it against the current plan'}
               </span>
             ))}
           </div>

@@ -1,0 +1,6 @@
+.bar{display:flex;align-items:center;gap:8px;min-width:0}
+.details{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--muted-foreground);font:inherit;white-space:nowrap;cursor:pointer}
+.details:hover,.details[aria-expanded=true]{background:var(--secondary);color:var(--foreground)}
+.details:focus-visible{outline:2px solid var(--ui-as-focus);outline-offset:2px}
+@media(pointer:coarse){.details{min-height:44px;min-width:44px;justify-content:center}}
+@media(max-width:500px){.details span{display:none}}

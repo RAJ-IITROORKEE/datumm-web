@@ -51,7 +51,8 @@ export function ChecksReport({findings,loading=false,roomNames,activeKeys=[],onS
     <header className={styles.header} data-status={report.status}>
       <h3><StatusIcon size={16} aria-hidden/>{statusLabel(report.status)}</h3>
       {report.findings.length>0&&<p>{report.blocking} {report.blocking===1?'problem':'problems'} · {report.advisory} advice {report.advisory===1?'note':'notes'}</p>}
-      <small>Checked with {report.ruleSet}</small>
+      <small>Checked against the standard plan rules</small>
+      <details className={styles.more}><summary>Exact details</summary><p>Rule set: <code>{report.ruleSet}</code></p></details>
     </header>
     {report.findings.length===0?<p className={styles.empty}>No problems found by the plan checks.</p>
       :groups.map(group=><div key={group.category} className={styles.group}>

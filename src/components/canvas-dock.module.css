@@ -1,0 +1,10 @@
+.dock { display: flex; max-width: 100%; align-items: center; gap: 2px; padding: 3px; overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: 0 2px 8px var(--shadow-ink); color: var(--text); scrollbar-width: none; }
+.dock::-webkit-scrollbar { display: none; }
+.btn { position: relative; display: inline-grid; min-width: 32px; height: 32px; flex: 0 0 auto; place-items: center; padding: 0 6px; border: 0; border-radius: 8px; background: transparent; color: var(--text); font: 500 12px/16px var(--font-sans); cursor: pointer; }
+.btn:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
+.btn[aria-pressed='true'], .btn[aria-selected='true'] { background: var(--select); color: var(--accent); }
+.btn:disabled { color: var(--faint); cursor: not-allowed; }
+/* Inset ring: the scroll container would clip an outer outline. */
+.btn:focus-visible { outline: 2px solid var(--ui-as-focus); outline-offset: -2px; }
+.sep { flex: 0 0 auto; margin: 0 4px; }
+@media (pointer: coarse) { .btn { min-width: 44px; height: 44px; } }

@@ -21,10 +21,10 @@ function technicalDetails(row: AssetRow) {
 export function AssetsPanel({ rows, onActivate, onSelectAlternative, selectionBusy }: AssetsPanelProps) {
   const [query, setQuery] = useState('');
   const visible = rows.filter(row => `${row.title} ${row.provenance} ${row.metadata.mime ?? ''}`.toLocaleLowerCase().includes(query.toLocaleLowerCase().trim()));
-  return <section className={styles.panel} aria-label="Workspace assets">
-    <header className={styles.header}><h2>Assets</h2><p>Open a drawing, report or answer from this workspace.</p></header>
-    <label className={styles.search}><Search size={14} aria-hidden="true"/><span className="sr-only">Search workspace assets</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search assets"/></label>
-    <p className={styles.caption}>{visible.length} {visible.length === 1 ? 'asset' : 'assets'}</p>
+  return <section className={styles.panel} aria-label="Workspace files">
+    <header className={styles.header}><h2>Files</h2><p>Open a drawing, report or answer from this workspace.</p></header>
+    <label className={styles.search}><Search size={14} aria-hidden="true"/><span className="sr-only">Search workspace files</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search files"/></label>
+    <p className={styles.caption}>{visible.length} {visible.length === 1 ? 'file' : 'files'}</p>
     {visible.length ? <ul className={styles.list}>{visible.map(row => {
       const Icon = icons[row.kind], unavailable = row.destination.kind === 'unavailable';
       return <li key={row.id} className={styles.row}>
@@ -37,7 +37,7 @@ export function AssetsPanel({ rows, onActivate, onSelectAlternative, selectionBu
           <dl>{technicalDetails(row).map(([label, value]) => <div key={label}><dt>{label}</dt><dd><code>{value}</code></dd></div>)}</dl>
         </details>}
       </li>;
-    })}</ul> : <div className={styles.empty}><File size={24} aria-hidden="true"/><h3>{rows.length ? 'No matching assets' : 'No loaded assets yet'}</h3><p>{rows.length ? 'Try another name or file type.' : 'Saved task drawings, answer outputs and attachment references appear here when available.'}</p></div>}
+    })}</ul> : <div className={styles.empty}><File size={24} aria-hidden="true"/><h3>{rows.length ? 'No matching files' : 'No files yet'}</h3><p>{rows.length ? 'Try another name or file type.' : 'Saved task drawings, answer outputs and attachment references appear here when available.'}</p></div>}
     <p className={styles.note}>Only loaded workspace data is listed. Availability is shown for each item.</p>
   </section>;
 }

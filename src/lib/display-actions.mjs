@@ -5,7 +5,7 @@ export const DISPLAY_ACTIONS = [
 ];
 const SECTIONS = ['design', 'activity', 'assets', 'exports'];
 const SECTION_NAMES = {
-  design: 'Design', activity: 'Activity', assets: 'Assets', exports: 'Exports',
+  design: 'Design', activity: 'Activity', assets: 'Files', exports: 'Exports',
 };
 const MAX_ACTIONS = 2;
 export const FOLLOWUP_MAX = 160;

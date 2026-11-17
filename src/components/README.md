@@ -8,7 +8,7 @@ All UI. `workspace.tsx` composes the studio from `workspace/`; state lives in on
 | --- | --- |
 | `ui/` | shadcn-style primitives: Button, Card, Dialog, DropdownMenu, Input, Sheet, Switch, Tooltip and others (Radix, `cva`, `tailwind-merge`) |
 | `vendor/affectui/` | 22 pinned affectUI MIT sources with `PROVENANCE.md` and digests. Change only through the recorded patch process |
-| `workspace/` | Sidebar, conversation, composer, turn process, plan dock, and the right work area (`inspector.tsx` with Design, Activity, Assets, Exports) |
+| `workspace/` | Sidebar, conversation, composer, turn process, plan dock, and the right work area (`inspector.tsx` hosts Design and the full-width Review screen; `mode-switch.tsx` is the Design | Review switch with the Details button, `review-screen.tsx` and `review-decision.tsx` are Review, and `details-drawer.tsx` is the 420px right sheet with Activity, Files, Exports and Technical) |
 | `ai-elements/` | Conversation, message and tool building blocks for the chat |
 | `review/` | Plan review card and exact-proposal approval panels |
 | `onboarding/` | Account onboarding gate and profile editor |
@@ -17,7 +17,7 @@ All UI. `workspace.tsx` composes the studio from `workspace/`; state lives in on
 | `admin/` | `/admin` shell, forms and data sections |
 | `dev/` | Development-only fixtures and replay previews |
 
-Top-level files are larger features: plan viewer (`plan-canvas.tsx`, `plan-drawing.tsx`, `plan-three.tsx`), plan checks (`checks-report.tsx`; its tabs live in `workspace/design-side-panel.tsx`, and `review/plan-review-card.tsx` shows each alternative's status), questions (`agent-questions.tsx`, `tool-approval-card.tsx`, `opencode-questions.tsx`), Permissions settings (`permissions-settings.tsx`), activity (`agent-activity.tsx`), build review (`native-build-review.tsx`, `build-comparison.tsx`), settings (`desktop-settings.tsx`, `theme-settings.tsx`) the model picker, and the composer context meter (`workspace/context-meter.tsx`). The sidebar is split into `workspace/sidebar.tsx`, `sidebar-chats.tsx`, `sidebar-account.tsx` and `sidebar-rail.tsx`; the last two chat and rail files export plain functions that return elements so the sidebar stays one element tree.
+Top-level files are larger features: plan viewer (`plan-canvas.tsx`, `plan-drawing.tsx`, `plan-three.tsx`), the canvas dock and its `?` shortcuts dialog (`canvas-dock.tsx`, `canvas-shortcut-help.tsx`; keys come from `src/lib/canvas-shortcuts.mjs` and act only while the drawing area has focus), plan checks (`checks-report.tsx`; its tabs live in `workspace/design-side-panel.tsx`, and `review/plan-review-card.tsx` shows each alternative's status), questions (`agent-questions.tsx`, `tool-approval-card.tsx`, `opencode-questions.tsx`), Permissions settings (`permissions-settings.tsx`), the read-only Data & privacy settings page (`data-settings.tsx`: retention, share links, deleting, Revit approval), activity (`agent-activity.tsx`), build review (`native-build-review.tsx`, `build-comparison.tsx`), settings (`desktop-settings.tsx`, `theme-settings.tsx`) the model picker, and the composer context meter (`workspace/context-meter.tsx`). The sidebar is split into `workspace/sidebar.tsx`, `sidebar-chats.tsx`, `sidebar-account.tsx` and `sidebar-rail.tsx`; the last two chat and rail files export plain functions that return elements so the sidebar stays one element tree.
 
 ## Rules
 

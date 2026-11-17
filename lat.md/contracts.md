@@ -219,3 +219,9 @@ A hosted Ask or Plan turn keeps accepting prompts: up to three wait in the brows
 Attachment chips, paste and drop exist but render only when the backend reports `attachments` on and a send path carries them, which none does yet; unknown is off, so every current backend keeps the disabled "Requires DATUMM Desktop" menu item.
 
 `src/lib/composer-attachments.mjs` accepts JPEG, PNG and WebP only (four per message, 1.5 MB after the browser resizes to 1,568 px) and `attachment-chips.tsx` holds the reading, ready and error states. Nothing is sent to the service: the hosted command schema has no attachment field yet.
+
+## Work modes and the review gate
+
+The work area has two modes, Design and Review, plus a Details drawer; Accept and Approve stay off until Review was opened for that task version, in memory only.
+
+`src/lib/work-modes.mjs` maps the stored `workAreaSection` (still `design`, `activity`, `assets`, `exports`, so the backend frontend context and display actions are unchanged) to mode Design with the drawer closed or open on Activity, Files or Exports; Technical lives only in the drawer. `reviewVersionOf` keys a version by plan version plus the exact proposal hash, so a new plan version or a refreshed proposal locks again. `reviewOpened` and `markReviewOpened` hold that set in memory: a reload locks everything, and it is never stored or sent. The Review screen (`review-screen.tsx`) marks the version opened and renders the same plan card and exact Revit approval panel as the chat with the same props; both only gain a `reviewLocked` switch that disables Accept plan or "Approve exact proposal and build", never changing what they send.

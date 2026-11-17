@@ -53,8 +53,8 @@ test('plan acceptance is separate from native preparation and stale or pending d
   const props={alternatives:2,planVersion:2,planId:'plan-a',fingerprint:'fingerprint-a',accepted:false,mode:'plan',busy:false,drawingLoading:false,drawingCurrent:true,buildReady:false,showPlacement:false,onRequestChanges(){},onDetails(){},onAccept:()=>{calls.push('accept');return new Promise(resolve=>{finish=resolve;});},onSwitchToBuild:async()=>{calls.push('mode');},onPrepare:async()=>{calls.push('prepare');},onPlacement(){}};
   const initial=h.render(props), identity=initial.find(el=>el.type==='details');
   assert.ok(identity);assert.notEqual(identity.props.open,true);
-  assert.match(words(elements(identity)),/Technical plan identity/);assert.match(words(elements(identity)),/plan-a/);assert.match(words(elements(identity)),/fingerprint-a/);
-  assert.match(words(initial),/Review required.*v2/);assert.match(words(initial),/Does not change Revit/);
+  assert.match(words(elements(identity)),/Exact details/);assert.match(words(elements(identity)),/plan-a/);assert.match(words(elements(identity)),/fingerprint-a/);
+  assert.match(words(initial),/Review required.*Version 2/);assert.match(words(initial),/Does not change Revit/);
   const accept=button(h.render(props),'Accept plan');accept.props.onClick();accept.props.onClick();assert.deepEqual(calls,['accept']);finish();await settle();
   for(const changes of [{drawingCurrent:false},{drawingLoading:true},{drawingError:'Unavailable'},{busy:true}]){const unavailable={...props,accepted:true,mode:'build',buildReady:true,...changes};const prepare=button(h.render(unavailable),'Prepare accepted plan');assert.equal(prepare.props.disabled,true);prepare.props.onClick();await settle();}
   assert.deepEqual(calls,['accept']);
@@ -87,4 +87,33 @@ test('brief revision is a separate guarded draft entry and uncertain selection c
  }
  tree=h.render({...props,selectionUncertain:true});const accept=button(tree,'Accept plan');assert.equal(accept.props.disabled,true);await accept.props.onClick();
  assert.deepEqual(calls,['draft']);
+});
+
+// @lat: [[contracts#Work modes and the review gate]]
+test('Accept plan and exact approval stay off while Review is unopened, then behave as before; Review link opens the mode',async()=>{
+  const calls=[];
+  const planProps={alternatives:1,planVersion:2,planId:'plan-a',fingerprint:'fingerprint-a',accepted:false,mode:'plan',busy:false,drawingLoading:false,drawingCurrent:true,buildReady:false,showPlacement:false,onRequestChanges(){},onDetails(){},onAccept:async()=>{calls.push('accept');},onSwitchToBuild:async()=>{},onPrepare:async()=>{},onPlacement(){},onReview:()=>calls.push('review')};
+  const plan=harness('plan-review-card.tsx','PlanReviewCard');
+  let tree=plan.render({...planProps,reviewLocked:true}),accept=button(tree,'Accept plan');
+  assert.equal(accept.props.disabled,true);accept.props.onClick();await settle();assert.deepEqual(calls,[]);
+  assert.match(words(tree),/Open Review/);button(tree,'Review').props.onClick();assert.deepEqual(calls,['review']);
+  tree=plan.render({...planProps,reviewLocked:false});accept=button(tree,'Accept plan');assert.equal(accept.props.disabled,false);accept.props.onClick();await settle();assert.deepEqual(calls,['review','accept']);
+  const approval=harness('proposal-approval.tsx','ProposalApprovalPanel'),sent=[];
+  const props={proposal,pending:false,canRefresh:true,onAction:async action=>{sent.push(action);}};
+  const locked=button(approval.render({...props,reviewLocked:true}),'Approve exact proposal and build');
+  assert.equal(locked.props.disabled,true);locked.props.onClick();await settle();assert.deepEqual(sent,[]);
+  const open=button(approval.render({...props,reviewLocked:false}),'Approve exact proposal and build');
+  assert.equal(open.props.disabled,false);open.props.onClick();await settle();assert.deepEqual(sent,['resume']);
+  assert.equal(approval.render(props).some(el=>el.type==='button'&&words([el])==='Review'),false,'without onReview no extra control appears');
+});
+
+test('the approval card keeps document, revision, proposal and hash inside a collapsed Exact details disclosure',()=>{
+  const tree=harness('proposal-approval.tsx','ProposalApprovalPanel').render({proposal,pending:false,canRefresh:true,onAction:async()=>{}});
+  const disclosure=tree.find(el=>el.type==='details');
+  assert.notEqual(disclosure.props.open,true);
+  const inside=words(elements(disclosure)),outside=words(elements(tree[0].props.children.find(child=>child?.type==='dl')));
+  for(const field of ['Exact details','document-a','12','proposal-a','exact-hash-a','Document','Model revision','Approval hash'])assert.ok(inside.includes(field),field);
+  assert.ok(outside.includes('Expires'));
+  for(const field of ['document-a','proposal-a','exact-hash-a','Model revision'])assert.ok(!outside.includes(field),field+' is not shown by default');
+  assert.match(inside,/bound to these exact operations, document and revision/);
 });
