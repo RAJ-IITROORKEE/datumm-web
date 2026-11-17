@@ -12,3 +12,4 @@ export function wallLength(wall: WallShape): number;
 export function wallPoint(wall: WallShape, distance: number): [number, number];
 export function wallPath(wall: WallShape, depth: number, from?: number, to?: number): string;
 export function planSheet(graph: { site: { widthMm: number; depthMm: number } }): { unit: number; pad: number; bounds: [number, number, number, number] };
+export function arcOf(wall: WallShape): { ox: number; oy: number; r: number; a0: number; sweep: number } | null;

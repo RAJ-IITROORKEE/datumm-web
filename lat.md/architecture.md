@@ -88,6 +88,10 @@ The 3D view reads its colours from the theme tokens and repaints when the theme 
 
 The level cut rebuilds each wall at the cut height with [[src/components/plan-three.tsx#wallGeometry]], so the cut face is a real cap with real edges.
 
+Rooms with a `boundary` polygon render as that polygon, and walls with `curve.kind=='arc'` render as a bent solid with real thickness and height, built by `curvedWallPositions` in `src/lib/plan-3d-geometry.mjs`; openings on an arc wall sit along the arc (`placeOpening`). Rectangle-only graphs keep the box and flat-extrusion shapes.
+
+A click reports the nearest room, wall or opening through `onSelectElement`; `onSelect` still reports rooms only, and comment placement stays room-based. Each highlighted room, wall or opening also gets an accent outline drawn over its occluders. Selection, highlight and display changes only repaint; the scene is rebuilt when the graph fingerprint changes, and the old one is freed with [[src/components/plan-three.tsx#disposePlanScene]].
+
 ## Admin console
 
 `/admin` is a dark-only console for runtime agent configuration, gated on the server by the signed-in primary email and enforced again by the backend by Clerk subject.

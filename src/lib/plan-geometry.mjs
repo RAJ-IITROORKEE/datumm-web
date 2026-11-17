@@ -78,7 +78,7 @@ export function dimensionChain(rooms, axis) {
 /** "3,450 mm · 3.45 m" */
 export const formatLength = (mm) => `${Math.round(mm).toLocaleString('en-US')} mm · ${(mm / 1000).toFixed(2)} m`;
 
-const arcOf = (wall) => {
+export const arcOf = (wall) => {
   const mid = wall.curve?.kind === 'arc' ? wall.curve.mid : null;
   if (!mid) return null;
   const [ax, ay] = wall.start, [bx, by] = mid, [cx, cy] = wall.end;
