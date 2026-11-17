@@ -63,5 +63,5 @@ requires 0 deletions on today's data.
 | W0.5 | Web. The trace is gated on the host `runTrace` capability, which is off on the web, and the `desktopAvailable` prop is removed. 2 tests |
 | Gates (main agent, 17 Nov) | Backend: pytest 789 passed + 26 subtests; `lat check` passed. Web: typecheck, 883/883 tests, build, `lat check` all passed |
 | Browser (built-in, localhost) | `/dev/ux` Activity fixture renders, Task diagnostics is present, no "Local pipeline trace" section; workspace home loads |
-| Live web | see the commit after this one |
+| Live web | `3f13da4` deployed by Vercel (success); runtime smoke passed. In the built-in browser on datumm-web.vercel.app, the Dental clinic chat's Activity tab shows the task activity and Task diagnostics, no "Local pipeline trace", and no console errors |
 | W0.1 and the backend release | waiting for the user's AWS sign-in; P-SEC and W0.3/W0.4 ship together |
