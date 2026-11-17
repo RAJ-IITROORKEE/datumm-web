@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **proposed** (17 Nov) |
+| Status | **approved 17 Nov, build in progress** |
 | Depends on | UI1 (done, web live); [parity plan](panda-parity-plan-2026-11-17.md) rows 4, 5, 6, 8; H5 = A ([harness decision](harness-decision-2026-11-17.md)) |
-| Approved by / date | |
+| Approved by / date | User's standing instruction, 17 Nov ("proceed to next automatically ... as per the plan"): every decision UI2-a to UI2-f takes the recommended option A |
 | Base commits | Web `main` after UI1. Backend local `main` `95b2361`; live is `70ce912` per [HANDOFF](HANDOFF.md) line 77 (the G1 row of the same file says `188ebc0`; see open question 1). Panda `panda-agent-ui/Panda-agent` on `claude/agent-ui-migrations`, checkout now at `c30468e` (UI1 cited `1bedf1c`) |
 
 Facts marked **observed** were read in source on 17 Nov with `path:line`; *inferred* ones were
