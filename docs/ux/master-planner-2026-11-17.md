@@ -82,10 +82,28 @@ P-SEC is built, reviewed and pushed (`8bd8b8f`) but is **not live yet** (blocker
 | EV1 | Revision package: before/after, checks, dispositions, change log; vector PDF | web + backend | M | V2, AG1 |
 | CV3–CV5 | Desktop adopts the shared shell: sync script, desktop host adapter, drift gate | **desktop repo** | M–L | UX1 |
 
+### Earlier tracks still open (Panda parity, harness, AG-UI, admin)
+
+From the [Panda parity plan](panda-parity-plan-2026-11-17.md), the
+[AG-UI migration plan](../agui/AGUI_MIGRATION_PLAN.md) and [PLAN.md](../../PLAN.md):
+
+| Track | Done and live | Still open |
+| --- | --- | --- |
+| Harness | A4a tools, modes, approvals and risk classes; A4b skills; T1 Tavily code; P-SEC (not live yet) | **H6** loop rules: step limits (30/80), budget gate at 85%, compaction at 75% keeping 3 turns, document tools (PDF/DOCX/XLSX/MD). **A4c** MCP registry (waits on 2 decisions). Loop detection and the check-and-fix loop move into AG1 |
+| UI/UX (Panda layout, affectUI) | UI1 sidebar, model picker, context meter, Ctrl K; UI2 queue, Send now, follow-up ghost text, retry on another model, attachments (flagged) | **UI3** settings parity (Usage, Data; Permissions shipped with A4a). **W1** right work area, now reshaped as UX1/CV2 |
+| AG-UI | Chat on AG-UI (N1 to N4): completion proof, capability awareness, task/tool lifecycle, evidence-backed compositions | **N5** token streaming and measured performance. Right work area on AG-UI state (inside UX1/CV2). Generic multi-interrupt resume, parent/child sub-agent lifecycle, replay and fault coverage. Settings and admin onto AG-UI, each with its own plan |
+| Admin panel (Panda admin) | A1 traces and feedback storage; A2 versioned config and audit; A3 models; A4a tools; A4b skills | **A5** feedback page (reasons, thumbs-down list, copy as eval case). **U2** per-user daily limits, "N left today", model visibility. **A4c** MCP page. **R1** knowledge / RAG control room (NBC). Run-tree traces (TR1) |
+
+Proposed placement:
+- Add **H6** to Wave 2 beside AG1; they share the loop code, so one backend implementer does both in sequence.
+- Add **A5** and **U2** to Wave 4 as the web/admin pair while M1 runs on the backend.
+- **UI3** goes with UX1/CV2 in Wave 3.
+- **N5** and the deeper AG-UI items go in Wave 5 with TR1.
+- **A4c** starts whenever its decisions are made.
+
 ### Parked (not planned until you ask)
 
-A4c MCP registry (waits on decisions A4c-a and A4c-c), H6, U2, A5, UI3, N5 streaming, R1 RAG, Crucible render
-worker, DWG output, bringing curved and multi-storey planning to hosted (T-g: after V1/M1), CV6 shared package.
+R1 RAG control room, SolidCraft (set aside by the user on 17 Nov), Crucible render worker, DWG output, bringing curved and multi-storey planning to hosted (T-g: after V1/M1), CV6 shared package.
 
 ## 4. Blockers
 
