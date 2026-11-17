@@ -30,7 +30,7 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | P0 | Panda-agent parity plan: every Panda feature, step by step, live after each | Approved 17 Nov; H5 = A (port onto the LangGraph backend) | [Parity plan](docs/ux/panda-parity-plan-2026-11-17.md) |
 | UI2 | Composer extras: prompt queue, Send now, Tab to accept follow-up, retry on another model, attachment UI (flagged) | Done 17 Nov; **live** | [Packet](docs/ux/ui2-composer-extras.md) |
 | T1 | Tavily web search with DATUMM's own key | Approved 17 Nov; building. Live use needs the user's key in the runtime secret and a template go-ahead | [Packet](docs/ux/t1-tavily-web-search.md) |
-| A4a | Admin: tools and skills registry | Proposed (after H0) | Decision §5 |
+| A4a | Tool catalog, per-mode switches, approval modes and risk classes | Approved 17 Nov (recommended); building | [Packet](docs/ux/a4a-tools-and-approvals.md) |
 | A4b | Admin: MCP registry (official Python MCP SDK) | Proposed (after H0) | Decision §5 |
 | N5 | Provider streaming and measured performance | Proposed | Roadmap |
 | W1 | Right work area on AG-UI state | Proposed; separate go or no-go | Roadmap |
