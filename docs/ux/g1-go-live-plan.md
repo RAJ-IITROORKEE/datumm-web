@@ -367,3 +367,12 @@ Cannot be rolled back: admin config revisions and restores (history and audit ar
 - Live (built-in browser, signed in): `/admin/models` shows 6 enabled, 7-day usage $0.6039 (GPT-6 Luna 519 calls $0.428, GPT-6 Sol 7 calls $0.066), catalog prices, "Legacy · not tested". The composer picker shows real prices, context sizes and "Reads images" grouped by provider. Projects show in the sidebar after the projects fix (web `ab48be5`, smoke 18 / 18).
 - Rollback: same update with `ImageUri` = `sha256:bb926402…` (70ce912); note the A3 migration marker stays (section 5).
 
+## 13. Third backend release: T1 code + A4a (17 Nov, standing instruction)
+
+- Image from backend `1e67551` (build `3c35111c`): packaged checks and smoke passed; tag `g1-backend-a4a-1e675517741b-53`, digest `sha256:b0c068744853325895715539dd91720e8d227a12ac4f84337787a1d92a7a2cbf`.
+- Rehearsal (build `830beab8`, run on its own: the builder allows one concurrent build) on a copy of `20261117T052219Z` (36,132 documents): healthy in 3,377 ms, 6 models served, A3 migration unchanged, no traceback; staged copy deleted.
+- Quiet (no active run); backup `20261117T071303Z.archive.gz` 31.5 MiB; change set `g1-backend-a4a-1e67551` touched only `Task` and `Service`; executed 07:13:55 UTC; `/health` `95b2361` → down → `1e67551` at 07:15:27 (about one minute); rollout `COMPLETED`; anonymous 401 on `/v1/config`, `/v1/me/permissions`, `/v1/admin/config`; no traceback.
+- Live (built-in browser, signed in): `/admin/tools` renders the catalog; `/v1/config` reports `adminTools`, `approvalModes`, `adminModels`, `modelInfo` on and `tavilySearch` off (no key yet); `me/permissions` returns `ask`.
+- Tavily needs `TAVILY_API_KEY` in the runtime secret plus the template change (T1 packet).
+- Rollback: `ImageUri` = `sha256:70f618ff…` (`95b2361`).
+
