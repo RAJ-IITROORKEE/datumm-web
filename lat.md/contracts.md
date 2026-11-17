@@ -100,13 +100,25 @@ Dirty state compares configs independent of key order, and domain chips are norm
 
 The service proxy opens only the named admin routes, mapped to backend v1 admin paths, and rejects every other admin path.
 
-The open routes are config, config history (list, one numeric revision, restore), audit, overview, traces, model registry and knowledge sources; traces, history and model usage keep their query strings. The model routes are `admin/models`, `models/test`, `models/usage` and `models/{provider}/{model}/tests`: a model id contains one `/`, so the tests path has exactly two id segments, and `.` or `..` segments, a third segment or `models/x/y/z` are refused. Paths such as `admin/traces/x`, `admin/config/history/x` and `admin/config/other` are refused.
+The open routes are config, config history (list, one numeric revision, restore), audit, overview, traces, model registry and knowledge sources; traces, history and model usage keep their query strings. The model routes are `admin/models`, `models/test`, `models/usage` and `models/{provider}/{model}/tests`: a model id contains one `/`, so the tests path has exactly two id segments, and `.` or `..` segments, a third segment or `models/x/y/z` are refused. The one non-admin addition is `me/permissions` (GET and PUT) for the approval mode; other `me/...` paths are refused. Paths such as `admin/traces/x`, `admin/config/history/x` and `admin/config/other` are refused.
 
 ## Capability parsing
 
 The backend config's `capabilities` object is read as a tri-state per feature; anything missing or malformed is unknown, never off, so older backends keep working.
 
 Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. `adminTraces`, `feedback`, `adminHistory`, `adminModels` and `modelInfo` are the exception: unknown is off, because no deployed backend serves them yet. See `src/lib/capabilities.mjs`.
+
+## Admin tools rows
+
+The Tools page only narrows each tool inside the server's `allowedModes`; required and Revit-write rows never switch.
+
+An untouched config gets no `tools` key. `adminTools` is strict: unknown is off, so `tools` is never sent to an older backend. Server group labels (`Core`, `Research`, `Revit`, `Design`) match the group ids without case. See `src/lib/admin-tools.mjs`.
+
+## Approval modes
+
+The approval mode fails closed to `ask`; a `tool_approval` question is a card only when `approvalModes` is on.
+
+No mode or card answer authorizes a Revit change; Full auto copy says so. The run's public `agent_approval_expired` flag keeps a card expired whatever the client clock says. The countdown is not a live region; a status line speaks only at 5 min, 1 min and expiry. Changing the mode never disables the radio group (focus stays); a change made while a save is in flight is ignored. See `src/lib/permissions.mjs`.
 
 ## Durable completion proof
 

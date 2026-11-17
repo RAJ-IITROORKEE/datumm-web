@@ -83,7 +83,7 @@ export function ResultState({ result, onRetry }: { result: Result<unknown> | nul
   );
 }
 
-export type ConfigEnvelope = { config: AdminConfig; effective: Record<string, unknown>; revision: number | string; updatedAt?: string; updatedBy?: string };
+export type ConfigEnvelope = { config: AdminConfig; effective: Record<string, unknown>; revision: number | string; updatedAt?: string; updatedBy?: string; toolCatalog?: unknown };
 
 /** One editable copy of the global config: dirty state, validation and revision-checked save. */
 export function useAdminConfig(enabled = true) {

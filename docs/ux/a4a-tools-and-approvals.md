@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **approved 17 Nov (recommended options), build in progress** |
+| Status | **done 17 Nov; web live with this commit; backend ships with the next backend release** |
 | Depends on | T1 built (backend `e89d52c`, web `649b29f`); A2 versioned config; [parity plan](panda-parity-plan-2026-11-17.md) rows 10–12, step 5; H5 = A |
 | Approved by / date | User's standing instruction, 17 Nov ("proceed to next automatically ... as per the plan"): A4a-a to A4a-g take the recommended option |
 | Base commits | Backend local `main` `e89d52c` (read 17 Nov). Web `main` as read 17 Nov. Panda `panda-agent-ui/Panda-agent` working tree as read 17 Nov |
@@ -263,3 +263,16 @@ Left behind: `owner_prefs` documents, `tools` in config and history, card fields
 | Not run or not verified | |
 | Limits found | |
 | Next step | |
+
+## Result (17 Nov)
+
+Built on `main` (Sonnet implementers per repo, contract reconciled by the orchestrator, independent Opus review, Opus fixes). Backend commit in `datumm-orchestrator` (local; ships with the next backend release together with T1). Web: this commit.
+
+| Item | Outcome |
+| --- | --- |
+| Contract | The orchestrator compared the two sides before review: the web answered cards by position (`option_1`) while the backend accepts only `approval` / `allow_once` / `deny` (every click would have 409'd), and the web expected `risk` the backend did not send. Both aligned |
+| Review | No HIGH: no path approves, applies or skips approval of a native write (`workflow.py` and `main.resume` untouched; Full auto only skips `external` cards; Build only allows read tools; card replies need `needs_input`). 2 MEDIUM fixed (server expiry flag now public and cleared on the next card; Permissions keeps keyboard focus). 7 LOW fixed (group casing, expiry re-check before the claim with one event, `tool_disabled` observation instead of a misleading question, declined tool not re-offered until the user says more, unknown names gated as `write`, grant rows and arguments kept out of public data, countdown announced only at 5 min / 1 min / expiry) |
+| Gates (orchestrator) | Backend 657 passed + 26 subtests, `lat check` passed. Web typecheck clean, `npm test` 855 / 855, `lat check` passed, `npm run build` exit 0; no colour, font or token change |
+| Browser (built-in, signed-in localhost on the A4a backend) | Admin Tools: grouped rows, Core "Always on", Build switches disabled beyond the ceiling, Revit model changes locked with "Always asks … in every approval mode"; turning Web search off for Plan saved revision 1 and Config history shows `tools.web_search.modes: null -> ["ask"]`. Settings → Permissions: three choices, Full auto says Revit changes still need exact approval, "Always asks" list; Down-arrow switched to Safe, the server stored `safe`, focus stayed on the radio. Approval card fixture: "Outside service" badge, expiry, "This does not authorize Revit changes", Don't allow / Allow once. Orchestrator fixes during the check: a stale "Loading…" under the loaded choices, and Ask's text now says it also asks before tools that change something |
+| Not run | A real card flow with a model (no provider key locally), 390 px, light mode, screen reader |
+

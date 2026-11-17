@@ -12,7 +12,16 @@ export function normalizeDomain(value) {
   return String(value ?? '').trim().toLowerCase().replace(/^[a-z]+:\/\//, '').split(/[/?#]/)[0];
 }
 
-const int = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
+const TOOL_ID = /^[a-z0-9_-]{1,40}$/;
+function validateTools(tools, e) {
+  if (!tools || typeof tools !== 'object' || Array.isArray(tools)) { e.tools = 'Tool settings must be an object.'; return; }
+  for (const [id, t] of Object.entries(tools)) {
+    const ok = TOOL_ID.test(id) && t && typeof t === 'object' && !Array.isArray(t) && Object.keys(t).join() === 'modes'
+      && Array.isArray(t.modes) && t.modes.every(m => MODES.includes(m)) && new Set(t.modes).size === t.modes.length;
+    if (!ok) e[`tools.${id}`] = 'Modes are ask, plan or build, each at most once.';
+  }
+}
+const int =(v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
 const short = v => typeof v === 'string' && v.length >= 1 && v.length <= 120;
 
 export function validateConfig(cfg) {
@@ -54,6 +63,7 @@ export function validateConfig(cfg) {
     if (!Array.isArray(s.toolAllowlist) || s.toolAllowlist.length > 50 || s.toolAllowlist.some(t => !short(t))) e[p + 'toolAllowlist'] = 'At most 50 tool names, 1 to 120 characters each.';
   });
   dupes(cfg.mcpServers ?? [], 'mcpServers');
+  if (cfg.tools !== undefined) validateTools(cfg.tools, e);
   return e;
 }
 

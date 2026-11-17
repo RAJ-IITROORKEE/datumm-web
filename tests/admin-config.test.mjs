@@ -30,3 +30,11 @@ test('webSearchProvider is optional, limited to two values',()=>{
   for(const value of ['openrouter','tavily'])assert.deepEqual(validateConfig({...emptyConfig(),webSearchProvider:value}),{});
   assert.ok(validateConfig({...emptyConfig(),webSearchProvider:'exa'})['webSearchProvider']);
 });
+
+test('tools are validated only when present and emptyConfig never adds them',()=>{
+  assert.equal('tools' in emptyConfig(),false);
+  assert.deepEqual(validateConfig({...emptyConfig(),tools:{web_search:{modes:['ask','plan']}}}),{});
+  for(const tools of [[],'x',{Bad:{modes:[]}},{web_search:{}},{web_search:{modes:['zzz']}},{web_search:{modes:['ask','ask']}},{web_search:{modes:[],extra:1}}]){
+    assert.ok(Object.keys(validateConfig({...emptyConfig(),tools})).some(k=>k.startsWith('tools')),JSON.stringify(tools));
+  }
+});

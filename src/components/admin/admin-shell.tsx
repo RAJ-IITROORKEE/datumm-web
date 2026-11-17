@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { ArrowLeft, BookOpen, Bot, ChevronRight, Globe, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen, Plug, Puzzle, ScrollText, Server, Activity, Cpu, History, UserRound, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Bot, ChevronRight, Globe, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen, Plug, Puzzle, ScrollText, Server, Activity, Cpu, History, UserRound, Wrench, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -21,6 +21,7 @@ const groups: { label: string; items: Item[] }[] = [
   { label: 'Agent', items: [
     { href: '/admin/agent', label: 'Agent', icon: Bot, feature: 'adminConfig' },
     { href: '/admin/models', label: 'Models', icon: Cpu, feature: 'adminModels', strict: true },
+    { href: '/admin/tools', label: 'Tools', icon: Wrench, feature: 'adminTools', strict: true },
     { href: '/admin/web-search', label: 'Web search', icon: Globe, feature: 'adminConfig' },
     { href: '/admin/knowledge', label: 'Knowledge', icon: BookOpen, feature: 'adminKnowledge' }, { href: '/admin/skills', label: 'Skills', icon: Puzzle, feature: 'adminConfig' },
     { href: '/admin/mcp', label: 'MCP servers', icon: Server, feature: 'adminConfig' },

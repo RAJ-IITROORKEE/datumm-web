@@ -1,0 +1,17 @@
+.panel { display: grid; gap: 24px; min-width: 0; color: var(--text); font-size: 13px; line-height: 20px; }
+.modes { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.modes legend { margin-bottom: 10px; padding: 0; color: var(--ink); font-size: 14px; font-weight: 500; }
+.card { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--background); color: var(--text); cursor: pointer; overflow-wrap: anywhere; }
+.card:hover { background: var(--secondary); }
+.card:has(input:checked) { background: var(--secondary); border-color: var(--trace-accent); }
+.card:has(input:focus-visible) { outline: 2px solid var(--trace-accent); outline-offset: 2px; }
+.card input { flex: none; margin: 3px 0 0; accent-color: var(--trace-accent); }
+.card span { min-width: 0; }
+.card strong { display: block; color: var(--ink); font-weight: 500; }
+.card small { margin-left: 8px; color: var(--text); font-size: 11px; font-weight: 400; }
+.modes:disabled .card { cursor: wait; }
+.always h2 { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; color: var(--ink); font-size: 14px; font-weight: 500; }
+.always ul { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.always li { display: grid; gap: 2px; padding-top: 10px; border-top: 1px solid var(--border); }
+.always strong { color: var(--ink); font-weight: 500; }
+@media (max-width: 560px) { .card { min-height: 44px; } }

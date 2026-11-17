@@ -1384,6 +1384,7 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
           sectionRequest={w.settingsTarget}
           onOpenChange={changeSettingsOpen}
           authConfigured={authConfigured}
+          approvalModes={featureEnabled(w.capabilities, 'approvalModes')}
           models={models}
           taskTitle={run?.title}
           usageContent={run?.data.usage && run.data.usage.rootTaskId === run.id && (run.data.usage.scope === 'execution_ledger' ? run.data.usage.ownerTaskId === run.id && Boolean(run.data.usage.ledgerExecutionId) : !run.data.usage.ownerTaskId || run.data.usage.ownerTaskId === run.id) ? <ContextUsage usage={run?.data.usage}/> : undefined}

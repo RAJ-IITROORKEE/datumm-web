@@ -4,17 +4,22 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { CircleHelp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { buildPayload, canSubmit } from '@/lib/question-stepper.mjs';
+import { parseApproval } from '@/lib/permissions.mjs';
+import { ToolApprovalCard } from './tool-approval-card';
 import styles from './question-card.module.css';
 
 export type QuestionItem={id:string;question:string;reason:string;required:boolean;inputKind:'text'|'number';unit:string;options:{id:string;label:string;recommended:boolean;rationale:string}[]};
-export type AgentQuestion={id:string;version?:number;schemaVersion?:number;question:string;reason?:string;options?:string[];questions?:QuestionItem[]};
+export type AgentQuestion={id:string;version?:number;schemaVersion?:number;kind?:string;risk?:string;call?:{name:string};expiresAt?:string|number;question:string;reason?:string;options?:string[];questions?:QuestionItem[]};
 export type ReplyPayload={question_id:string;question_version:number;answers:{question_id:string;option_id?:string;value?:string}[]};
 type Draft=Record<string,{choice:string;custom:string}>;
 export function questionItems(question:AgentQuestion):QuestionItem[]{
  return question.questions??[{id:'input',question:question.question,reason:question.reason??'',required:true,inputKind:'text',unit:'',options:(question.options??[]).slice(0,3).map((label,i)=>({id:`option_${i+1}`,label,recommended:false,rationale:''}))}];
 }
 
-export function AgentQuestions(props:{question:AgentQuestion;runId:string;onReply:(payload:ReplyPayload|{question_id:string;answer:string})=>Promise<void>}){
+// `approvals` is the backend `approvalModes` capability; without it a tool approval is a plain question.
+export function AgentQuestions(props:{question:AgentQuestion;runId:string;approvals?:boolean;approvalExpired?:boolean;onReply:(payload:ReplyPayload|{question_id:string;answer:string})=>Promise<void>}){
+ const approval=props.approvals?parseApproval(props.question):null;
+ if(approval)return <ToolApprovalCard key={JSON.stringify([props.runId,props.question.id,props.question.version??1])} question={props.question} approval={approval} expired={props.approvalExpired} onReply={props.onReply}/>;
  return <HostedQuestionCard key={JSON.stringify([props.runId,props.question.id,props.question.version??1])} {...props}/>;
 }
 function HostedQuestionCard({question,runId,onReply}:{question:AgentQuestion;runId:string;onReply:(payload:ReplyPayload|{question_id:string;answer:string})=>Promise<void>}){

@@ -6,6 +6,7 @@ import {AgentSection,WebSearchSection,SkillsSection,McpSection} from '../admin/c
 import {TracesSection} from '../admin/traces-section';
 import {HistorySection} from '../admin/history-section';
 import {ModelsSection} from '../admin/models-section';
+import {ToolsSection} from '../admin/tools-section';
 import {OverviewSection,KnowledgeSection,PluginSection,AuditSection} from '../admin/data-sections';
 import {AdminClientProvider,type AdminClient,type ConfigEnvelope,type Result} from '../admin/use-admin';
 import {DesktopSettings} from '../desktop-settings';
@@ -16,14 +17,26 @@ import {emptyConfig} from '@/lib/admin-config.mjs';
 import release from '../../../public/downloads/release.json';
 import '../../app/admin/admin.css';
 
-type Scenario='ready'|'empty'|'missing'|'forbidden'|'conflict'|'save-error'|'traces-off'|'history-off'|'models-off'|'models-none'|'tavily-off'|'tavily-on';
+type Scenario='ready'|'empty'|'missing'|'forbidden'|'conflict'|'save-error'|'traces-off'|'history-off'|'models-off'|'models-none'|'tavily-off'|'tavily-on'|'tools-off';
+const entry=(id:string,label:string,group:string,risk:string,allowed:string[],extra:Record<string,unknown>={})=>({id,label,description:'Synthetic description for '+label.toLowerCase()+'. Fixture data only.',group,runsOn:'DATUMM service',risk,required:false,allowedModes:allowed,defaultModes:allowed,toolNames:[id],...extra});
+const TOOL_CATALOG=[
+ entry('core','Core tools','Core','read',['ask','plan','build'],{required:true,locked:false}),
+ entry('knowledge_search','Knowledge search','Research','read',['ask','plan']),
+ entry('web_search','Web search','Research','read',['ask','plan']),
+ entry('search_regulations','Regulation search','Research','read',['ask','plan']),
+ entry('revit_read','Revit reads','Revit','read',['ask','plan','build'],{runsOn:'Your Revit connector'}),
+ entry('revit_write','Revit changes','Revit','device',['build'],{runsOn:'Your Revit connector',locked:true}),
+ entry('generate_concept_image','Concept images','Design','external',['ask','plan'],{runsOn:'Image model provider'}),
+ entry('create_design','Create design','Design','read',['plan']),
+ entry('propose_changes','Propose changes','Design','read',['plan','build']),
+];
 function fixtureClient(scenario:Scenario):AdminClient {
   // Traces, history and models are on in every state except their own '-off' state.
-  const capabilities={version:1,features:{adminTraces:scenario!=='traces-off',adminHistory:scenario!=='history-off',adminModels:scenario!=='models-off',...(scenario==='tavily-off'||scenario==='tavily-on'?{tavilySearch:scenario==='tavily-on'}:{})}};
-  let envelope:ConfigEnvelope&{capabilities?:unknown}={capabilities,config:{...emptyConfig(),models:['openai/gpt-6.1-sol','openai/gpt-6-luna','google/gemini-3-pro'],defaultModel:'openai/gpt-6-luna'},effective:{models:['openai/gpt-6.1-sol','openai/gpt-6-luna'],defaultModel:'openai/gpt-6-luna',defaultReasoningEffort:'high'},revision:12,updatedBy:'preview@example.invalid'};
+  const capabilities={version:1,features:{adminTraces:scenario!=='traces-off',adminHistory:scenario!=='history-off',adminModels:scenario!=='models-off',adminTools:scenario!=='tools-off',approvalModes:scenario!=='tools-off',...(scenario==='tavily-off'||scenario==='tavily-on'?{tavilySearch:scenario==='tavily-on'}:{})}};
+  let envelope:ConfigEnvelope&{capabilities?:unknown}={capabilities,toolCatalog:scenario==='tools-off'?undefined:TOOL_CATALOG,config:{...emptyConfig(),models:['openai/gpt-6.1-sol','openai/gpt-6-luna','google/gemini-3-pro'],defaultModel:'openai/gpt-6-luna'},effective:{models:['openai/gpt-6.1-sol','openai/gpt-6-luna'],defaultModel:'openai/gpt-6-luna',defaultReasoningEffort:'high'},revision:12,updatedBy:'preview@example.invalid'};
   let sources=scenario==='empty'?[]:[{id:'fixture-revit',url:'https://example.invalid/revit-room-guide',title:'Revit room review guide',corpus:'revit',status:'ready',chunks:24,updatedAt:'2026-11-12T06:00:00Z'},{id:'fixture-failed',url:'https://example.invalid/unavailable-source',title:'Unavailable public source',corpus:'other',status:'failed',chunks:0,updatedAt:'2026-11-12T05:00:00Z',error:'Synthetic indexing error. No external page was fetched.'}];
   const history=createHistoryFixture(envelope.config,Number(envelope.revision),'preview@example.invalid');
-  let nextSource=0;
+  let nextSource=0,approvalMode='ask';
   const models=createModelsFixture(()=>({models:envelope.config.models,defaultModel:envelope.config.defaultModel}),{none:scenario==='models-none'});
   return async function<T>(path:string,init?:{method?:string;body?:unknown}):Promise<Result<T>> {
     await new Promise(resolve=>setTimeout(resolve,300));
@@ -52,7 +65,10 @@ function fixtureClient(scenario:Scenario):AdminClient {
       if(id&&!found)return {ok:false,reason:'missing',message:'Unknown revision.'};
       data=found??history.list(Number(url.searchParams.get('before'))||null,Number(url.searchParams.get('limit'))||20);
     }else if(path==='config')data={capabilities};
-    else if(path==='admin/overview')data={health:'healthy',imageVersion:'synthetic-preview',counts:{tasks:23,owners:4,activeRuns:2,runsToday:3},usdToday:0.42};
+    else if(path==='me/permissions'){
+      if(method==='PUT')approvalMode=(init?.body as {approvalMode:string}).approvalMode;
+      data={approvalMode};
+    }else if(path==='admin/overview')data={health:'healthy',imageVersion:'synthetic-preview',counts:{tasks:23,owners:4,activeRuns:2,runsToday:3},usdToday:0.42};
     else if(path.startsWith('admin/audit'))data=scenario==='empty'?[]:history.audit(new URL(path,'https://fixture.invalid/').searchParams);
     else if(path==='admin/models')data=models.list();
     else if(path==='admin/models/test'){const tested=models.test((init?.body as {modelId:string}).modelId);if(!tested.ok)return tested;data=tested.data;}
@@ -78,8 +94,9 @@ function PreviewFrame({children,onClose,tools}:{children:ReactNode;onClose:()=>v
 export function AdminPreview({onClose}:{onClose:()=>void}) {
   const [path,setPath]=useState('/admin'),[scenario,setScenario]=useState<Scenario>('ready');
   const client=useMemo(()=>fixtureClient(scenario),[scenario]);
-  return <PreviewFrame onClose={onClose} tools={<label>Fixture state <select aria-label="Admin fixture state" value={scenario} onChange={event=>setScenario(event.target.value as Scenario)} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:5,padding:5,marginLeft:7}}><option value="ready">Ready</option><option value="empty">Empty lists</option><option value="missing">API unavailable</option><option value="forbidden">Access denied</option><option value="conflict">Save conflict</option><option value="save-error">Save failure</option><option value="traces-off">Traces not provided</option><option value="history-off">History not provided</option><option value="models-off">Models not provided</option><option value="models-none">No models served</option><option value="tavily-off">Tavily key absent</option><option value="tavily-on">Tavily key present</option></select> <button onClick={()=>setPath('/admin/traces')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Traces path</button> <button onClick={()=>setPath('/admin/history')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open History path</button> <button onClick={()=>setPath('/admin/models')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Models path</button></label>}><div className="admin-root" style={{position:'absolute'}}><AdminClientProvider key={scenario} client={client}><AdminShell email="preview@example.invalid" activePath={path} onNavigate={setPath}><div key={path}>{path==='/admin'?<OverviewSection/>:path==='/admin/agent'?<AgentSection/>:path==='/admin/web-search'?<WebSearchSection/>:path==='/admin/knowledge'?<KnowledgeSection/>:path==='/admin/skills'?<SkillsSection/>:path==='/admin/mcp'?<McpSection/>:path==='/admin/plugin'?<PluginSection release={release}/>:path==='/admin/traces'?<TracesSection/>:path==='/admin/history'?<HistorySection/>:path==='/admin/models'?<ModelsSection/>:<AuditSection/>}</div></AdminShell></AdminClientProvider></div></PreviewFrame>;
+  return <PreviewFrame onClose={onClose} tools={<label>Fixture state <select aria-label="Admin fixture state" value={scenario} onChange={event=>setScenario(event.target.value as Scenario)} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:5,padding:5,marginLeft:7}}><option value="ready">Ready</option><option value="empty">Empty lists</option><option value="missing">API unavailable</option><option value="forbidden">Access denied</option><option value="conflict">Save conflict</option><option value="save-error">Save failure</option><option value="traces-off">Traces not provided</option><option value="history-off">History not provided</option><option value="models-off">Models not provided</option><option value="models-none">No models served</option><option value="tavily-off">Tavily key absent</option><option value="tavily-on">Tavily key present</option><option value="tools-off">Tools and approvals not provided</option></select> <button onClick={()=>setPath('/admin/traces')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Traces path</button> <button onClick={()=>setPath('/admin/history')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open History path</button> <button onClick={()=>setPath('/admin/models')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Models path</button> <button onClick={()=>setPath('/admin/tools')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Tools path</button></label>}><div className="admin-root" style={{position:'absolute'}}><AdminClientProvider key={scenario} client={client}><AdminShell email="preview@example.invalid" activePath={path} onNavigate={setPath}><div key={path}>{path==='/admin'?<OverviewSection/>:path==='/admin/agent'?<AgentSection/>:path==='/admin/web-search'?<WebSearchSection/>:path==='/admin/knowledge'?<KnowledgeSection/>:path==='/admin/skills'?<SkillsSection/>:path==='/admin/mcp'?<McpSection/>:path==='/admin/plugin'?<PluginSection release={release}/>:path==='/admin/traces'?<TracesSection/>:path==='/admin/history'?<HistorySection/>:path==='/admin/models'?<ModelsSection/>:path==='/admin/tools'?<ToolsSection/>:<AuditSection/>}</div></AdminShell></AdminClientProvider></div></PreviewFrame>;
 }
 export function SettingsPreview({onClose}:{onClose:()=>void}) {
-  return <PreviewFrame onClose={onClose}><DesktopSettings open onOpenChange={open=>{if(!open)onClose();}} models={['openai/gpt-6.1-sol','openai/gpt-6-luna','example-provider/'+('long-model-identity-'.repeat(9)),'catalog-without-provider']} generalContent={<div className="settings-general" aria-label="General preferences"><div className="setting-row"><div><strong>Unsent drafts</strong><small>Fixture text. Your actual preferences are available in the main workspace.</small></div></div></div>} revitContent={<div className="provider-section"><h2>Revit not connected</h2><p>Synthetic preview. Use the main workspace to connect a real model.</p></div>}/></PreviewFrame>;
+  const [approvals,setApprovals]=useState(true),client=useMemo(()=>fixtureClient('ready'),[]);
+  return <PreviewFrame onClose={onClose} tools={<label><input type="checkbox" checked={approvals} onChange={event=>setApprovals(event.target.checked)}/> Backend reports approvalModes</label>}><AdminClientProvider client={client}><DesktopSettings approvalModes={approvals} open onOpenChange={open=>{if(!open)onClose();}} models={['openai/gpt-6.1-sol','openai/gpt-6-luna','example-provider/'+('long-model-identity-'.repeat(9)),'catalog-without-provider']} generalContent={<div className="settings-general" aria-label="General preferences"><div className="setting-row"><div><strong>Unsent drafts</strong><small>Fixture text. Your actual preferences are available in the main workspace.</small></div></div></div>} revitContent={<div className="provider-section"><h2>Revit not connected</h2><p>Synthetic preview. Use the main workspace to connect a real model.</p></div>}/></AdminClientProvider></PreviewFrame>;
 }

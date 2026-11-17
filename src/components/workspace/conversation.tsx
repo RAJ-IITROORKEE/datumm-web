@@ -10,7 +10,7 @@ import { PromptContent } from '../prompt-content';
 import { TurnProcess, turnProcessVisible } from './turn-process';
 import { PlanDock } from './plan-dock';
 import { deriveTodos, todoSummary } from '@/lib/agent-todos.mjs';
-import { planningGoalsVisible } from '@/lib/capabilities.mjs';
+import { featureEnabled, planningGoalsVisible } from '@/lib/capabilities.mjs';
 import { conversationResult, failedTurnRecovery } from '@/lib/conversation-result.mjs';
 import { drawingTitle } from '@/lib/drawing-presentation.mjs';
 import { conversationTurns, turnEvents, historicalOutcome, rejectedHistoricalStatus, processTurnStatus, answerHasCompletionProof, answerCompletionCandidate, legacyAnswerOutputState } from '@/lib/conversation-turns.mjs';
@@ -1524,6 +1524,8 @@ export function ConversationPanel(props: ConversationPanelProps) {
               <AgentQuestions
                 key={`${run.id}:${run.data.agent_question.id}`}
                 runId={run.id}
+                approvals={featureEnabled(capabilities, 'approvalModes')}
+                approvalExpired={Boolean((run.data as { agent_approval_expired?: boolean }).agent_approval_expired)}
                 question={run.data.agent_question}
                 onReply={replyToQuestion}
               />

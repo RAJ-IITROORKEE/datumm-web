@@ -1,0 +1,16 @@
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 24px; padding: 16px 0; min-width: 0; }
+.copy { min-width: 0; }
+.title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.title h3 { margin: 0; font-size: 13px; font-weight: 500; line-height: 1.5; }
+.copy p { margin: 4px 0 0; color: var(--text); font-size: 12px; line-height: 20px; overflow-wrap: anywhere; }
+.copy .meta { font-size: 11px; }
+.copy .error { color: var(--trace-error); }
+.switches { display: flex; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.switches li { display: grid; justify-items: center; gap: 6px; font-size: 11px; color: var(--text); }
+.lock { display: flex; align-items: start; gap: 6px; max-width: 34ch; margin: 0; color: var(--text); font-size: 12px; line-height: 20px; }
+.lock svg { flex: none; width: 13px; height: 13px; margin-top: 4px; }
+.empty { padding: 24px 0; margin: 0; color: var(--text); font-size: 13px; line-height: 20px; }
+@media (max-width: 640px) {
+  .row { grid-template-columns: minmax(0, 1fr); }
+  .lock { max-width: none; }
+}

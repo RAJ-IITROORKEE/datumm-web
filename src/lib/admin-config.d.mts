@@ -7,6 +7,8 @@ export type AdminConfig = {
   webSearch: { enabled: boolean; includeDomains: string[]; maxResults: number };
   webSearchProvider?: 'openrouter' | 'tavily';
   skills: AdminSkill[]; mcpServers: AdminMcp[];
+  /** Present only when the backend reports `adminTools`; never added by the editor otherwise. */
+  tools?: Record<string, { modes: Mode[] }>;
 };
 export const LIMIT_KEYS: string[];
 export const MODES: Mode[];

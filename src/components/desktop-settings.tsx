@@ -2,18 +2,19 @@
 
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Show, SignInButton, UserButton } from '@clerk/nextjs';
-import { ArrowLeft, Box, CircleUserRound, Palette, SlidersHorizontal, Sparkles, Blocks, BarChart3, CreditCard, Search, X, ChevronDown, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, Box, CircleUserRound, Palette, SlidersHorizontal, Sparkles, Blocks, BarChart3, CreditCard, ShieldCheck, Search, X, ChevronDown, type LucideIcon } from 'lucide-react';
 import { AccountProfileEditor } from './onboarding/account-onboarding';
 import { PricingPlans } from './billing/pricing-plans';
 import { ThemeSettings } from './theme-settings';
+import { PermissionsSettings } from './permissions-settings';
 import { Button } from './ui/button';
 import { filterSettingsSections, modelIdentity, settingsSections } from './settings-navigation.mjs';
 import styles from './desktop-settings.module.css';
 
-const sectionIcons: Record<string, LucideIcon> = { account: CircleUserRound, general: SlidersHorizontal, appearance: Palette, models: Sparkles, revit: Box, usage: BarChart3, billing: CreditCard, capabilities: Blocks };
+const sectionIcons: Record<string, LucideIcon> = { account: CircleUserRound, general: SlidersHorizontal, appearance: Palette, permissions: ShieldCheck, models: Sparkles, revit: Box, usage: BarChart3, billing: CreditCard, capabilities: Blocks };
 
-export function DesktopSettings({ open, onOpenChange, generalContent, revitContent, models = [], authConfigured = false, usageContent, taskTitle, sectionRequest }: {
-  open: boolean; onOpenChange: (open: boolean) => void; generalContent?: ReactNode; revitContent?: ReactNode; models?: string[]; authConfigured?: boolean; usageContent?: ReactNode; taskTitle?: string; sectionRequest?:{id:string;revision:number};
+export function DesktopSettings({ open, onOpenChange, generalContent, revitContent, models = [], authConfigured = false, usageContent, taskTitle, sectionRequest, approvalModes = false }: {
+  open: boolean; onOpenChange: (open: boolean) => void; generalContent?: ReactNode; revitContent?: ReactNode; models?: string[]; authConfigured?: boolean; usageContent?: ReactNode; taskTitle?: string; sectionRequest?:{id:string;revision:number}; approvalModes?: boolean;
 }) {
   const [section, setSection] = useState('general');
   const [accountVisited, setAccountVisited] = useState(false);
@@ -25,7 +26,8 @@ export function DesktopSettings({ open, onOpenChange, generalContent, revitConte
   const navigationId = useId();
   const handledRequest = useRef<number | null>(null);
   const currentSection = settingsSections.find(item => item.id === section)!;
-  const matches = filterSettingsSections(query);
+  // Permissions needs the backend `approvalModes` capability; unknown means hidden.
+  const matches = filterSettingsSections(query).filter(item => approvalModes || item.id !== 'permissions');
 
   useLayoutEffect(() => {
     if (!open || !sectionRequest || handledRequest.current === sectionRequest.revision) return;
@@ -94,6 +96,7 @@ export function DesktopSettings({ open, onOpenChange, generalContent, revitConte
           {section === 'general' && <div className={styles.generalContent}>{generalContent}</div>}
           {section === 'appearance' && <ThemeSettings motionRow={null} advancedControl={null} />}
           {accountVisited && <section className="provider-section" hidden={section !== 'account'} inert={section !== 'account'} style={section !== 'account' ? {display:'none'} : undefined}>{authConfigured ? <><Show when="signed-in"><div className={styles.identityRow}><UserButton showName /><span>Manage your sign-in and account security</span></div><AccountProfileEditor /></Show><Show when="signed-out"><SignInButton mode="modal"><Button>Sign in to DATUMM</Button></SignInButton></Show></> : <div className={styles.unavailableState} role="status"><h2>Sign-in unavailable</h2><p>Sign-in is not configured in this workspace.</p></div>}</section>}
+          {section === 'permissions' && <PermissionsSettings />}
           {section === 'models' && <section className="provider-section">
             <p>Choose a model and reasoning effort in the conversation toolbar. Model access is managed by the hosted workspace.</p>
             {models.length ? <ul className={styles.modelCatalog} aria-label="Reported models">{models.map((model, index) => {
