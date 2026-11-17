@@ -223,6 +223,8 @@ test('reference sidebar arrangement keeps real workspace actions, project focus 
   project.props.ref.current={scrollIntoView:()=>events.push('scroll-projects'),focus:()=>events.push('focus-projects')};
   buttons[1].props.onClick();
   assert.match(JSON.stringify(project),/Projects are unavailable on this service/);
+  const unknown=component.render('Sidebar',{...props,projectsUnknown:true});
+  assert.match(JSON.stringify(all(unknown,node=>node.type==='section'&&node.props.id==='sidebar-projects')[0]),/Projects could not load\./);
   const footer=all(tree,node=>typeof node.type==='function'&&node.type.name==='AccountFooter')[0];
   footer.props.openActivity();footer.props.openSchedules();footer.props.openSettings();
   assert.deepEqual(events,['new',['connections',true],'scroll-projects','focus-projects','activity','schedules',['settings',true]]);

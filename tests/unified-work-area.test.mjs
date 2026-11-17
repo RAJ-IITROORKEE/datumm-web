@@ -216,7 +216,7 @@ test('session readiness is bound to device and account before effects and ignore
  for(const request of h.requests.splice(0)){
   if(request.path.endsWith('/config'))request.resolve({runtime:'hosted',models:[]});
   else if(request.path.endsWith('/devices'))request.resolve([{id:'a',online:true},{id:'b',online:true}]);
-  else if(request.path.endsWith('/runs'))request.resolve([]);
+  else if(request.path.endsWith('/runs')||request.path.endsWith('/projects'))request.resolve([]);
   else throw Error(request.path);
  }
  await refresh;w=h.render();assert.equal(w.selectedDevice.id,'a');assert.equal(w.revitSessions,null);

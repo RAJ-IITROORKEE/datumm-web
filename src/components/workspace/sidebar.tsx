@@ -58,6 +58,7 @@ type SidebarProps = Pick<
   | 'setDeletePhrase'
   | 'setDeleteAllOpen'
   | 'projectsSupported'
+  | 'projectsUnknown'
   | 'chatMenuUnsupported'
   | 'unreadIds'
   | 'renameChat'
@@ -107,6 +108,7 @@ export function Sidebar(props: SidebarProps) {
     setDeletePhrase,
     setDeleteAllOpen,
     projectsSupported,
+    projectsUnknown,
     chatMenuUnsupported,
     unreadIds,
     renameChat,
@@ -288,7 +290,7 @@ export function Sidebar(props: SidebarProps) {
                     </DropdownMenuPrimitive.RadioItem>)}
                   </DropdownMenuPrimitive.RadioGroup>
                   {!workspaceReady && <DropdownMenuPrimitive.Item disabled>Loading projects…</DropdownMenuPrimitive.Item>}
-                  {workspaceReady && !showProjects && <DropdownMenuPrimitive.Item disabled>Projects are unavailable on this service.</DropdownMenuPrimitive.Item>}
+                  {workspaceReady && !showProjects && <DropdownMenuPrimitive.Item disabled>{projectsUnknown ? 'Projects could not load.' : 'Projects are unavailable on this service.'}</DropdownMenuPrimitive.Item>}
                   {workspaceReady && showProjects && !orderedProjects.length && <DropdownMenuPrimitive.Item disabled>{serviceError ? 'Projects could not refresh.' : 'No projects yet.'}</DropdownMenuPrimitive.Item>}
                   {canCreateProject && <><DropdownMenuPrimitive.Separator /><DropdownMenuPrimitive.Item disabled={mediaBusy || actionBusy}
                     onSelect={() => { pendingNewProject.current = true; }}><Plus size={15} strokeWidth={1.9} /> New project</DropdownMenuPrimitive.Item></>}

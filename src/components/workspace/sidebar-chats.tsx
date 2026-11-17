@@ -17,6 +17,7 @@ export type ChatSectionsContext = Pick<
   | 'workspaceReady'
   | 'orderedProjects'
   | 'serviceError'
+  | 'projectsUnknown'
   | 'collapsedProjects'
   | 'search'
   | 'setCollapsedProjects'
@@ -52,7 +53,7 @@ export function chatSections(c: ChatSectionsContext) {
   const {
     visibleChats, chatRow, projectSection, pendingOverview, setOverviewId, showProjects, hosted,
     canCreateProject, selectedProject, knownProjectIds, mediaBusy, actionBusy, createProject,
-    setProjectContextOpen, workspaceReady, orderedProjects, serviceError, collapsedProjects, search,
+    setProjectContextOpen, workspaceReady, orderedProjects, serviceError, projectsUnknown, collapsedProjects, search,
     setCollapsedProjects, dialogTrigger, newTask, setRenameTitle, setRenameTarget, setProjectOrder,
     chatMenuUnsupported, archiveProject, historyView,
     defaultProject, workflowFilter, setWorkflowFilter,
@@ -90,7 +91,9 @@ export function chatSections(c: ChatSectionsContext) {
       </div>
       {!workspaceReady && <p className={styles.empty} role="status">Loading projects…</p>}
       {workspaceReady && !showProjects && (
-        <p className={styles.empty} role="status">Projects are unavailable on this service.</p>
+        <p className={styles.empty} role="status">
+          {projectsUnknown ? 'Projects could not load.' : 'Projects are unavailable on this service.'}
+        </p>
       )}
       {workspaceReady && showProjects && !orderedProjects.length && (
         <p className={styles.empty} role="status">
