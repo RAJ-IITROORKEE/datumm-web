@@ -5,6 +5,7 @@ import {PlanCanvas,type DrawingVersion} from '../plan-canvas';
 import {ChecksReport} from '../checks-report';
 import {PlanReviewCard} from '../review/plan-review-card';
 import {alternativeChecks} from '@/lib/plan-checks.mjs';
+import {critiqueFor} from '@/lib/layout-critique.mjs';
 
 // Synthetic plan: every ref below names a room, wall or opening that exists in this graph.
 const graph:DrawingVersion['graph']={site:{widthMm:9000,depthMm:7000},wallThicknessMm:200,wallHeightMm:3000,
@@ -33,8 +34,19 @@ const candidates=[
   {planId:'fixture-plan',version:3,fingerprint:'c',checks:{status:'pass',blocking:0,advisory:0,codes:[]}},
 ];
 
+// Layout critic results as the run carries them in agent_specialists; only the binding decides what shows.
+const advice=[{severity:'concern',message:'The bedroom has no direct daylight, because its only window faces the neighbouring wall.',evidenceRefs:[]},{severity:'info',message:'The living room and kitchen sit side by side, which makes cooking and serving easy.',evidenceRefs:[]},{severity:'unknown',message:'The outlook from the kitchen cannot be judged from the plan alone.',evidenceRefs:[]}];
+const bound={planId:'fixture-plan',planVersion:1,fingerprint:'fixture-checks'};
+const critics={
+  none:undefined,
+  completed:[{role:'layout_critic',status:'completed',binding:bound,findings:advice}],
+  failed:[{role:'layout_critic',status:'failed',binding:bound,findings:[]}],
+  'another version':[{role:'layout_critic',status:'completed',binding:{...bound,planVersion:2},findings:advice}],
+} as const;
+type Critic=keyof typeof critics;
+
 export function ChecksPreview(){
-  const [scenario,setScenario]=useState<Scenario>('failing'),[highlights,setHighlights]=useState<string[]>([]),[retries,setRetries]=useState(0);
+  const [critic,setCritic]=useState<Critic>('completed'),[scenario,setScenario]=useState<Scenario>('failing'),[highlights,setHighlights]=useState<string[]>([]),[retries,setRetries]=useState(0);
   const drawing=useMemo<DrawingVersion>(()=>({planId:'fixture-plan',version:1,fingerprint:'fixture-checks',svg:'',graph,findings:scenarios[scenario]}),[scenario]);
   const roomNames=useMemo(()=>Object.fromEntries(graph.rooms.map(room=>[room.key,room.name])),[]);
   const review=alternativeChecks(candidates,{planId:'fixture-plan',version:3,reason:'Recommended alternative 3: it has the fewest check problems (all checks pass).'});
@@ -42,12 +54,13 @@ export function ChecksPreview(){
     <div style={{display:'flex',flexWrap:'wrap',gap:12,alignItems:'center',padding:'8px 16px',borderBottom:'1px solid var(--separator)'}}>
       <strong>Plan checks fixture</strong><span>Synthetic findings · no agent or Revit execution</span>
       {(Object.keys(scenarios) as Scenario[]).map(key=><button key={key} aria-pressed={scenario===key} onClick={()=>{setScenario(key);setHighlights([]);}}>{key}</button>)}
+      <span>Design review:</span>{(Object.keys(critics) as Critic[]).map(key=><button key={key} aria-pressed={critic===key} onClick={()=>setCritic(key)}>{key}</button>)}
       <span role="status">Retry presses: {retries}</span>
     </div>
     <div style={{display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(300px,380px)',flex:1,minHeight:0}}>
       <div style={{display:'flex',flexDirection:'column',minWidth:0,minHeight:0}}><PlanCanvas drawing={drawing} highlights={highlights} canvasInputEnabled={false} persistentProperties={false}/></div>
       <aside aria-label="Fixture checks panel" style={{overflow:'auto',padding:16,borderLeft:'1px solid var(--separator)',display:'flex',flexDirection:'column',gap:16}}>
-        <ChecksReport findings={drawing.findings} roomNames={roomNames} activeKeys={highlights} onShow={setHighlights} onRetry={()=>setRetries(value=>value+1)}/>
+        <ChecksReport findings={drawing.findings} roomNames={roomNames} activeKeys={highlights} onShow={setHighlights} onRetry={()=>setRetries(value=>value+1)} critique={critiqueFor(critics[critic],drawing)}/>
         <PlanReviewCard alternativeChecks={review} alternatives={3} planVersion={3} planTitle="Fixture concept" accepted={false} mode="plan" busy={false} drawingLoading={false} drawingCurrent buildReady={false} showPlacement={false} onRequestChanges={()=>{}} onDetails={()=>{}} onAccept={async()=>{}} onSwitchToBuild={async()=>{}} onPrepare={async()=>{}} onPlacement={()=>{}}/>
       </aside>
     </div>

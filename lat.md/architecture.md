@@ -102,6 +102,14 @@ The Design area shows the report as a **Checks** tab beside **Details** inside t
 
 The review card reads optional `checks` on each candidate and `recommended` on `agent_design` through `alternativeChecks` in `src/lib/plan-checks.mjs` and shows a status line per alternative with a Recommended badge and the reason. Absent fields show nothing, and selection behaviour is unchanged. The `/dev/ux` "Plan checks fixture" shows the failing, warnings-only, pass and unavailable states.
 
+The Checks tab ends with a separate **Design review** section for the layout critic's advice. `critiqueFor` in `src/lib/layout-critique.mjs` reads `agent_specialists` and returns nothing, "not available", or the advice. Advice shows only for a completed `layout_critic` result whose `binding` (plan id, version and fingerprint) matches the drawing on screen; a `partial` or `failed` result says the review was not available; a missing, stale or cancelled result shows nothing. Severities read Concern, Note and Not sure. The section is labelled as advice that never changes the check result, and the pass, warn and fail header and its counts are computed from the rule findings only. The `/dev/ux` "Plan checks fixture" has a Design review switch for each state.
+
+### Revision package
+
+A printable page at `/revision-package?task=…&plan=…&version=…` collects what an architect sends with a reissue. The Review screen links to it with `target="_blank" rel="noopener"`.
+
+The page is a client page behind the normal Clerk sign-in (`src/components/review/revision-package-page.tsx`). It reads `variable/plans/{id}/versions/{n}/package` through the service proxy, then the first and last versions for their drawings and room names. The task read (`tasks/{id}`) is optional and only supplies the title and whether this version is the accepted one; without it the page leaves the acceptance line out. `parsePackage` in `src/lib/revision-package.mjs` validates the `datumm.revision-package.v1` payload as untrusted data and rejects unknown shapes, and `changeLog` in `src/lib/revision-package.mjs` writes one plain line per version from the recorded edit, then the stored diff, and otherwise says the changes were not recorded. Print CSS hides the controls and forces a white page. The `/dev/ux` "Revision package fixture" shows the page with synthetic data.
+
 ### Plan edits
 
 The Details tab of the Design side panel offers targeted edits of the selected room, wall or opening, only when the `planEditing` capability is on and the drawing is the task's current saved version.

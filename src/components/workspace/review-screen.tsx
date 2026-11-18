@@ -10,6 +10,9 @@ import styles from './review-screen.module.css';
 
 const svgSrc = (svg: string) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 
+const packageHref = (taskId: string, plan: {planId: string; version: number}) =>
+  `/revision-package?${new URLSearchParams({task: taskId, plan: plan.planId, version: String(plan.version)})}`;
+
 /**
  * One screen for the current task and plan version: what changed, checks, assumptions, decision.
  * Opening it unlocks Accept and Approve for this version in memory; it never approves anything.
@@ -36,7 +39,9 @@ export function ReviewScreen({w, scope, version, locked, checks, actions}: {
   const before = comparisonKind === 'previous' ? compareVersion : null;
   const pick = (v: { svg: string; lineworkSvg?: string }) => svgSrc(v.lineworkSvg ?? v.svg);
   return <div className={styles.screen} role="region" aria-label="Review">
-    <header><h2>Review</h2><p className={styles.sub}>{title}</p></header>
+    <header><h2>Review</h2><p className={styles.sub}>{title}</p>
+      {design && designVersion && <a className={styles.package} href={packageHref(taskId, designVersion)} target="_blank" rel="noopener">Revision package<span className={styles.sr}> (opens in a new tab)</span></a>}
+    </header>
     {!hasDecision && <p className={styles.note}>There is no plan or proposal to review in this chat yet.</p>}
     {design && <section className={styles.section} aria-labelledby="review-changed">
       <h3 id="review-changed">What changed</h3>

@@ -9,6 +9,8 @@ export type SpecialistResult = {
  findings: { severity: 'info' | 'concern' | 'unknown'; message: string; evidenceRefs: string[] }[];
  artifactRefs: string[];
  nativeAuthority: 'none';
+ /** The plan version this result reviewed; the Checks tab shows advice only when it matches the drawing. */
+ binding?: { planId?: string | null; planVersion?: number; fingerprint?: string | null };
 };
 
 export function AgentSpecialists({ results, taskId, onOpenArtifact }: { results?: SpecialistResult[]; taskId: string; onOpenArtifact?: (artifact: {taskId: string; sha256: string}, opener: HTMLElement) => void }) {

@@ -9,6 +9,7 @@ Next.js App Router: pages, layouts and API route handlers. Read the installed do
 | `/` | `page.tsx` | Sign-in gate, onboarding gate, then the workspace (`components/workspace-entry.tsx`) |
 | `/pricing` | `pricing/page.tsx` | Static plans; paid plans unavailable |
 | `/connect` | `connect/page.tsx` | Revit connector authorization review |
+| `/revision-package` | `revision-package/page.tsx` | Printable revision package (`?task=&plan=&version=`), opened in a new tab from the Review screen; Clerk sign-in, `noindex` |
 | `/share/[token]` | `share/[token]/` | Public read-only chat; Clerk is skipped for `/share` |
 | `/admin/*` | `admin/` | Dark-only console; `layout.tsx` returns 404 unless the primary email is in `ADMIN_EMAILS` |
 | `/dev/*` | `dev/` | Development fixtures; 404 in production |

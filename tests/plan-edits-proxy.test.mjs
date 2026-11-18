@@ -25,4 +25,9 @@ test('the proxy forwards the plan edit route and nothing next to it', async () =
   }
   assert.equal(calls.length, 0);
   assert.equal((await send('variable/plans/plan-1/versions/3', 'GET')).status, 200, 'reading a version still works');
+  assert.equal((await send('variable/plans/plan-1/versions/3/package', 'GET')).status, 200, 'the revision package is readable');
+  assert.equal(calls.at(-1).path, '/v1/variable/plans/plan-1/versions/3/package');
+  for (const path of ['variable/plans/plan-1/versions/3/package/x', 'variable/plans/plan-1/versions/x/package', 'variable/plans/plan-1/package']) {
+    assert.equal((await send(path, 'GET')).status, 404, path);
+  }
 });

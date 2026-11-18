@@ -61,6 +61,7 @@ import { ChecksReport } from './checks-report';
 import { DesignSidePanel, type DesignSideTab } from './workspace/design-side-panel';
 import { PlanEditPanel } from './workspace/plan-edit-panel';
 import { parseFindings, refsToHighlights } from '@/lib/plan-checks.mjs';
+import { critiqueFor } from '@/lib/layout-critique.mjs';
 import installerRelease from '../../public/downloads/release.json';
 import { DesktopSettings } from './desktop-settings';
 import { ProjectContext } from './project-context';
@@ -567,7 +568,7 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
   const checksSource = activeDrawing?.findings ?? (sameDrawing ? designVersion?.findings : undefined);
   const planChecks = parseFindings(checksSource);
   const showCheckKeys = (keys: string[]) => { setDesignHighlights(keys); if (keys.length) actions.openDrawing(); };
-  const checksNode = activeDrawing ? <ChecksReport findings={checksSource} loading={drawingLoading} roomNames={Object.fromEntries(activeDrawing.graph.rooms.map(room => [room.key, room.name]))} activeKeys={designHighlights} onShow={showCheckKeys} onRetry={() => setDrawingRetry(value => value + 1)}/> : <p>Open a plan to see its checks.</p>;
+  const checksNode = activeDrawing ? <ChecksReport findings={checksSource} loading={drawingLoading} roomNames={Object.fromEntries(activeDrawing.graph.rooms.map(room => [room.key, room.name]))} activeKeys={designHighlights} onShow={showCheckKeys} onRetry={() => setDrawingRetry(value => value + 1)} critique={critiqueFor(scopedRun?.data.agent_specialists, activeDrawing)}/> : <p>Open a plan to see its checks.</p>;
   return (
     <>
       {desktopAvailable && <DesktopTitlebar

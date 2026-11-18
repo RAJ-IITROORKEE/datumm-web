@@ -2,6 +2,7 @@
 import {useMemo,useState} from 'react';
 import {CircleAlert,CircleCheck,CircleX,Eye,EyeOff,TriangleAlert} from 'lucide-react';
 import {groupFindings,parseFindings,refsSummary,refsToHighlights,statusLabel,type Finding} from '@/lib/plan-checks.mjs';
+import type {Critique} from '@/lib/layout-critique.mjs';
 import {Button} from './ui/button';
 import styles from './checks-report.module.css';
 
@@ -14,6 +15,8 @@ type Props={
   activeKeys?:string[];
   onShow:(keys:string[])=>void;
   onRetry?:()=>void;
+  /** Model advice from `critiqueFor`; shown apart from the rules and never counted in them. */
+  critique?:Critique|null;
 };
 const statusIcon={pass:CircleCheck,warn:TriangleAlert,fail:CircleX} as const;
 
@@ -32,7 +35,19 @@ function Row({finding,roomNames,active,onShow}:{finding:Finding;roomNames?:Recor
   </li>;
 }
 
-export function ChecksReport({findings,loading=false,roomNames,activeKeys=[],onShow,onRetry}:Props){
+function DesignReview({critique}:{critique:Critique|null|undefined}){
+  if(!critique)return null;
+  return <section className={styles.advice} aria-labelledby="design-review-title">
+    <h4 id="design-review-title">Design review</h4>
+    <p className={styles.adviceNote}>Advice from a model review. It never changes the check result.</p>
+    {critique.state==='unavailable'?<p className={styles.unavailable}>The design review was not available for this plan.</p>
+      :critique.findings.length===0?<p className={styles.empty}>The design review found nothing to add.</p>
+      :<ul>{critique.findings.map((row,index)=><li key={index} className={styles.row} data-severity={row.severity}>
+        <span className={styles.severity}>{row.label}</span><p className={styles.message}>{row.message}</p></li>)}</ul>}
+  </section>;
+}
+
+export function ChecksReport({findings,loading=false,roomNames,activeKeys=[],onShow,onRetry,critique}:Props){
   const report=useMemo(()=>parseFindings(findings),[findings]);
   const [note,setNote]=useState<{report:unknown;text:string}>({report:null,text:''});
   const groups=useMemo(()=>report?groupFindings(report.findings):[],[report]);
@@ -59,6 +74,7 @@ export function ChecksReport({findings,loading=false,roomNames,activeKeys=[],onS
         <h4>{group.label}<span>{group.findings.length}</span></h4>
         <ul>{group.findings.map((finding,index)=><Row key={`${finding.code}:${index}`} finding={finding} roomNames={roomNames} active={active(finding)} onShow={show}/>)}</ul>
       </div>)}
+    <DesignReview critique={critique}/>
     <p className={styles.sr} role="status" aria-live="polite">{note.report===report?note.text:''}</p>
   </section>;
 }
