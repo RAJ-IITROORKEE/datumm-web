@@ -3,7 +3,7 @@ import {useCallback,useEffect,useState,type ReactNode} from 'react';
 import {SignIn,useAuth} from '@clerk/nextjs';
 import {authGateState} from '@/lib/auth-gate.mjs';
 import {
-  changeLog,graphsByVersion,isAccepted,parsePackage,type PackageRequest,
+  changeLog,graphsByVersion,isAccepted,packageAssumptions,parsePackage,type PackageRequest,
 } from '@/lib/revision-package.mjs';
 import type {DrawingVersion} from '../plan-canvas';
 import {Button} from '../ui/button';
@@ -53,7 +53,7 @@ async function load({planId,version,taskId}:PackageRequest,signal:AbortSignal):P
   return {status:'ready',view:{
     title:task?.title||'Floor plan',pkg,first,last,
     log:changeLog(pkg,graphsByVersion(pkg,first.graph,last.graph)),
-    accepted:isAccepted(task,last),dataHref:`/api/service/${base}/${version}/package`,
+    accepted:isAccepted(task,last),assumptions:packageAssumptions(task,pkg),dataHref:`/api/service/${base}/${version}/package`,
   }};
 }
 

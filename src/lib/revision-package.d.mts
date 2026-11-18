@@ -34,6 +34,7 @@ export function savedOn(iso: string): string;
 export function graphsByVersion(
   pkg: RevisionPackage, first: GraphNames | undefined, last: GraphNames | undefined,
 ): Record<number, GraphNames | undefined>;
+export function packageAssumptions(task: unknown, pkg: RevisionPackage): string[];
 export function isAccepted(
   task: unknown, plan: { planId: string; version: number; fingerprint: string },
 ): boolean | null;

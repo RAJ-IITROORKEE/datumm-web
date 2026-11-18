@@ -20,6 +20,8 @@ export type RevisionPackageViewProps={
   log:{version:number;text:string}[];
   /** Null leaves the line out: the task could not be read, so acceptance is unknown. */
   accepted:boolean|null;
+  /** The run's design assumptions and this version's own, as Review shows them. */
+  assumptions:string[];
   dataHref:string;
   onPrint:()=>void;
 };
@@ -49,7 +51,7 @@ function Check({heading,summary}:{heading:string;summary:ChecksSummary|null}){
 }
 
 export function RevisionPackageView(
-  {title,pkg,first,last,log,accepted,dataHref,onPrint}:RevisionPackageViewProps,
+  {title,pkg,first,last,log,accepted,assumptions,dataHref,onPrint}:RevisionPackageViewProps,
 ){
   const rows=pkg.versions,current=rows[rows.length-1],original=rows[0],single=rows.length===1;
   const saved=savedOn(current.createdAt);
@@ -90,9 +92,9 @@ export function RevisionPackageView(
     </section>
     <section className={styles.section} aria-labelledby="rp-assumptions">
       <h2 id="rp-assumptions">Assumptions</h2>
-      {current.assumptions.length
+      {assumptions.length
         ?<ul className={styles.list}>
-          {current.assumptions.map((text,index)=><li key={index}>{text}</li>)}</ul>
+          {assumptions.map((text,index)=><li key={index}>{text}</li>)}</ul>
         :<p className={styles.note}>No assumptions were reported for this plan.</p>}
     </section>
     <dl className={styles.ids} aria-label="Exact details">

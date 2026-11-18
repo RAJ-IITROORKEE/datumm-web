@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  changeLog, graphsByVersion, isAccepted, packageRequest, parsePackage, savedOn, summariseChecks,
+  changeLog, graphsByVersion, isAccepted, packageAssumptions, packageRequest, parsePackage, savedOn, summariseChecks,
 } from '../src/lib/revision-package.mjs';
 
 const finding = (severity, message) => (
@@ -122,4 +122,16 @@ test('isAccepted compares the exact plan identity and stays silent without a rea
   assert.equal(isAccepted({ acceptance: { plan: { ...plan, fingerprint: 'g' } } }, plan), false);
   assert.equal(isAccepted({ acceptance: null }, plan), false);
   for (const task of [null, undefined, 'x', []]) assert.equal(isAccepted(task, plan), null);
+});
+
+test('packageAssumptions puts the run assumptions first, only for its own plan, without repeats', () => {
+  const pkg = { planId: 'p', version: 2, versions: [
+    { version: 1, assumptions: ['old'] }, { version: 2, assumptions: ['Walls 200 mm.', 'Shared'] }] };
+  const task = { data: { agent_design: { candidates: [{ planId: 'p' }],
+    assumptions: ['One bathroom assumed.', 'Shared'] } } };
+  assert.deepEqual(packageAssumptions(task, pkg), ['One bathroom assumed.', 'Shared', 'Walls 200 mm.']);
+  const other = { data: { agent_design: { candidates: [{ planId: 'q' }], assumptions: ['x'] } } };
+  assert.deepEqual(packageAssumptions(other, pkg), ['Walls 200 mm.', 'Shared']);
+  for (const bad of [null, {}, { data: { agent_design: { candidates: [{ planId: 'p' }], assumptions: [1] } } }])
+    assert.deepEqual(packageAssumptions(bad, pkg), ['Walls 200 mm.', 'Shared']);
 });

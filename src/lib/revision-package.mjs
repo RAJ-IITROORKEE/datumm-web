@@ -176,6 +176,19 @@ export function graphsByVersion(pkg, first, last) {
   return Object.fromEntries(pkg.versions.map((row) => [row.version, ends[row.version] ?? both]));
 }
 
+/**
+ * The run's design assumptions (only when that run produced this plan) followed by the plan's
+ * own, without repeats: the same list the Review screen shows and Accept records.
+ */
+export function packageAssumptions(task, pkg) {
+  const own = pkg.versions[pkg.versions.length - 1].assumptions;
+  const design = isObject(task) && isObject(task.data) ? task.data.agent_design : null;
+  const ours = isObject(design) && Array.isArray(design.candidates)
+    && design.candidates.some((row) => isObject(row) && row.planId === pkg.planId);
+  const run = ours ? textList(design.assumptions) ?? [] : [];
+  return [...new Set([...run, ...own])];
+}
+
 /** True or false once the task is readable; null when not, so the page leaves the line out. */
 export function isAccepted(task, plan) {
   if (!isObject(task)) return null;

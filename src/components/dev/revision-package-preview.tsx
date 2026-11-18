@@ -93,7 +93,9 @@ export function RevisionPackagePreview(){
     </div>
     {pkg
       ?<RevisionPackageView title="Fixture concept" pkg={pkg} first={first} last={last}
-        accepted={accepted} dataHref="#" onPrint={()=>window.print()}
+        accepted={accepted} dataHref="#"
+        assumptions={['One bathroom assumed (you can change this).',
+          ...pkg.versions[pkg.versions.length-1].assumptions]} onPrint={()=>window.print()}
         log={changeLog(pkg,graphsByVersion(pkg,first.graph,last.graph))}/>
       :<p role="alert" style={{padding:24}}>
         This revision package is in a format this page does not recognise.
