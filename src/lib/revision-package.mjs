@@ -34,7 +34,9 @@ function parseEdit(raw) {
   if (!isObject(changes) || !Array.isArray(changes.rooms ?? [])) return null;
   const walls = textList(changes.walls), openings = textList(changes.openings);
   const rooms = (changes.rooms ?? []).map(parseRoomChange);
-  return walls && openings && !rooms.includes(null) ? { rooms, walls, openings } : null;
+  // The server's own wording of the edit; older versions have none and fall back to counts.
+  const summary = isText(raw.summary) && raw.summary.length <= 300 ? raw.summary : '';
+  return walls && openings && !rooms.includes(null) ? { rooms, walls, openings, summary } : null;
 }
 
 const validCounts = (counts) => counts === undefined
@@ -136,6 +138,7 @@ export function changeLog(pkg, graphs = {}) {
   return pkg.versions.map((row) => {
     const line = (text) => ({ version: row.version, text: `Version ${row.version}: ${text}` });
     if (row.parentVersion === null) return line('first generated');
+    if (row.edit?.summary) return line(row.edit.summary);
     const fromEdit = row.edit ? editParts(row.edit, graphs[row.version]) : [];
     const parts = fromEdit.length || !row.diff
       ? fromEdit : diffParts(row.diff, graphs[row.version], graphs[row.parentVersion]);

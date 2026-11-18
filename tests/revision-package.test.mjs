@@ -135,3 +135,12 @@ test('packageAssumptions puts the run assumptions first, only for its own plan, 
   for (const bad of [null, {}, { data: { agent_design: { candidates: [{ planId: 'p' }], assumptions: [1] } } }])
     assert.deepEqual(packageAssumptions(bad, pkg), ['Walls 200 mm.', 'Shared']);
 });
+
+test('changeLog uses the stored edit wording when the server saved one', () => {
+  const changes = { rooms: [], walls: [], openings: ['d1'] };
+  const parsed = parsePackage(pkg([entry(1), entry(2, { edit: { changes,
+    summary: 'Widen the door between Bedroom 2 and Circulation to 1000 mm' } }),
+    entry(3, { parentVersion: 2, edit: { changes, summary: 'x'.repeat(301) } })]));
+  assert.deepEqual(changeLog(parsed).map((row) => row.text), ['Version 1: first generated',
+    'Version 2: Widen the door between Bedroom 2 and Circulation to 1000 mm', 'Version 3: 1 opening changed']);
+});

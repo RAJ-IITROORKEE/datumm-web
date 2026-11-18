@@ -3,6 +3,8 @@ import type { ParsedFindings } from './plan-checks.mjs';
 export type PackageRequest = { planId: string; version: number; taskId: string | null };
 export type PackageEdit = {
   rooms: { key: string; fields: string[] }[]; walls: string[]; openings: string[];
+  /** The server's wording of the edit, or '' for versions saved before it was stored. */
+  summary: string;
 };
 export type PackageDiff = {
   addedRooms: string[]; removedRooms: string[];
