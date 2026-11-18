@@ -76,6 +76,8 @@ import { Inspector } from './workspace/inspector';
 import { ModeSwitch } from './workspace/mode-switch';
 import { ReviewScreen } from './workspace/review-screen';
 import { TechnicalDetails } from './workspace/details-drawer';
+import { RevitPanel } from './workspace/revit-panel';
+import { PlanDrawing } from './plan-drawing';
 import { useWorkModes } from './workspace/use-work-modes';
 import { ShareButton } from './workspace/share-dialog';
 
@@ -1097,6 +1099,10 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
             properties: <DesignSidePanel tab={designSideTab} onTab={setDesignSideTab} status={planChecks?.status} details={<><BriefChips run={run}/>{activeDrawing?<StudioProperties drawing={activeDrawing} selected={selectedDesignElement} onSelect={setSelectedDesignElement} onRequest={askFromCanvas} onReview={!hasRenderablePlan||(run?.mode??mode)==='ask'?undefined:()=>actions.focusReview('[aria-label="Validated design preview"]')}/>:<div className="inspector-body"><h3>{w.contextTitle}</h3><p>{w.contextView}</p>{!selectedDevice?.online&&<Button variant="secondary" onClick={()=>setDeviceDialog(true)}>Connect Revit</Button>}</div>}{activeDrawing&&activeDrawing===w.designVersion&&w.planEdit.visible&&<PlanEditPanel drawing={activeDrawing} selected={selectedDesignElement} edit={w.planEdit} redlines={featureEnabled(w.capabilities,'redlines')}/>}<PlanDetails {...w} scope={scope} surface="design" onSelectAlternative={onSelectAlternative}/></>} checks={checksNode}/>,
             review: <ReviewScreen w={w} scope={scope} version={modes.version} locked={modes.reviewLocked} checks={checksNode} actions={actions}/>,
             technical: <TechnicalDetails run={scopedRun}/>,
+            revit: featureEnabled(w.capabilities, 'revitChecks') && selectedDevice?.online
+              ? <RevitPanel key={selectedDevice.id} deviceId={selectedDevice.id} online call={api}
+                plan={activeDrawing ? <PlanDrawing graph={activeDrawing.graph} mode="presentation" compact label={`${activeDrawingTitle}, DATUMM plan`}/> : undefined}/>
+              : undefined,
             page: studioView === 'workspace' ? null : <>{studioView === 'activity' ? (
             <div className="studio-page" tabIndex={-1}>
               <div className="studio-page-heading">

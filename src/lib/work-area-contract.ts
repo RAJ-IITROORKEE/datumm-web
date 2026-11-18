@@ -36,6 +36,8 @@ export interface InspectorProps {
     design: ReactNode; properties: ReactNode; review?: ReactNode;
     /** Activity, Files and Exports open in the Details drawer, not as work-area tabs. */
     activity: ReactNode; assets: ReactNode; exports: ReactNode; technical?: ReactNode;
+    /** The Revit checks tab: absent unless the service offers `revitChecks` and a device is online. */
+    revit?: ReactNode;
     /** A full work-area page (the sidebar's Activity and Scheduled views); absent otherwise. */
     page?: ReactNode; assetPreview?: ReactNode;
   };

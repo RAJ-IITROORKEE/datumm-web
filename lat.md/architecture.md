@@ -124,6 +124,12 @@ The Edit panel can read a marked-up image or PDF page and list the changes a mod
 
 `workspace/redline-panel.tsx` sits below the edit forms and `redline-list.tsx` draws the list. The ticked changes go through `use-plan-edit.ts` `applyMany`, which reuses the single-edit path one request at a time. The `/dev/ux` "Redline intake fixture" mocks the file reader and the server for a ready list, unclear marks, an apply error part-way and a multi-page PDF picker.
 
+### Revit checks
+
+The Details drawer's Revit tab lets an architect check the open Revit model, select or zoom to the affected elements in Revit and compare a Revit floor-plan image with the DATUMM plan. See [[contracts#Revit checks]].
+
+`workspace/revit-panel.tsx` takes the workspace `api` helper as `call`, so the `/dev/ux` "Revit checks fixture" answers every call itself (health with problems, partial coverage, a plan image, a stale-revision refusal and offline). `workspace.tsx` passes the tab through the `revit` slot of `details-drawer.tsx` only when `revitChecks` is on and the selected device is online; the DATUMM plan beside the Revit image is a static `PlanDrawing` of the plan on screen. The tab is local to the drawer, like Technical, and has no stored section.
+
 ## Admin console
 
 `/admin` is a dark-only console for runtime agent configuration, gated on the server by the signed-in primary email and enforced again by the backend by Clerk subject.

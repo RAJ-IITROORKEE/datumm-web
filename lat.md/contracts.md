@@ -112,13 +112,19 @@ The composer shows "N left today" only while a per-user daily limit exists, and 
 
 The backend config's `capabilities` object is read as a tri-state per feature; anything missing or malformed is unknown, never off, so older backends keep working.
 
-Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. `adminTraces`, `feedback`, `adminHistory`, `adminModels`, `modelInfo`, `planEditing`, `runSteps` and `redlines` are the exception: unknown is off, because no deployed backend serves them yet. See `src/lib/capabilities.mjs`.
+Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. `adminTraces`, `feedback`, `adminHistory`, `adminModels`, `modelInfo`, `planEditing`, `runSteps`, `redlines` and `revitChecks` are the exception: unknown is off, because no deployed backend serves them yet. See `src/lib/capabilities.mjs`.
 
 ## Redline intake
 
 The Edit panel's "Read a marked-up plan" is shown only when the `redlines` capability is on: one page image goes to `variable/plans/<id>/versions/<v>/redlines`, the architect ticks the changes the model read, and the existing edit route applies them.
 
 `src/lib/redlines.mjs` builds the request (`{fingerprint, image, pageText}`, text clipped to 8,000 characters) and parses `datumm.redlines.v1` strictly: a wrong schema, plan, version, shape, edit or duplicate id rejects the whole answer, and the model's `mark` is plain text. High and medium items start ticked, low unticked, unclear ones cannot be ticked. `src/lib/redline-file.ts` runs in the browser only: images are downscaled on a canvas to a JPEG of at most 2,400 px and 2.5 MB, and a PDF page (at most 100 pages, 20 MB) is drawn by `pdfjs-dist` loaded on demand, with annotations drawn and their text added to `pageText`. The proxy opens the route with a 3.5 MB body limit for that route alone. `applyMany` in `use-plan-edit.ts` posts the ticked edits one at a time, each with the fingerprint of the previous answer, stops at the first refusal, and selects the newest saved version once. The file is never stored.
+
+## Revit checks
+
+The Details drawer's Revit tab is shown only when the `revitChecks` capability is on and a device is online; everything it does is a read, and nothing writes the model.
+
+`src/lib/model-health.mjs` parses `datumm.model-health.v1` from `GET devices/<id>/health` strictly: a wrong schema, shape, severity, duplicate id or more than 50 ids per check rejects the whole answer, so half a report is never shown. Checks group into Problems (`warn`) and Notes (`info`). "Select in Revit" and "Zoom to them in Revit" post `show_model_elements` to `devices/<id>/tools` with `{documentId, expectedRevision, elementIds, action: 'select' | 'show'}`, the document and revision taken from the health result and no session (the service fills it in); a stale revision is refused with a 409 and worded as "The model changed since this check". "Validate in Revit" reads `list_revit_sessions` (exactly one session), pages `get_model_views` (`kind: 'plans'`), then reads `get_plan_image` (`pixelSize` 1200). The image is shown only when its content type is `image/png`, the base64 is at most 2.2 MB, it starts with the PNG signature and its edges are 1 to 2,048 px. The proxy opens `devices/<id>/health` for GET and nothing next to it. Warnings and room boundaries are not read yet: they need the DATUMM add-in update, and the panel says so.
 
 ## Run steps tree
 

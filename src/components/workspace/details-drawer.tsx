@@ -8,9 +8,11 @@ import type { Run } from './use-workspace-state';
 import { SegmentedControl } from '../vendor/affectui/segmented-control-clean';
 import styles from './details-drawer.module.css';
 
-const tabs: {value: DrawerTab; label: string}[] = [
+type Tab = DrawerTab | 'revit';
+const tabs: {value: Tab; label: string}[] = [
   {value: 'activity', label: 'Activity'}, {value: 'files', label: 'Files'},
-  {value: 'exports', label: 'Exports'}, {value: 'technical', label: 'Technical'},
+  {value: 'exports', label: 'Exports'}, {value: 'revit', label: 'Revit'},
+  {value: 'technical', label: 'Technical'},
 ];
 
 /**
@@ -20,7 +22,8 @@ const tabs: {value: DrawerTab; label: string}[] = [
 export function DetailsDrawer({section, page, slots, onSection}: {
   section: WorkAreaSection; page: boolean; slots: InspectorProps['slots']; onSection: (section: WorkAreaSection) => void;
 }) {
-  const [technical, setTechnical] = useState(false);
+  // Technical and Revit have no stored section, so the drawer keeps them locally.
+  const [local, setLocal] = useState<'technical' | 'revit' | null>(null);
   const opener = useRef<HTMLElement | null>(null);
   const {drawer} = workStateFromSection(section);
   const open = drawer !== null && !page;
@@ -29,9 +32,10 @@ export function DetailsDrawer({section, page, slots, onSection}: {
     const focused = document.activeElement;
     if (open) opener.current = focused instanceof HTMLElement && focused !== document.body ? focused : null;
   }, [open]);
-  const tab: DrawerTab = technical ? 'technical' : drawer ?? 'activity';
-  const content: Record<DrawerTab, ReactNode> = {activity: slots.activity, files: slots.assets, exports: slots.exports, technical: slots.technical};
-  const close = () => { setTechnical(false); onSection('design'); };
+  const hasRevit = Boolean(slots.revit);
+  const tab: Tab = local === 'revit' && !hasRevit ? 'activity' : local ?? drawer ?? 'activity';
+  const content: Record<Tab, ReactNode> = {activity: slots.activity, files: slots.assets, exports: slots.exports, revit: slots.revit, technical: slots.technical};
+  const close = () => { setLocal(null); onSection('design'); };
   return <Sheet open={open} onOpenChange={next => { if (!next) close(); }}>
     <SheetContent className={styles.drawer} onCloseAutoFocus={event => {
       // Always handled here: Radix's own fallback focuses a trigger that does not exist, leaving BODY.
@@ -47,9 +51,9 @@ export function DetailsDrawer({section, page, slots, onSection}: {
       <SheetDescription className="sr-only">Activity, files, exports and technical details for this chat.</SheetDescription>
       <div className={styles.tabs}>
         <SegmentedControl size="lg" variant="underline" kind="tabs" aria-label="Details sections" value={tab}
-          options={tabs.map(item => ({...item, controls: `details-panel-${item.value}`}))}
+          options={tabs.filter(item => item.value !== 'revit' || hasRevit).map(item => ({...item, controls: `details-panel-${item.value}`}))}
           onChange={next => {
-            setTechnical(next === 'technical');
+            setLocal(next === 'technical' || next === 'revit' ? next : null);
             const target = sectionForDrawerTab(next);
             if (target) onSection(target);
           }} />

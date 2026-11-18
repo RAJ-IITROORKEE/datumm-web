@@ -1,0 +1,26 @@
+.panel{display:grid;gap:24px;font-size:13px;line-height:20px}
+.h{margin:0 0 4px;font:500 13px/20px var(--font-sans);color:var(--foreground)}
+.note{margin:0 0 12px;font-size:13px;line-height:20px;color:var(--muted-foreground)}
+.result{display:grid;gap:12px;margin-top:16px}
+.meta{margin:0;color:var(--muted-foreground)}
+.list{list-style:none;margin:0;padding:0;border-top:1px solid var(--separator)}
+.check{display:grid;gap:8px;justify-items:start;padding:12px 0;border-bottom:1px solid var(--separator)}
+.checkText{display:flex;gap:12px;justify-content:space-between;align-items:baseline;width:100%;min-width:0}
+.checkText span{min-width:0;overflow-wrap:anywhere}
+.checkText b{flex:none;font-weight:500;font-variant-numeric:tabular-nums}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.ok{margin:0;color:var(--foreground)}
+.fail{margin:8px 0 0;color:var(--destructive,#b42318)}
+.limits{margin:0;padding-left:16px;font-size:12px;line-height:18px;color:var(--muted-foreground)}
+.validate{padding-top:16px;border-top:1px solid var(--separator)}
+.pick{display:grid;gap:8px;justify-items:start}
+.pick label{display:grid;gap:4px;width:100%;color:var(--muted-foreground)}
+.pick select{width:100%;min-height:32px;padding:4px 8px;border:1px solid var(--separator);border-radius:6px;background:var(--background);color:var(--foreground);font:inherit}
+.pick select:focus-visible{outline:2px solid var(--ui-as-focus);outline-offset:2px}
+.compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:16px}
+.compare figure{margin:0;min-width:0}
+.compare img{display:block;width:100%;height:auto;border:1px solid var(--separator);border-radius:6px;background:#fff}
+.compare figcaption{margin-top:4px;font-size:12px;line-height:18px;color:var(--muted-foreground);overflow-wrap:anywhere}
+.compare>p{grid-column:1/-1;margin:0}
+.drawing{aspect-ratio:4/3;overflow:hidden;border:1px solid var(--separator);border-radius:6px}
+@media(pointer:coarse){.pick select{min-height:44px}}
