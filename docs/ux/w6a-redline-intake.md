@@ -117,4 +117,10 @@ Revert the commits. The `redlines` capability can also be switched off by settin
 
 ## 7. Result
 
-To fill in at checkpoint.
+| Item | Outcome |
+| --- | --- |
+| Build | **Backend `c7cc003`:** `redlines.py`, a route that only reads. Every mark becomes an exact M1 edit, validated with the same models the edit route uses. Summaries and reasons are written by the server. The daily cap is 20, the image is never stored, and the capability is `redlines`. **Web `d3a1fb3`:** `redlines.mjs`, `redline-file.ts` (images re-encoded to JPEG; PDF through `pdfjs-dist` 6.4.299 with annotations and a page picker), the redline panel and list, `use-plan-edit` `applyMany`, and a 3.5 MB body limit for this route only. |
+| Gates | **Backend:** pytest 935 + 26 subtests; all 9 packaged image checks; `lat check`. **Web:** typecheck, 987/987 tests, build, `lat check`. |
+| Live, 19 Nov | **Backend `c7cc003` live 19:39Z, 18 Nov.** Rehearsal: 36,536 documents before and after, 0 tracebacks. Backup `20261118T193633Z`. The change set touched only Service and Task. Web `d3a1fb3` deployed and passed smoke. Test files are in `artifacts/ux/rd1/` (git-ignored): a marked-up version 2 of "Test chat 5c v2" as a PNG, and as a 2-page PDF with the markup on page 2 plus a sticky note. **PNG:** the real model read 3 of 3 marks, all high confidence: "Remove the window in the outside wall of Bathroom", "Widen the door between Bedroom 2 and Circulation to 1000 mm", "Rename Bedroom 2 to Study". **PDF page 2:** the same 3, plus "Widen the door between Circulation and Kitchen to 1000 mm", taken from the sticky note. Applying the 4 made versions 3 to 6. Version 6 data: Study; Bedroom 2 and kitchen doors 1000 mm; no bathroom window. The live revision package lists versions 3 to 6, and there were no console errors. |
+| Found | The change log says "1 door changed" rather than the summary ("Widen … to 1000 mm"), because the package stores `changes`, not the edit. There was no real misread to test the untick path on; the fixture covers it. PDFs that rely on standard fonts or CMaps the browser lacks may lose text (no font assets are bundled). |
+| Not verified | Model accuracy on a real hand drawing or a phone photo; a scanned PDF; the 20-a-day cap live. |
