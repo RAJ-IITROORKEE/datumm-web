@@ -112,7 +112,13 @@ The composer shows "N left today" only while a per-user daily limit exists, and 
 
 The backend config's `capabilities` object is read as a tri-state per feature; anything missing or malformed is unknown, never off, so older backends keep working.
 
-Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. `adminTraces`, `feedback`, `adminHistory`, `adminModels`, `modelInfo`, `planEditing` and `runSteps` are the exception: unknown is off, because no deployed backend serves them yet. See `src/lib/capabilities.mjs`.
+Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. `adminTraces`, `feedback`, `adminHistory`, `adminModels`, `modelInfo`, `planEditing`, `runSteps` and `redlines` are the exception: unknown is off, because no deployed backend serves them yet. See `src/lib/capabilities.mjs`.
+
+## Redline intake
+
+The Edit panel's "Read a marked-up plan" is shown only when the `redlines` capability is on: one page image goes to `variable/plans/<id>/versions/<v>/redlines`, the architect ticks the changes the model read, and the existing edit route applies them.
+
+`src/lib/redlines.mjs` builds the request (`{fingerprint, image, pageText}`, text clipped to 8,000 characters) and parses `datumm.redlines.v1` strictly: a wrong schema, plan, version, shape, edit or duplicate id rejects the whole answer, and the model's `mark` is plain text. High and medium items start ticked, low unticked, unclear ones cannot be ticked. `src/lib/redline-file.ts` runs in the browser only: images are downscaled on a canvas to a JPEG of at most 2,400 px and 2.5 MB, and a PDF page (at most 100 pages, 20 MB) is drawn by `pdfjs-dist` loaded on demand, with annotations drawn and their text added to `pageText`. The proxy opens the route with a 3.5 MB body limit for that route alone. `applyMany` in `use-plan-edit.ts` posts the ticked edits one at a time, each with the fingerprint of the previous answer, stops at the first refusal, and selects the newest saved version once. The file is never stored.
 
 ## Run steps tree
 

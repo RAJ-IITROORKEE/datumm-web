@@ -31,3 +31,29 @@ test('the proxy forwards the plan edit route and nothing next to it', async () =
     assert.equal((await send(path, 'GET')).status, 404, path);
   }
 });
+
+// @lat: [[contracts#Redline intake]]
+test('the proxy forwards the redline read with a larger body limit for that route alone', async () => {
+  const calls = [];
+  const limits = [];
+  const backend = async (path, init) => { calls.push({path, init}); return Response.json({ok: true}); };
+  const source = readFileSync(new URL('../src/app/api/service/[...path]/route.ts', import.meta.url), 'utf8');
+  const context = {exports: {}, Response, Headers, URL, Buffer, console, require: name => {
+    if (name === '@/lib/backend') return {backend};
+    if (name === '@/lib/request-body') return {requestBody: (request, limit) => { limits.push(limit); return request.text(); }};
+    if (name === '@/lib/plan-pdf') return {};
+    throw Error(`Unexpected import: ${name}`);
+  }};
+  runInNewContext(ts.transpileModule(source, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022}}).outputText, context);
+  const send = path => context.exports.POST(new Request(`https://preview.example/api/service/${path}`, {method: 'POST', body: '{}'}), {params: Promise.resolve({path: path.split('/')})});
+  assert.equal((await send('variable/plans/plan-1/versions/3/redlines')).status, 200);
+  assert.equal(calls[0].path, '/v1/variable/plans/plan-1/versions/3/redlines');
+  assert.equal(limits[0], 3_500_000);
+  assert.equal((await send('variable/plans/plan-1/versions/3/edits')).status, 200);
+  assert.equal(limits[1], undefined, 'other routes keep the default limit');
+  calls.length = 0;
+  for (const path of ['variable/plans/plan-1/versions/3/redlines/x', 'variable/plans/plan-1/versions/x/redlines', 'variable/plans/plan-1/redlines']) {
+    assert.equal((await send(path)).status, 404, path);
+  }
+  assert.equal(calls.length, 0);
+});

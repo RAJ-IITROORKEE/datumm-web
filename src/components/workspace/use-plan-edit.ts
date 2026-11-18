@@ -1,6 +1,7 @@
 'use client';
 import {useRef,useState} from 'react';
 import {acceptAgainNote,editBody,editPath,parseEditResult,refusalMessage,successMessage,type PlanEdit} from '@/lib/plan-edits.mjs';
+import {appliedMessage,partialMessage,parseRedlines,redlineBody,redlinePath} from '@/lib/redlines.mjs';
 import type {DrawingVersion} from '../plan-canvas';
 import type {Run} from './use-workspace-state';
 
@@ -29,16 +30,28 @@ export function usePlanEdit(ctx:Context){
   const mine=ctx.scopeCurrent(record);
   const patch=(token:Scope,next:{busy?:boolean;notice?:PlanEditNotice|null})=>{if(ctx.scopeCurrent(token))setRecord(previous=>({...(ctx.scopeCurrent(previous)?previous:{busy:false,notice:null}),...token,...next}));};
 
-  const apply=async(edit:PlanEdit)=>{
+  /**
+   * Saves the edits one at a time, each against the version and fingerprint the previous answer
+   * returned, then selects the newest saved version once. A refusal stops the queue: what was
+   * already saved stays saved and is selected. One edit is the ordinary single apply.
+   */
+  const save=async(edits:PlanEdit[]):Promise<{applied:number;error:string}>=>{
     const base=ctx.designVersion,token={...ctx.guard.current},taskId=ctx.runId,briefId=ctx.run?.data.agent_design?.briefId;
-    if(lock.current||!ctx.allowed||!base||!taskId||!briefId)return;
+    const outcome={applied:0,error:''};
+    if(lock.current||!ctx.allowed||!base||!taskId||!briefId||!edits.length)return outcome;
     lock.current=true;patch(token,{busy:true,notice:null});ctx.setActionBusy(true);
     let saved=0,finished=false;
     try{
       await ctx.withSelectionMutation(async()=>{
-        const result=parseEditResult(await ctx.api<unknown>(editPath(base),'POST',editBody(base,edit)),base);
-        if(!result)throw Object.assign(new Error('The server did not confirm the edit.'),{status:0});
-        saved=result.version;
+        let result:ReturnType<typeof parseEditResult>=null,at:{planId:string;version:number;fingerprint:string}=base,stop:unknown=null;
+        for(const edit of edits){
+          try{
+            const answer=parseEditResult(await ctx.api<unknown>(editPath(at),'POST',editBody(at,edit)),at);
+            if(!answer)throw Object.assign(new Error('The server did not confirm the edit.'),{status:0});
+            result=answer;at=answer;saved=answer.version;outcome.applied++;
+          }catch(failure){stop=failure;break;}
+        }
+        if(!result)throw stop;
         const next=await ctx.api<DrawingVersion>(`variable/plans/${encodeURIComponent(result.planId)}/versions/${result.version}`);
         if(!same(next,result))throw new Error('The saved version does not match the edit.');
         const review=await ctx.api<{selectionRevision:number}>(`variable/briefs/${briefId}/alternatives`);
@@ -50,13 +63,28 @@ export function usePlanEdit(ctx:Context){
         ctx.setDesignVersion(next,token);ctx.clearComparison();ctx.clearSelection();ctx.setRun(refreshed);
         // The server clears the old acceptance; say so instead of leaving the person to find a stale Accept.
         const reaccept=ctx.run?.acceptance?.plan&&same(ctx.run.acceptance.plan,base);
-        patch(token,{notice:{tone:'ok',text:successMessage(result,next.graph)+(reaccept?` · ${acceptAgainNote(next.version)}`:''),back:base.version}});
+        const tail=reaccept?` · ${acceptAgainNote(next.version)}`:'';
+        if(stop){
+          const e=stop as {status?:number;message?:string;serviceCode?:string};
+          outcome.error=partialMessage(outcome.applied,edits.length,next.version,refusalMessage({status:e.status,message:e.message,code:e.serviceCode}));
+          patch(token,{notice:{tone:'error',text:outcome.error+tail}});
+        }else patch(token,{notice:{tone:'ok',text:(edits.length>1?appliedMessage(outcome.applied,next.version):successMessage(result,next.graph))+tail,back:base.version}});
       });
-      if(!finished&&!saved)patch(token,{notice:{tone:'error',text:'Editing is paused until the saved selection is checked. The plan is unchanged.'}});
+      if(!finished&&!saved){outcome.error='Editing is paused until the saved selection is checked. The plan is unchanged.';patch(token,{notice:{tone:'error',text:outcome.error}});}
     }catch(failure){
       const e=failure as {status?:number;message?:string;serviceCode?:string};
-      patch(token,{notice:{tone:'error',text:saved?`Version ${saved} was saved, but it could not be opened here. Reload the chat to see it.`:refusalMessage({status:e.status,message:e.message,code:e.serviceCode})}});
+      outcome.error=saved?`Version ${saved} was saved, but it could not be opened here. Reload the chat to see it.`:refusalMessage({status:e.status,message:e.message,code:e.serviceCode});
+      patch(token,{notice:{tone:'error',text:outcome.error}});
     }finally{lock.current=false;patch(token,{busy:false});if(ctx.scopeCurrent(token))ctx.setActionBusy(false);}
+    return outcome;
+  };
+  const apply=async(edit:PlanEdit)=>{await save([edit]);};
+
+  /** Read one page image against the plan on screen. A read changes nothing. */
+  const readRedlines=async(drawing:DrawingVersion,source:{image:string;pageText?:string})=>{
+    const result=parseRedlines(await ctx.api<unknown>(redlinePath(drawing),'POST',redlineBody(drawing,source)),drawing);
+    if(!result)throw Object.assign(new Error('The server answer was not a redline list.'),{status:0});
+    return result;
   };
 
   /** Show another saved version of this plan. It only reads: nothing is deleted or selected. */
@@ -72,5 +100,5 @@ export function usePlanEdit(ctx:Context){
     finally{lock.current=false;patch(token,{busy:false});}
   };
 
-  return {busy:mine&&record.busy,notice:mine?record.notice:null,apply,open,dismiss:()=>patch({...ctx.guard.current},{notice:null})};
+  return {busy:mine&&record.busy,notice:mine?record.notice:null,apply,applyMany:save,readRedlines,open,dismiss:()=>patch({...ctx.guard.current},{notice:null})};
 }

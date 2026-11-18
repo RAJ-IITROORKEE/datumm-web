@@ -2,7 +2,9 @@ import { planPdf } from '@/lib/plan-pdf';
 import { backend } from '@/lib/backend';
 import { requestBody } from '@/lib/request-body';
 export const maxDuration=240;
-const allowed=/^(?:admin\/(?:config(?:\/(?:history(?:\/[0-9]{1,9})?|restore))?|audit|overview|traces|feedback(?:\/(?!\.{1,2}\/)[A-Za-z0-9._:-]{1,120}\/case)?|models(?:\/(?:test|usage)|\/(?!\.{1,2}\/)[A-Za-z0-9._:-]{1,80}\/(?!\.{1,2}\/)[A-Za-z0-9._:-]{1,80}\/tests)?|knowledge\/sources(?:\/[a-zA-Z0-9-]{1,64}(?:\/reindex)?)?|skills\/preview)|me\/(?:permissions|usage\/today)|config|tools|devices(?:\/[a-zA-Z0-9-]+(?:\/(?:context|control|agent-control|tools))?)?|device-authorizations\/[a-zA-Z0-9_-]+(?:\/approve)?|pairing|runs(?:\/[a-zA-Z0-9-]+(?:\/(?:events|resume|reply|access|cancel|pause|continue|recover|pin|archive|export\/(?:json|analysis-json|report-json|csv|elements-csv|svg|preview-png|preview-jpeg|plan-pdf|md|pdf|docx|xlsx|concept|native-png|native-jpeg|handoff|plan)))?)?|variable\/(?:briefs\/[a-zA-Z0-9-]+\/(?:alternatives|selection)|plans\/[a-zA-Z0-9-]+\/versions\/[0-9]+(?:\/(?:edits|package))?|diff))$/;
+// A redline read carries one downscaled page image (at most 2.5 MB decoded, about 3.4 MB as JSON).
+const redlineRoute=/^variable\/plans\/[a-zA-Z0-9-]+\/versions\/[0-9]+\/redlines$/;
+const allowed=/^(?:admin\/(?:config(?:\/(?:history(?:\/[0-9]{1,9})?|restore))?|audit|overview|traces|feedback(?:\/(?!\.{1,2}\/)[A-Za-z0-9._:-]{1,120}\/case)?|models(?:\/(?:test|usage)|\/(?!\.{1,2}\/)[A-Za-z0-9._:-]{1,80}\/(?!\.{1,2}\/)[A-Za-z0-9._:-]{1,80}\/tests)?|knowledge\/sources(?:\/[a-zA-Z0-9-]{1,64}(?:\/reindex)?)?|skills\/preview)|me\/(?:permissions|usage\/today)|config|tools|devices(?:\/[a-zA-Z0-9-]+(?:\/(?:context|control|agent-control|tools))?)?|device-authorizations\/[a-zA-Z0-9_-]+(?:\/approve)?|pairing|runs(?:\/[a-zA-Z0-9-]+(?:\/(?:events|resume|reply|access|cancel|pause|continue|recover|pin|archive|export\/(?:json|analysis-json|report-json|csv|elements-csv|svg|preview-png|preview-jpeg|plan-pdf|md|pdf|docx|xlsx|concept|native-png|native-jpeg|handoff|plan)))?)?|variable\/(?:briefs\/[a-zA-Z0-9-]+\/(?:alternatives|selection)|plans\/[a-zA-Z0-9-]+\/versions\/[0-9]+(?:\/(?:edits|package|redlines))?|diff))$/;
 function boundedRasterSvg(svg:string):Buffer|null{
  const root=svg.match(/<svg\b[^>]*>/i)?.[0];
  const viewBox=root?.match(/\bviewBox\s*=\s*["']([^"']+)["']/i)?.[1];
@@ -22,7 +24,7 @@ async function proxy(request:Request,context:{params:Promise<{path:string[]}>}){
  try{
  const preview=suffix.match(/^runs\/([a-zA-Z0-9-]+)\/export\/(?:preview-(png|jpeg)|(plan-pdf))$/);
  let upstream=taskRoute?`/v2/${suffix}`:`/v1/${preview?`runs/${preview[1]}/export/svg`:suffix}`;
-  const payload=['GET','HEAD'].includes(request.method)?undefined:await requestBody(request);
+  const payload=['GET','HEAD'].includes(request.method)?undefined:await requestBody(request,redlineRoute.test(suffix)?3_500_000:undefined);
   if(payload instanceof Response)return payload;
  const runRoute=suffix.match(/^runs(?:\/([a-zA-Z0-9-]+)(?:\/(.*))?)?$/);
  if(runRoute){

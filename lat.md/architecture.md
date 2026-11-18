@@ -118,6 +118,12 @@ A room offers Rename, Swap with and Resize; a wall offers Move by N mm; an openi
 
 `src/lib/plan-edits.mjs` builds and checks each request (`{fingerprint, edit}` to `variable/plans/<id>/versions/<v>/edits`) and words the outcome. After a 200, `use-plan-edit.ts` selects the new version on the brief and reloads the task, the same path as choosing an alternative, then shows "Saved as Version N · changes · checks". A 409 `edit.stale` says the plan changed elsewhere, other refusals show the server's message, and the plan on screen stays as it was. An accepted version gets a note that the new one needs accepting again. Undo is "Back to Version N-1": it reads the earlier saved version and shows it as a retained reference, never deleting or selecting anything. The `/dev/ux` "Plan edits fixture" mocks the server's success and refusals.
 
+### Redline intake
+
+The Edit panel can read a marked-up image or PDF page and list the changes a model saw; the architect ticks, then applies. See [[contracts#Redline intake]].
+
+`workspace/redline-panel.tsx` sits below the edit forms and `redline-list.tsx` draws the list. The ticked changes go through `use-plan-edit.ts` `applyMany`, which reuses the single-edit path one request at a time. The `/dev/ux` "Redline intake fixture" mocks the file reader and the server for a ready list, unclear marks, an apply error part-way and a multi-page PDF picker.
+
 ## Admin console
 
 `/admin` is a dark-only console for runtime agent configuration, gated on the server by the signed-in primary email and enforced again by the backend by Clerk subject.

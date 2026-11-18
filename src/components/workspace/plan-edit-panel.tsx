@@ -4,15 +4,16 @@ import {Pencil,Trash2,Undo2,X} from 'lucide-react';
 import {interiorWalls,isMovableWall,moveDirectionHint,movePreview,moveWallEdit,NAME_MAX,openingEdit,parseMm,renameEdit,swapEdit,type EditCheck} from '@/lib/plan-edits.mjs';
 import type {DrawingVersion} from '../plan-canvas';
 import {Button} from '../ui/button';
+import {RedlinePanel} from './redline-panel';
 import type {WorkspaceState} from './use-workspace-state';
 import styles from './plan-edit-panel.module.css';
 
 export type PlanEditControls=WorkspaceState['planEdit'];
 type Graph=DrawingVersion['graph'];
-type Props={drawing:DrawingVersion;selected:string;edit:PlanEditControls};
+type Props={drawing:DrawingVersion;selected:string;edit:PlanEditControls;/** The `redlines` capability is on. */redlines?:boolean};
 
 /** Edit actions for the selected room, wall or opening, inside the Design side panel's Details tab. */
-export function PlanEditPanel({drawing,selected,edit}:Props){
+export function PlanEditPanel({drawing,selected,edit,redlines=false}:Props){
   const {graph}=drawing,{notice,earlierOf,reason,busy}=edit;
   const room=graph.rooms.find(row=>row.key===selected),wall=room?undefined:graph.walls?.find(row=>row.key===selected),opening=room||wall?undefined:graph.openings?.find(row=>row.key===selected);
   const off=Boolean(reason)||busy,scope=`${drawing.planId}:${drawing.version}:${drawing.fingerprint}:${selected}`;
@@ -31,6 +32,7 @@ export function PlanEditPanel({drawing,selected,edit}:Props){
       :wall?<WallEdits key={scope} graph={graph} wallKey={wall!.key} off={off} edit={edit}/>
       :opening?<OpeningEdits key={scope} graph={graph} openingKey={opening!.key} off={off} edit={edit}/>
       :<p className={styles.muted}>Select a room, wall, door or window on the drawing to edit it.</p>}
+    {redlines&&<RedlinePanel key={drawing.planId} drawing={drawing} off={off} read={edit.readRedlines} apply={edit.applyMany}/>}
   </section>;
 }
 

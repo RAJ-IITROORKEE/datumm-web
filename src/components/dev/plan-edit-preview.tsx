@@ -65,7 +65,7 @@ export function PlanEditPreview(){
     }finally{lock.current=false;setBusy(false);}
   };
   const open=async(n:number)=>{setView(versions.findIndex(row=>row.version===n));setNotice(null);setSelected('');};
-  const edit:PlanEditControls={visible:true,reason:earlierOf?`This is an earlier saved version. Open Version ${earlierOf} to edit.`:'',earlierOf,busy,notice,apply,open,dismiss:()=>setNotice(null)};
+  const edit:PlanEditControls={visible:true,reason:earlierOf?`This is an earlier saved version. Open Version ${earlierOf} to edit.`:'',earlierOf,busy,notice,apply,applyMany:async()=>({applied:0,error:''}),readRedlines:async()=>{throw new Error('Not used here.');},open,dismiss:()=>setNotice(null)};
   return <div style={{display:'flex',flexDirection:'column',height:'calc(100dvh - 64px)',minHeight:0}}>
     <div style={{display:'flex',flexWrap:'wrap',gap:12,alignItems:'center',padding:'8px 16px',borderBottom:'1px solid var(--separator)'}}>
       <strong>Plan edits fixture</strong><span>Mocked server · nothing is sent · Version {drawing.version} of {latest.version}</span>
