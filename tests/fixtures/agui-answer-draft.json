@@ -1,0 +1,259 @@
+{
+  "_note": "Recorded draft frames for the development replay and adapter tests. Frames are what the backend sends before the checked answer; delayMs only paces the dev replay.",
+  "extend": {
+    "id": "draft-extend-task",
+    "status": "completed",
+    "taskVersion": 2,
+    "executionId": "draft-extend-execution",
+    "created_at": "2026-11-19T09:00:00+00:00",
+    "mode": "ask",
+    "title": "Where should the living hall go?",
+    "data": {
+      "answer": "Put the living hall on the south side so it faces the garden and gets the afternoon light all year. The kitchen can sit beside it on the east."
+    },
+    "conversation": [
+      {
+        "turnId": "draft-extend-command",
+        "prompt": "Where should the living hall go?",
+        "answer": "Put the living hall on the south side so it faces the garden and gets the afternoon light all year. The kitchen can sit beside it on the east."
+      }
+    ],
+    "commandReceipts": [
+      {
+        "commandId": "draft-extend-command",
+        "state": "applied"
+      }
+    ],
+    "events": [
+      {
+        "schemaVersion": 2,
+        "eventId": "draft-extend-task:1",
+        "sequence": 1,
+        "index": 0,
+        "taskId": "draft-extend-task",
+        "stage": "agent_running",
+        "type": "activity",
+        "summary": "Writing the answer",
+        "detail": "Writing the answer",
+        "turnId": "draft-extend-command",
+        "executionId": "draft-extend-execution"
+      },
+      {
+        "schemaVersion": 2,
+        "eventId": "draft-extend-task:2",
+        "sequence": 2,
+        "index": 1,
+        "taskId": "draft-extend-task",
+        "stage": "answer",
+        "type": "activity",
+        "summary": "Answer saved",
+        "detail": "Answer saved",
+        "turnId": "draft-extend-command",
+        "executionId": "draft-extend-execution"
+      },
+      {
+        "schemaVersion": 2,
+        "eventId": "draft-extend-task:3",
+        "sequence": 3,
+        "index": 2,
+        "taskId": "draft-extend-task",
+        "stage": "completed",
+        "type": "activity",
+        "summary": "Answer saved",
+        "detail": "Answer saved",
+        "turnId": "draft-extend-command",
+        "executionId": "draft-extend-execution"
+      }
+    ],
+    "answerDraftFrames": [
+      {
+        "stage": "answer_draft",
+        "text": "Put the",
+        "seq": 1,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "Put the living hall",
+        "seq": 2,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "Put the living hall on the",
+        "seq": 3,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "Put the living hall on the south side",
+        "seq": 4,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "Put the living hall on the south side so it",
+        "seq": 5,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "Put the living hall on the south side so it faces the",
+        "seq": 6,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "Put the living hall on the south side so it faces the garden and",
+        "seq": 7,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "Put the living hall on the south side so it faces the garden and gets the",
+        "seq": 8,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "Put the living hall on the south side so it faces the garden and gets the afternoon light",
+        "seq": 9,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "Put the living hall on the south side so it faces the garden and gets the afternoon light all year",
+        "seq": 10,
+        "delayMs": 180
+      }
+    ]
+  },
+  "replace": {
+    "id": "draft-replace-task",
+    "status": "completed",
+    "taskVersion": 2,
+    "executionId": "draft-replace-execution",
+    "created_at": "2026-11-19T09:00:00+00:00",
+    "mode": "ask",
+    "title": "Where should the kitchen go?",
+    "data": {
+      "answer": "The kitchen fits best on the east side, next to the dining area. That keeps the entrance clear."
+    },
+    "conversation": [
+      {
+        "turnId": "draft-replace-command",
+        "prompt": "Where should the kitchen go?",
+        "answer": "The kitchen fits best on the east side, next to the dining area. That keeps the entrance clear."
+      }
+    ],
+    "commandReceipts": [
+      {
+        "commandId": "draft-replace-command",
+        "state": "applied"
+      }
+    ],
+    "events": [
+      {
+        "schemaVersion": 2,
+        "eventId": "draft-replace-task:1",
+        "sequence": 1,
+        "index": 0,
+        "taskId": "draft-replace-task",
+        "stage": "agent_running",
+        "type": "activity",
+        "summary": "Writing the answer",
+        "detail": "Writing the answer",
+        "turnId": "draft-replace-command",
+        "executionId": "draft-replace-execution"
+      },
+      {
+        "schemaVersion": 2,
+        "eventId": "draft-replace-task:2",
+        "sequence": 2,
+        "index": 1,
+        "taskId": "draft-replace-task",
+        "stage": "answer",
+        "type": "activity",
+        "summary": "Answer saved",
+        "detail": "Answer saved",
+        "turnId": "draft-replace-command",
+        "executionId": "draft-replace-execution"
+      },
+      {
+        "schemaVersion": 2,
+        "eventId": "draft-replace-task:3",
+        "sequence": 3,
+        "index": 2,
+        "taskId": "draft-replace-task",
+        "stage": "completed",
+        "type": "activity",
+        "summary": "Answer saved",
+        "detail": "Answer saved",
+        "turnId": "draft-replace-command",
+        "executionId": "draft-replace-execution"
+      }
+    ],
+    "answerDraftFrames": [
+      {
+        "stage": "answer_draft",
+        "text": "I would",
+        "seq": 1,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "I would put the",
+        "seq": 2,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "I would put the kitchen on",
+        "seq": 3,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "I would put the kitchen on the west",
+        "seq": 4,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "I would put the kitchen on the west side of",
+        "seq": 5,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "I would put the kitchen on the west side of the plan",
+        "seq": 6,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "I would put the kitchen on the west side of the plan next to",
+        "seq": 7,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "I would put the kitchen on the west side of the plan next to the entrance",
+        "seq": 8,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "I would put the kitchen on the west side of the plan next to the entrance and the",
+        "seq": 9,
+        "delayMs": 180
+      },
+      {
+        "stage": "answer_draft",
+        "text": "I would put the kitchen on the west side of the plan next to the entrance and the stairs",
+        "seq": 10,
+        "delayMs": 180
+      }
+    ]
+  }
+}

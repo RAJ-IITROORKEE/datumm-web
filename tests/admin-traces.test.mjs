@@ -48,7 +48,8 @@ test('rows keep only allowlisted keys, at every nesting level', () => {
   assert.ok(!JSON.stringify(parsed).includes('CANARY'), 'no unknown value survives');
   assert.deepEqual(Object.keys(parsed).sort(), ['from', 'nextCursor', 'rows', 'stats', 'to']);
   assert.deepEqual(Object.keys(parsed.rows[0].calls[0]).sort(), ['durationMs', 'failureCode',
-    'finishReason', 'inputTokens', 'modelId', 'outputTokens', 'reasoningTokens', 'role', 'status',
+    'finishReason', 'firstTokenMs', 'inputTokens', 'modelId', 'outputTokens', 'reasoningTokens',
+    'role', 'status',
     'usd']);
 });
 
@@ -151,12 +152,14 @@ test('durations round to whole seconds before splitting minutes', () => {
   assert.equal(formatDuration(59940), '59.9 s');
 });
 
-const PHASE_KEYS = ['admitMs', 'answerMs', 'firstCallMs', 'maxPacketBytes', 'maxToolSchemaBytes',
+const PHASE_KEYS = ['admitMs', 'answerMs', 'firstCallMs', 'firstTokenMs', 'maxPacketBytes',
+  'maxToolSchemaBytes',
   'modelMs', 'startMs', 'stepMs', 'toolMs', 'unattributedMs'];
 const phasesOf = phases => parseTraces(doc([row({ phases })])).rows[0].phases;
 
 test('phases keep exact integers in range and drop every unknown key', () => {
-  const parsed = phasesOf({ admitMs: 35, startMs: 0, firstCallMs: 480, answerMs: 86400000,
+  const parsed = phasesOf({ admitMs: 35, startMs: 0, firstCallMs: 480, firstTokenMs: 910,
+    answerMs: 86400000,
     modelMs: 3100, toolMs: 700, stepMs: 3900, unattributedMs: 400, maxPacketBytes: 2147483647,
     maxToolSchemaBytes: 9120, prompt: 'CANARY-7f3' });
   assert.deepEqual(Object.keys(parsed).sort(), PHASE_KEYS);
@@ -249,4 +252,21 @@ test('time and packet items show only the values that are present', () => {
   assert.deepEqual(phasePacketItems(phases), [{ label: 'Largest packet', value: '48,213 bytes' }]);
   assert.equal(formatBytes(null), '—');
   assert.equal(formatBytes(9120), '9,120 bytes');
+});
+
+test('first word times are optional: kept when measured, null when absent or unusable', () => {
+  const timed = parseTraces(doc([row({
+    calls: [{ role: 'planner', modelId: 'm', firstTokenMs: 640.4 },
+      { role: 'answer', modelId: 'm', firstTokenMs: -1 }, { role: 'x', modelId: 'm' }],
+    phases: { firstTokenMs: 910, answerMs: 4100 },
+  })], { stats: { ...doc().stats, firstTokenP50Ms: 700, firstTokenP95Ms: '9' } }));
+  assert.deepEqual(timed.rows[0].calls.map(call => call.firstTokenMs), [640, null, null]);
+  assert.equal(timed.rows[0].phases.firstTokenMs, 910);
+  assert.equal(timed.stats.firstTokenP50Ms, 700);
+  assert.equal(timed.stats.firstTokenP95Ms, null, 'a string is not a measurement');
+  const old = parseTraces(doc());
+  assert.equal(old.rows[0].calls[0].firstTokenMs, null);
+  assert.equal(old.stats.firstTokenP50Ms, null);
+  assert.ok(phaseTimeItems({ firstTokenMs: 910 }).some(item => item.label === 'First word'));
+  assert.ok(!phaseTimeItems({ answerMs: 1 }).some(item => item.label === 'First word'));
 });

@@ -32,6 +32,8 @@ import { AgentLimit } from '../agent-memory';
 import { Composer } from './composer';
 import { RetryOnModel } from './retry-on-model';
 import { DisplayActionsTurn, type DisplayActionsApi } from './display-actions';
+import { DraftAnswer } from './answer-draft';
+import { answerView, liveDraft } from '@/lib/agui/answer-draft.mjs';
 import {
   type WorkspaceState,
   api,
@@ -518,6 +520,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
   const currentResult = conversationResult({mode:run?.mode,status:run?.status,hasConcept:Boolean(props.hasRenderablePlan),loading:props.drawingLoading});
   const d = run?.data;
   const displayedTurns = conversationTurns(run?.conversation?.length ? run.conversation : [{ prompt: run?.title, answer: run?.data.answer }]);
+  const draftText = executing ? liveDraft(messages) : '';
   const inlineFailure = failedTurnRecovery({status: run?.status, answer: displayedTurns.at(-1)?.answer, current: Boolean(run && (run.conversation?.length || messages.length === 0)) && !executing && !cancelPending && run?.id === runId && props.workspaceScopeInput?.taskId === run?.id, recoveryAction: run?.data.failure?.recoveryAction, hasConcept: props.hasRenderablePlan});
   const recoveryIdentity = JSON.stringify([props.workspaceScopeInput?.key, runId, run?.id, displayedTurns.at(-1)?.index, displayedTurns.at(-1)?.turnId, run?.status]);
   const liveRecoveryIdentity = useRef(recoveryIdentity); liveRecoveryIdentity.current = recoveryIdentity;
@@ -621,6 +624,9 @@ export function ConversationPanel(props: ConversationPanelProps) {
                                 {recovery.hasConcept && <Button variant="secondary" onClick={() => { if (liveRecoveryIdentity.current === recoveryIdentity) workAreaActions.openDrawing(); }}>View saved concept</Button>}
                               </div>
                             </div>}
+                            {last && !turn.answer && draftText && (
+                              <MessageContent><DraftAnswer text={draftText} /></MessageContent>
+                            )}
                             {turn.answer && (
                               <MessageContent>
                                 <ConversationAnswer text={turn.answer} turnId={turn.turnId} presentation={turn.presentation} completed={answerComplete} completion={completion} source={{ key: `${run.id}:answer:${turn.answerIndex ?? index}`, taskId: run.id, conversationIndex: turn.answerIndex ?? index, answerNumber: ordinal + 1, state: answerOutputState }} />
@@ -648,7 +654,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                 .filter(
                   (message) =>
                     message.role !== 'assistant' ||
-                    message.parts.some((part) => part.type === 'text' && part.text.trim()),
+                    answerView(message.parts).some((view) => view.text.trim()),
                 )
                 .map((message) => (
                   <Message key={message.id} from={message.role}>
@@ -659,11 +665,12 @@ export function ConversationPanel(props: ConversationPanelProps) {
                     )}
                     {message.role === 'assistant' && !executing && message.id === messages.findLast(row => row.role === 'assistant')?.id && todoItems.length > 0 && <PlanDock items={todoItems} title={traceTurns.length > 1 ? 'Plan · message not recorded' : 'Plan'} />}
                     <MessageContent>
-                      {message.parts
-                        .filter((p) => p.type === 'text')
+                      {answerView(message.parts)
                         .map((part, i) =>
                           message.role === 'user' ? (
                             <PromptContent key={i} text={part.text} />
+                          ) : part.draft ? (
+                            <DraftAnswer key={i} text={part.text} />
                           ) : (
                             <ConversationAnswer key={i} text={part.text} source={{ key: `message:${message.id}:${i}`, taskId: runId || undefined, conversationIndex: messages.filter(row => row.role === 'assistant').findIndex(row => row.id === message.id), state: busy && message.id === messages.at(-1)?.id ? 'streaming' : run?.status === 'completed' ? 'saved' : 'partial' }} />
                           ),
@@ -680,7 +687,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                 !messages.some(
                   (message) =>
                     message.role === 'assistant' &&
-                    message.parts.some((part) => part.type === 'text' && part.text.trim()),
+                    answerView(message.parts).some((view) => view.text.trim()),
                 ) && (
                   <Message from="assistant">
                     <div className="assistant-label">

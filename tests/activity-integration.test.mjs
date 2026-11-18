@@ -12,6 +12,7 @@ import { conversationResult, failedTurnRecovery } from '../src/lib/conversation-
 import { drawingTitle } from '../src/lib/drawing-presentation.mjs';
 import { stageSpans } from '../src/lib/turn-nesting.mjs';
 import * as conversationHelpers from '../src/lib/conversation-turns.mjs';
+import * as answerDraft from '../src/lib/agui/answer-draft.mjs';
 
 const exports = {};
 const unexpectedAction = () => { throw Error('Rendering activity must not invoke a task or native action'); };
@@ -28,6 +29,7 @@ runInNewContext(ts.transpileModule(readFileSync(new URL('../src/components/works
   if (name === '@/lib/plan-checks.mjs') return { alternativeChecks };
   if (name === '@/lib/conversation-turns.mjs') return conversationHelpers;
   if (name === '@/lib/turn-nesting.mjs') return { stageSpans };
+  if (name === '@/lib/agui/answer-draft.mjs') return answerDraft;
   if (name === './use-workspace-state') return { api: unexpectedAction, terminal: new Set(['completed', 'failed', 'cancelled', 'interrupted']) };
   if (name === './turn-process') return { TurnProcess: 'turn-process', turnProcessVisible: () => true };
   return new Proxy({}, { get: (_, key) => String(key) });
@@ -235,6 +237,20 @@ test('streamed and saved fallback answers retain actual answer text instead of a
  const saved=task('task-saved',[]);saved.data.answer='Actual saved answer with details.';
  tree=render(props(saved,{messages:[{id:'user-a',role:'user',parts:[{type:'text',text:'Prompt'}]}],responseSummary:'Short status only.'}));
  answer=tree.find(node=>node.type==='ConversationAnswer');assert.equal(answer.props.text,'Actual saved answer with details.');assert.equal(answer.props.source.state,'saved');
+});
+
+test('a streaming answer draft shows as a draft in the latest turn until the saved answer arrives',()=>{
+ const draft={id:'a',role:'assistant',parts:[{type:'text',text:'Draft so far',state:'streaming'}]};
+ const running=task('task-draft',[{prompt:'Where?'}]);running.status='running';
+ let tree=render(props(running,{messages:[draft],executing:true,busy:true}));
+ assert.equal(tree.find(node=>node.type==='DraftAnswer').props.text,'Draft so far');
+ assert.equal(tree.some(node=>node.type==='ConversationAnswer'),false);
+ const saved=task('task-draft',[{prompt:'Where?',answer:'Checked answer.'}]);
+ tree=render(props(saved,{messages:[draft],executing:true,busy:true}));
+ assert.equal(tree.some(node=>node.type==='DraftAnswer'),false,'the saved answer replaces the draft');
+ assert.equal(tree.find(node=>node.type==='ConversationAnswer').props.text,'Checked answer.');
+ tree=render(props(running,{messages:[draft],executing:false}));
+ assert.equal(tree.some(node=>node.type==='DraftAnswer'),false,'a finished run keeps no draft');
 });
 
 test('split answer transfers exact presentation and turn id while retaining raw source identity',()=>{

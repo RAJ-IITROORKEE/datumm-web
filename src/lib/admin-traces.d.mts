@@ -11,7 +11,8 @@ export type TraceReason =
 /** Null per field when unreported; the whole object is null when the backend sent none. */
 export interface TracePhases {
   admitMs: number | null; startMs: number | null; firstCallMs: number | null;
-  answerMs: number | null; modelMs: number | null; toolMs: number | null; stepMs: number | null;
+  firstTokenMs: number | null; answerMs: number | null; modelMs: number | null;
+  toolMs: number | null; stepMs: number | null;
   unattributedMs: number | null; maxPacketBytes: number | null; maxToolSchemaBytes: number | null;
 }
 export interface TraceRoute { lane: 'short' | 'full'; rule: string | null; floor: string | null }
@@ -21,6 +22,8 @@ export interface TraceCall {
   role: string | null; modelId: string | null; status: string | null; finishReason: string | null;
   inputTokens: number | null; outputTokens: number | null; reasoningTokens: number | null;
   durationMs: number | null; usd: string | null; failureCode: string | null;
+  /** Time to the first word of the model's reply; null when the backend did not measure it. */
+  firstTokenMs: number | null;
 }
 export interface TraceRow {
   traceId: string; taskId: string | null;
@@ -44,6 +47,7 @@ export interface TraceRow {
 export interface TraceStats {
   turns: number; scanned: number; truncated: boolean; failed: number;
   p50Ms: number | null; p95Ms: number | null;
+  firstTokenP50Ms: number | null; firstTokenP95Ms: number | null;
   inputTokens: number; outputTokens: number; usd: string | null;
   feedback: { up: number; down: number; reasons: Record<TraceReason, number> };
 }

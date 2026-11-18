@@ -3,6 +3,10 @@ import { EventSchema } from '@ag-ui/core/schemas';
 import type { ChatTransport, UIMessage, UIMessageChunk } from 'ai';
 import { chatStartFailure, serviceErrorMessage } from './chat-start';
 
+// Same names as agui/answer-draft.mjs; a test compares them (transport tests load this file alone).
+const REPLACE_EVENT = 'datumm.answer.replace';
+const REPLACE_PART = 'data-answer-replace' as const;
+
 /** The display-state envelope travels as the one AG-UI context entry, never as a command prop. */
 // The adapter validates it strictly; the builder in agui/frontend-context.mjs only produces valid envelopes.
 function contextEntries(envelope: unknown): RunAgentInput['context'] {
@@ -92,6 +96,14 @@ export class AguiChatTransport implements ChatTransport<UIMessage> {
           if (event.type === EventType.TEXT_MESSAGE_CONTENT) {
             if (!textId || event.messageId !== textId) throw new Error('Invalid answer stream.');
             emit({ type: 'text-delta', id: textId, delta: event.delta }); return output;
+          }
+          if (event.type === EventType.CUSTOM && event.name === REPLACE_EVENT) {
+            // The checked answer differs from the streamed draft: the data part replaces its text.
+            const value = event.value as { messageId?: unknown; text?: unknown } | null;
+            if (!textId || value?.messageId !== textId || typeof value.text !== 'string') {
+              throw new Error('Invalid answer stream.');
+            }
+            emit({ type: REPLACE_PART, id: textId, data: { text: value.text } }); return output;
           }
           if (event.type === EventType.TEXT_MESSAGE_END) {
             if (!textId || event.messageId !== textId) throw new Error('Invalid answer stream.');

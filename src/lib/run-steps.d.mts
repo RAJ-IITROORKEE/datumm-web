@@ -2,7 +2,8 @@ export type StepKind = 'model' | 'tool' | 'question' | 'approval' | 'check' | 'e
 export type StepStatus = 'succeeded' | 'failed' | 'partial' | 'stale' | 'skipped' | 'stopped' | 'running' | 'waiting' | 'unknown';
 export type StepTokens = { input: number; output: number };
 export type StepNode = {
-  kind: StepKind; label: string; startedAt: string | null; durationMs: number | null; status: StepStatus;
+  kind: StepKind; label: string; startedAt: string | null; durationMs: number | null;
+  firstTokenMs: number | null; status: StepStatus;
   model: string | null; tokens: StepTokens | null; usd: string | null; children: StepNode[];
 };
 export type StepRun = { runId: string; startedAt: string | null; status: string; truncated: boolean; children: StepNode[] };
@@ -18,7 +19,9 @@ export function parseRunSteps(body: unknown): RunSteps | null;
 export function formatDuration(ms: number | null | undefined): string;
 export function formatUsd(usd: string | null | undefined): string;
 export function formatTokens(tokens: StepTokens | null | undefined): string;
-export function nodeMeta(node: Pick<StepNode, 'status' | 'durationMs' | 'tokens' | 'usd'>): string;
+export function nodeMeta(
+  node: Pick<StepNode, 'status' | 'durationMs' | 'firstTokenMs' | 'tokens' | 'usd'>,
+): string;
 export function treeRows(runs: StepRun[]): TreeRow[];
 export function initialExpanded(runs: StepRun[]): Set<string>;
 export function visibleRows(rows: TreeRow[], expanded: Set<string>): TreeRow[];

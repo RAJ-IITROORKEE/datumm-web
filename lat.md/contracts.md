@@ -124,6 +124,8 @@ The Edit panel's "Read a marked-up plan" is shown only when the `redlines` capab
 
 The Details drawer's Activity tab shows a Run steps tree only when the backend capability `runSteps` is on, built from `GET tasks/{id}/steps` and shown as labels, durations, tokens and cost.
 
+A model node also shows its `first word` time when the backend sends `firstTokenMs`; absent or invalid is null.
+
 `src/lib/run-steps.mjs` parses the v1 body strictly: a bad envelope is null (the panel shows an error), and invalid runs or nodes are dropped instead of guessed at. Costs arrive as exact decimal strings and are only rounded for display. The proxy opens `tasks/{id}/steps` alongside the other task routes. The section loads only once opened, and has loading, empty and error states. See `src/components/workspace/run-steps.tsx`.
 
 ## Run steps keyboard
@@ -194,7 +196,15 @@ The vectors in `tests/fixtures/chat-composition-vectors.json` are shared with th
 
 The traces page shows one text-free row per hosted turn, and the browser keeps only the allowlisted keys, so no later backend change can put a question, answer, note or owner id on screen.
 
-`src/lib/admin-traces.mjs` rebuilds every row, call, tool, specialist and stats object key by key. Unknown keys are dropped. Model ids, tool names and codes must match fixed patterns, enums fall back to `other` or null, and counts are clamped. Unreported call usage stays null instead of becoming 0. Row `phases` keep only exact integers (ms up to 86,400,000, bytes up to 2^31-1); anything else, or an absent object, is null, and the details show only present values. Row `route` is `{lane, rule, floor}` with lowercase token patterns and the `quick_reply` signal shows as "Answered directly". The owner is only a 16-hex keyed hash that the backend produces; with no server secret every `ownerHash` is null and the owner filter is simply unavailable. Traces and the `feedback` capability are admin-only conveniences: the backend 403 is the real gate. See `src/components/admin/traces-section.tsx`.
+`src/lib/admin-traces.mjs` rebuilds every row, call, tool, specialist and stats object key by key. Unknown keys are dropped. Model ids, tool names and codes must match fixed patterns, enums fall back to `other` or null, and counts are clamped. Unreported call usage stays null instead of becoming 0, and so does a missing `firstTokenMs` (per call, in `phases`, and `firstTokenP50Ms` / `firstTokenP95Ms` in stats), shown as "First word" only when present. Row `phases` keep only exact integers (ms up to 86,400,000, bytes up to 2^31-1); anything else, or an absent object, is null, and the details show only present values. Row `route` is `{lane, rule, floor}` with lowercase token patterns and the `quick_reply` signal shows as "Answered directly". The owner is only a 16-hex keyed hash that the backend produces; with no server secret every `ownerHash` is null and the owner filter is simply unavailable. Traces and the `feedback` capability are admin-only conveniences: the backend 403 is the real gate. See `src/components/admin/traces-section.tsx`.
+
+## Answer draft streaming
+
+While the model writes its answer the chat shows a muted, labelled draft; the server-checked answer replaces it and is the only saved text.
+
+The backend sends non-persisted `{stage:"answer_draft",text,seq}` frames. `src/lib/agui/adapter.mjs` keeps them out of `ACTIVITY_SNAPSHOT`: the first opens `TEXT_MESSAGE_START` with the id the final answer uses, later ones send only the new suffix. A frame that does not extend the sent text ends the draft, and an older frame is ignored. On the saved snapshot the checked answer sends its missing suffix, or a `CUSTOM` `datumm.answer.replace` event with the full text before `TEXT_MESSAGE_END`; a run that does not complete clears the draft the same way with empty text. With no draft frame the events are exactly the single answer message of before. The decisions are pure functions in `src/lib/agui/answer-draft.mjs`.
+
+`src/lib/agui-chat-transport.ts` turns the replace event into a `data-answer-replace` part. The chat treats a text part whose AI SDK state is `streaming` as a draft and renders `src/components/workspace/answer-draft.tsx`: plain text only, a "Writing…" label, `aria-busy` and `aria-live="off"`, so no token is announced and the checked answer arrives once as ordinary content. The development replay `/api/dev/agui-replay` plays `tests/fixtures/agui-answer-draft.json` (one continued and one replaced draft) at `/dev/chat-composition`. Token streaming is not claimed until measured live.
 
 ## Admin feedback parsing
 

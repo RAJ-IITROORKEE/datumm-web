@@ -2,6 +2,7 @@ import { EventSchema, RunAgentInputSchema, PROTOCOL_VERSION } from '@ag-ui/core/
 import { z } from 'zod';
 import { hostedCommand, postHostedCommand } from '../hosted-command.mjs';
 import { FRONTEND_CONTEXT_DESCRIPTION, parseFrontendContext } from './frontend-context.mjs';
+import { REPLACE_EVENT, draftStep, finishPlan } from './answer-draft.mjs';
 
 const id = z.string().min(1).max(128);
 const propsSchema = z.object({
@@ -63,7 +64,26 @@ export function activity(runId,taskId,item) {
   return event({type:'ACTIVITY_SNAPSHOT',messageId:`datumm-activity:${runId}`,activityType:'datumm.task',
     content:{taskId,event:item},replace:true});
 }
-export function terminalEvents(threadId,runId,taskId,snapshot) {
+const answerId=runId=>`datumm-answer:${runId}`;
+// A draft is already open on the client: close it with the checked answer (suffix or replace).
+// `streamed` is the text sent so far, or undefined when no draft frame arrived (today's events).
+function answerEvents(runId,answer,streamed) {
+  const messageId=answerId(runId), plan=finishPlan(streamed,answer);
+  if (streamed===undefined && !answer) return [];
+  const start=streamed===undefined
+    ?[event({type:'TEXT_MESSAGE_START',messageId,role:'assistant'})]:[];
+  const content=plan.delta?[event({type:'TEXT_MESSAGE_CONTENT',messageId,delta:plan.delta})]:[];
+  const replace=plan.replace
+    ?[event({type:'CUSTOM',name:REPLACE_EVENT,value:{messageId,text:answer}})]:[];
+  return [...start,...content,...replace,event({type:'TEXT_MESSAGE_END',messageId})];
+}
+export function terminalEvents(threadId,runId,taskId,snapshot,streamed) {
+  const rest=terminalBody(threadId,runId,taskId,snapshot,streamed);
+  // Only a completed run keeps its draft; every other outcome clears the unchecked text first.
+  if (streamed===undefined||snapshot?.status==='completed') return rest;
+  return [...answerEvents(runId,'',streamed),...rest];
+}
+function terminalBody(threadId,runId,taskId,snapshot,streamed) {
   if (!snapshot || snapshot.id!==taskId || typeof snapshot.status!=='string') throw new Error('Invalid task snapshot.');
   const status=snapshot.status, data=snapshot.data && typeof snapshot.data==='object'?snapshot.data:{};
   const finish=outcome=>event({type:'RUN_FINISHED',threadId,runId,outcome});
@@ -87,14 +107,7 @@ export function terminalEvents(threadId,runId,taskId,snapshot) {
   if (status==='failed') return [event({type:'RUN_ERROR',message:'The task stopped. Open the saved task for recovery details.',code:'DATUMM_TASK_FAILED'})];
   if (status!=='completed') return [event({type:'RUN_ERROR',message:'The task is saved and needs attention. Open it before continuing.',code:'DATUMM_TASK_NOT_COMPLETE'})];
   const answer=typeof data.agent_result?.answer==='string'?data.agent_result.answer:typeof data.answer==='string'?data.answer:'';
-  const result=[];
-  if (answer) {
-    const messageId=`datumm-answer:${runId}`;
-    result.push(event({type:'TEXT_MESSAGE_START',messageId,role:'assistant'}),
-      event({type:'TEXT_MESSAGE_CONTENT',messageId,delta:answer}),event({type:'TEXT_MESSAGE_END',messageId}));
-  }
-  result.push(finish({type:'success'}));
-  return result;
+  return [...answerEvents(runId,answer,streamed),finish({type:'success'})];
 }
 
 export function isCurrentSnapshot(snapshot,taskId,commandId,minimumVersion) {
@@ -173,7 +186,7 @@ export async function openAgui(value, backend, parseStart, requestSignal) {
       const send=value=>{ if (!detached) controller.enqueue(encoder.encode(`data: ${JSON.stringify(event(value))}\n\n`)); };
       try {
         for (const item of startEvents(input.threadId,input.runId,taskId)) send(item);
-        let cursor=props.eventCursor??0, finished=false;
+        let cursor=props.eventCursor??0, finished=false, draft=null;
         for (let attempt=0;attempt<80 && !detached;attempt++) {
           let staleSnapshot=false;
           const response=await backend(`/v2/tasks/${encodeURIComponent(taskId)}/events?after=${cursor}`,
@@ -200,8 +213,16 @@ export async function openAgui(value, backend, parseStart, requestSignal) {
                 && typeof item.run.executionId==='string' && answerEvent && item.run.events.some(row=>row?.stage===item.run.status && row.executionId===item.run.executionId && Number.isSafeInteger(row.sequence) && row.sequence>answerEvent.sequence);
               if (!(answer ? answerBound : isCurrentSnapshot(item.run,taskId,receipt.commandId,receipt.taskVersion))) { staleSnapshot=true; return true; }
               send(activity(input.runId,taskId,item));
-              for (const next of terminalEvents(input.threadId,input.runId,taskId,item.run)) send(next);
+              const closing=terminalEvents(input.threadId,input.runId,taskId,item.run,draft?.text);
+              for (const next of closing) send(next);
               finished=true; return true;
+            }
+            if (item.stage==='answer_draft') { // not persisted, no cursor, never an activity row
+              const step=draftStep(draft,item.text); draft=step.state;
+              const messageId=answerId(input.runId);
+              if (step.start) send({type:'TEXT_MESSAGE_START',messageId,role:'assistant'});
+              if (step.delta) send({type:'TEXT_MESSAGE_CONTENT',messageId,delta:step.delta});
+              return false;
             }
             if (item.taskId && item.taskId!==taskId) throw new Error('Unexpected task event.');
             if (Number.isSafeInteger(item.sequence) && item.sequence>cursor) cursor=item.sequence;

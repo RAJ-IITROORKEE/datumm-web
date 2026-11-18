@@ -61,7 +61,8 @@ const list = (value, max, map) => (Array.isArray(value)
 const iso = value => (typeof value === 'string' && value.length <= 40
   && !Number.isNaN(Date.parse(value)) ? value : null);
 const PHASE_MS = [
-  'admitMs', 'startMs', 'firstCallMs', 'answerMs', 'modelMs', 'toolMs', 'stepMs', 'unattributedMs',
+  'admitMs', 'startMs', 'firstCallMs', 'firstTokenMs', 'answerMs', 'modelMs', 'toolMs', 'stepMs',
+  'unattributedMs',
 ];
 const PHASE_BYTES = ['maxPacketBytes', 'maxToolSchemaBytes'];
 const ROUTE_LANES = ['short', 'full'];
@@ -78,6 +79,8 @@ function parseCall(call) {
     // Unreported usage stays null: a call must never show 0 tokens it did not report.
     inputTokens: whole(call.inputTokens), outputTokens: whole(call.outputTokens),
     reasoningTokens: whole(call.reasoningTokens), durationMs: ms(call.durationMs),
+    // Absent (older backend, or streaming off) stays null: never a first-word time of 0.
+    firstTokenMs: ms(call.firstTokenMs),
     usd: usd(call.usd), failureCode: pick(call.failureCode, TOKEN),
   };
 }
@@ -148,6 +151,7 @@ export function parseTraces(raw) {
     stats: {
       turns: count(stats.turns), scanned: count(stats.scanned), truncated: stats.truncated === true,
       failed: count(stats.failed), p50Ms: ms(stats.p50Ms), p95Ms: ms(stats.p95Ms),
+      firstTokenP50Ms: ms(stats.firstTokenP50Ms), firstTokenP95Ms: ms(stats.firstTokenP95Ms),
       inputTokens: count(stats.inputTokens), outputTokens: count(stats.outputTokens),
       usd: usd(stats.usd),
       feedback: {
@@ -216,6 +220,7 @@ export function formatBytes(value) {
 }
 const TIME_ITEMS = [
   ['admitMs', 'Admission'], ['startMs', 'Start'], ['firstCallMs', 'First call'],
+  ['firstTokenMs', 'First word'],
   ['answerMs', 'First answer'], ['modelMs', 'Model'], ['toolMs', 'Tools'],
   ['unattributedMs', 'Unattributed'],
 ];

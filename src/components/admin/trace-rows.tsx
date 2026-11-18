@@ -14,7 +14,9 @@ export type PickKey = 'mode' | 'model' | 'owner';
 type Pick = (key: PickKey, value: string) => void;
 // The backend's mode filter accepts only these; any other stored mode is shown, not offered.
 const FILTER_MODES = ['ask', 'plan', 'build'];
-const CALL_HEAD = ['Role', 'Model', 'Status', 'Finish', 'Tokens', 'Time', 'Cost', 'Failure'];
+const CALL_HEAD = [
+  'Role', 'Model', 'Status', 'Finish', 'Tokens', 'Time', 'First word', 'Cost', 'Failure',
+];
 
 const when = (iso: string | null) => {
   const date = iso ? new Date(iso) : null;
@@ -83,7 +85,8 @@ function Details({ row }: { row: TraceRow }) {
                     <td>{call.role ?? '—'}</td><td>{call.modelId ?? '—'}</td>
                     <td>{call.status ?? '—'}</td><td>{call.finishReason ?? '—'}</td>
                     <td>{formatTokens({ input: call.inputTokens, output: call.outputTokens })}</td>
-                    <td>{formatDuration(call.durationMs)}</td><td>{formatUsd(call.usd)}</td>
+                    <td>{formatDuration(call.durationMs)}</td>
+                    <td>{formatDuration(call.firstTokenMs)}</td><td>{formatUsd(call.usd)}</td>
                     <td>{call.failureCode ?? '—'}</td>
                   </tr>
                 ))}

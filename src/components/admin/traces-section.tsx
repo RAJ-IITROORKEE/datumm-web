@@ -60,6 +60,10 @@ function Stats({ traces }: { traces: Traces }) {
         stat('Turns', formatCount(stats.turns)), stat('Failed', formatCount(stats.failed)),
         stat('Median time', formatDuration(stats.p50Ms)),
         stat('Slowest 5%', formatDuration(stats.p95Ms)),
+        ...(stats.firstTokenP50Ms === null ? [] : [
+          stat('Median first word', formatDuration(stats.firstTokenP50Ms)),
+          stat('First word, slowest 5%', formatDuration(stats.firstTokenP95Ms)),
+        ]),
       ]}</dl>
       <dl className={data.counts}>{[
         stat('Tokens in', formatCount(stats.inputTokens)),

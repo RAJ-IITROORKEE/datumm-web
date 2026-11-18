@@ -1,0 +1,7 @@
+.draft { min-width: 0; margin: 4px 0; }
+.label { margin: 0 0 4px; color: var(--muted-foreground); font-size: 12px; line-height: 16px; }
+.text {
+  margin: 0; color: var(--muted-foreground); font-size: 14px; line-height: 22px;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+@media (prefers-reduced-motion: no-preference) { .text { transition: color 120ms ease-out; } }

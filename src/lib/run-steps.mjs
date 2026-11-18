@@ -18,6 +18,7 @@ function parseNode(raw, depth) {
   return {
     kind: raw.kind, label, startedAt: text(raw.startedAt, 40),
     durationMs: count(raw.durationMs) ? raw.durationMs : null,
+    firstTokenMs: raw.kind === 'model' && count(raw.firstTokenMs) ? raw.firstTokenMs : null,
     status: STATUSES.includes(raw.status) ? raw.status : 'unknown',
     model: text(raw.model, 160), tokens,
     usd: typeof raw.usd === 'string' && /^\d+(\.\d+)?$/.test(raw.usd) ? raw.usd : null,
@@ -56,7 +57,9 @@ export const formatTokens = tokens => tokens ? `${tokens.input.toLocaleString('e
 
 /** The grey line under a label: status when it is not plain success, then time, tokens and cost. */
 export function nodeMeta(node) {
-  return [STATUS_WORDS[node.status] ?? '', formatDuration(node.durationMs), formatTokens(node.tokens), formatUsd(node.usd)]
+  const firstWord = formatDuration(node.firstTokenMs);
+  return [STATUS_WORDS[node.status] ?? '', formatDuration(node.durationMs),
+    firstWord && `first word ${firstWord}`, formatTokens(node.tokens), formatUsd(node.usd)]
     .filter(Boolean).join(' · ');
 }
 

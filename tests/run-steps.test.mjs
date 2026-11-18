@@ -71,3 +71,14 @@ test('arrow keys follow the WAI-ARIA tree pattern and leave other keys alone', (
   assert.equal(treeKey(visible(), 'r0', 'Tab', open), null);
   assert.equal(treeKey(visible(), 'missing', 'ArrowDown', open), null);
 });
+
+test('a model node shows its first word time when the backend sent one, and only then', () => {
+  const run = nodes =>
+    parseRunSteps({schemaVersion: 1, runs: [{runId: 'r', children: nodes}]}).runs[0].children;
+  const [timed, bad, tool, plain] = run([
+    node('a', {kind: 'model', firstTokenMs: 640}), node('b', {kind: 'model', firstTokenMs: -2}),
+    node('c', {kind: 'tool', firstTokenMs: 5}), node('d', {kind: 'model'})]);
+  assert.deepEqual([timed, bad, tool, plain].map(row => row.firstTokenMs), [640, null, null, null]);
+  assert.equal(nodeMeta(timed), '1.5 s · first word 640 ms');
+  assert.equal(nodeMeta(plain), '1.5 s');
+});
