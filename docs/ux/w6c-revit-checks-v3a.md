@@ -74,4 +74,10 @@ Revert the commits.
 
 ## 7. Result
 
-To fill in at checkpoint.
+| Item | Outcome |
+| --- | --- |
+| Build | **Backend `16f78c0`:** `model_health.py` (`GET /v1/devices/{id}/health`, bounded reads of inventory, elements, levels and plan views); `show_model_elements` added to `READ_TOOLS`, checked against the exact document and `expectedRevision`; never an agent tool; write set unchanged; capability `revitChecks`. **Web `4ba8275`:** Details drawer → Revit tab with Check the model, Select / Zoom to them in Revit, and Validate in Revit (plan views list plus the `get_plan_image` PNG beside the DATUMM plan). |
+| Gates | **Backend:** pytest 953 + 26 subtests; all 9 packaged image checks; `lat check`. **Web:** typecheck, 1015/1015 tests, build, `lat check`. The dev fixture was checked in the browser. |
+| Live, 19 Nov | Backend `16f78c0` live at 21:05Z on 18 Nov (rehearsal 36,930 documents, 0 tracebacks; Service and Task only). Web `4ba8275` deployed; smoke passed. **The architect's Revit 2026.4** (add-in 0.2.0-alpha.8), model "new2": health in 1.8 s, coverage complete. It found 9 rooms, 2 levels, 13 plan views, 28 walls, 9 doors and 7 windows, and noted 1 level with no rooms. Select in Revit on Kitchen returned `modelChanged:false`; a stale `expectedRevision` was refused with 409 "The model changed since it was checked." The live panel showed the same health result, all 13 plan views, and a 1200 × 976 PNG of "L1 - Working". |
+| Found | (1) The web reads the device list only at page load, so the Revit tab appears only after a reload once Revit connects. (2) The add-in's plan image uses Revit's dark background and the view's full extent: 99.6 % background, plan lines barely visible. Fix in V3b (white background, crop to the model). (3) Revit's own selection was not confirmed on screen; the add-in's response was. |
+| Next | V3b: add `get_model_warnings` and `get_room_boundaries` to the add-in, a light plan image, the warnings delta and the plan-to-model overlay gate. This needs an add-in build and reinstall. |
