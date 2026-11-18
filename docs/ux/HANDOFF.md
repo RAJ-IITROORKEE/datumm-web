@@ -58,9 +58,9 @@ Node 22.18 or newer is required for `npm test`. The default `node` here is 20.13
 | Composition producer (finish tool, checkpoint, projection) | Controlled local only: controlled model decisions with Mongo mock; not deployed; proof lost after the 2,000-event tail | [agui-composition-producer.md](agui-composition-producer.md) |
 | General Plan intent repair | Local candidate only, not deployed | [agui-chat-continuation.md](agui-chat-continuation.md) |
 | Workspace, onboarding, settings, pricing, review, admin pages | Implemented; browser-qualified in earlier scoped packets | [workspace-acceptance-upgrade.md](workspace-acceptance-upgrade.md), [implementation-checkpoints.md](implementation-checkpoints.md) |
-| Provider token streaming, live-provider composition quality, hosted rollout, measured performance | Not established | [full-migration-gap-register.md](full-migration-gap-register.md) |
+| Live-provider composition quality | Not established (provider streaming and timing measured live 19 Nov: [W6b](w6b-answer-streaming.md)) | [full-migration-gap-register.md](full-migration-gap-register.md) |
 
-Final answers are delivered after validation, not as true provider token streaming.
+Since 19 Nov the answer streams as a labelled draft from the provider (`finish_answer` answer field), and the checked answer replaces it; the saved answer is always the checked one.
 
 ## Source locations
 

@@ -45,7 +45,7 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | W6a | RD1 redline intake: a marked-up image or PDF page becomes checked edit proposals; confirm, then apply | Done; **live** 19 Nov (backend `c7cc003`, web `d3a1fb3`); PNG 3/3 and PDF 4/4 marks read and applied in a test chat | [Packet](docs/ux/w6a-redline-intake.md) |
 | CV | Desktop/web UI convergence (CV1–CV6): one UI, web as source, desktop through a host adapter | Plan approved 17 Nov (UI-a to UI-h). CV1 host adapter live 17 Nov (web `caf5a62`; 18 runtime checks passed; live brief GET 200) | [Plan](docs/ux/desktop-ui-convergence-plan.md), [CV1](docs/ux/cv1-host-adapter.md) |
 | A4c | MCP registry | Packet proposed 17 Nov; waits for the user on A4c-a (new dependency) and A4c-c (new secret + template change) | [Packet](docs/ux/a4c-mcp-registry.md) |
-| N5 | Provider streaming and measured performance | Proposed | Roadmap |
+| N5 | Provider streaming and measured performance | Done; **live** 19 Nov (backend `3dc1d1d`, web `7261f99`); answer drafts stream, first-token time recorded | [Packet](docs/ux/w6b-answer-streaming.md) |
 | W1 | Right work area on AG-UI state | Proposed; separate go or no-go | Roadmap |
 | R1 | Knowledge for NBC compliance (research first) | Proposed | Decision §5 |
 
