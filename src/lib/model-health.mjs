@@ -126,8 +126,33 @@ export function parsePlanImage(result) {
   };
 }
 
+export const planSnapshotRequest = (sessionId, viewId) => ({
+  name: 'get_plan_snapshot', arguments: { sessionId, viewId },
+});
+
+const MAX_SNAPSHOT_SVG = 600_000;
+// The SVG is shown only as an <img>, where scripts never run; refusing active content is a second guard.
+const ACTIVE_SVG = /<script|<foreignObject|\son\w+\s*=|href\s*=|url\(/i;
+
+/**
+ * The add-in's measured drawing of a floor plan (walls, openings, room labels on a light ground),
+ * as an image source, or null for anything unexpected. Clearer than the Revit render, which uses
+ * Revit's own canvas colour (dark in a dark theme).
+ */
+export function parsePlanSnapshot(result) {
+  const data = unwrap(result);
+  if (!isObject(data) || typeof data.svg !== 'string' || data.svg.length > MAX_SNAPSHOT_SVG) return null;
+  if (!/^<svg[\s>]/.test(data.svg) || ACTIVE_SVG.test(data.svg) || !count(data.revision)) return null;
+  if (typeof data.viewName !== 'string') return null;
+  return {
+    src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(data.svg)}`, width: 1200, height: 900,
+    viewName: plain(data.viewName, 120), scale: 0, revision: data.revision,
+    documentId: typeof data.documentId === 'string' ? data.documentId : '',
+  };
+}
+
 export const imageLabel = (image) =>
-  `${image.viewName} · scale 1:${image.scale} · model revision ${image.revision}`;
+  `${image.viewName}${image.scale ? ` · scale 1:${image.scale}` : ''} · model revision ${image.revision}`;
 
 /** Plain words for a failed call; the server's own text is used only to tell the cases apart. */
 export function revitFailureMessage(error) {

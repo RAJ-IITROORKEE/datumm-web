@@ -23,6 +23,7 @@ import {FileJson, LayoutTemplate, FileSpreadsheet, Download} from 'lucide-react'
 import {AguiChatTransport} from '@/lib/agui-chat-transport';
 import {useChat} from '@ai-sdk/react';
 import {settledPoll,openChatPollMs,listPollMs} from '@/lib/settled-poll.mjs';
+import {chooseDevice} from '@/lib/device-choice.mjs';
 import {projectsStatus,type ProjectsStatus} from '@/lib/projects-status.mjs';
 import {stopRequested} from '@/lib/stop-requested.mjs';
 import {featureEnabled,parseCapabilities} from '@/lib/capabilities.mjs';
@@ -685,7 +686,7 @@ const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacem
 
    setConnected(true);setModels(configuration.models);if(!modelPreferenceInitialized.current){const taskFromUrl=new URLSearchParams(window.location.search).get('task');if(!taskFromUrl){setModel(configuration.defaultModel??'openai/gpt-6-luna');setReasoningEffort(configuration.defaultReasoningEffort??'high');}modelPreferenceInitialized.current=true;}setDevices(list);setRuns(history);
 
-   setDeviceId(previous=>previous||list.find(d=>d.online)?.id||'');
+   setDeviceId(previous=>chooseDevice(previous,list));
    return true;
   }catch{if(epoch===accountEpoch.current){setConnected(false);setServiceError('DATUMM could not load the workspace service. Check your connection and retry. Your draft is preserved.');}return false;}finally{if(epoch===accountEpoch.current)setWorkspaceReady(true);}
 
@@ -716,13 +717,14 @@ const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacem
   if(currentRun.current?.id===selectedId)setRun(updated);
  };
 
-  // One stable loop: chat list every 6 s while a chat runs (else 30 s); config, devices and projects every 60 s.
-  const loopRefs=useRef({refresh,refreshRuns,runs});loopRefs.current={refresh,refreshRuns,runs};
+  // One stable loop: chat list every 6 s while a chat runs (else 30 s); config, devices and projects every 60 s,
+  // or every 15 s while no Revit device is online, so a newly connected Revit shows up without a reload.
+  const loopRefs=useRef({refresh,refreshRuns,runs,deviceOnline:false});loopRefs.current={refresh,refreshRuns,runs,deviceOnline:Boolean(selectedDevice?.online)};
   const firstRefresh=useRef(true);
   useEffect(()=>{
    let last=0;
    return settledPoll(()=>{
-    if(Date.now()-last>=60000){last=Date.now();return loopRefs.current.refresh();}
+    if(Date.now()-last>=(loopRefs.current.deviceOnline?60000:15000)){last=Date.now();return loopRefs.current.refresh();}
     return loopRefs.current.refreshRuns();
    },()=>listPollMs(loopRefs.current.runs));
   },[]);

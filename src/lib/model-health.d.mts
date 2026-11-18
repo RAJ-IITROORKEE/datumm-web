@@ -34,5 +34,8 @@ export function viewsRequest(sessionId: string, offset?: number): ToolRequest;
 export function planImageRequest(sessionId: string, viewId: string): ToolRequest;
 export function parseViews(result: unknown): { views: PlanView[]; total: number; more: boolean } | null;
 export function parsePlanImage(result: unknown): PlanImage | null;
+export function planSnapshotRequest(sessionId: string, viewId: string): ToolRequest;
+/** Measured drawing (light ground) as an image source; scale is 0 (not reported). */
+export function parsePlanSnapshot(result: unknown): PlanImage | null;
 export function imageLabel(image: Pick<PlanImage, 'viewName' | 'scale' | 'revision'>): string;
 export function revitFailureMessage(error: unknown): string;

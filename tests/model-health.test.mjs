@@ -5,7 +5,7 @@ import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 import {
   groupChecks, healthPath, imageLabel, MAX_IMAGE_BASE64, onlySession, parseModelHealth,
-  parsePlanImage, parseViews, planImageRequest, revitFailureMessage, showElementsRequest,
+  parsePlanImage, parsePlanSnapshot, parseViews, planImageRequest, planSnapshotRequest, revitFailureMessage, showElementsRequest,
   toolsPath, viewsRequest,
 } from '../src/lib/model-health.mjs';
 
@@ -144,4 +144,19 @@ test('the proxy forwards the health read and nothing next to it', async () => {
     assert.equal((await get(path)).status, 404, path);
   }
   assert.equal(calls.length, 0);
+});
+
+test('parsePlanSnapshot shows the measured drawing and refuses active or odd SVG', () => {
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect fill="#fafafa"/><text>Kitchen</text></svg>';
+  const ok = parsePlanSnapshot({ data: { svg, revision: 3, viewName: 'L1 - Architectural', documentId: 'd' } });
+  assert.ok(ok.src.startsWith('data:image/svg+xml;charset=utf-8,%3Csvg'));
+  assert.equal(ok.scale, 0);
+  assert.equal(imageLabel(ok), 'L1 - Architectural · model revision 3');
+  for (const bad of ['<svg><script>x</script></svg>', '<svg onload="x"></svg>', '<svg><a href="x"/></svg>',
+    '<html></html>', 'x'.repeat(10)]) {
+    assert.equal(parsePlanSnapshot({ data: { svg: bad, revision: 3, viewName: 'v' } }), null, bad);
+  }
+  assert.equal(parsePlanSnapshot({ data: { svg, revision: -1, viewName: 'v' } }), null);
+  assert.deepEqual(planSnapshotRequest('s', 'v'),
+    { name: 'get_plan_snapshot', arguments: { sessionId: 's', viewId: 'v' } });
 });

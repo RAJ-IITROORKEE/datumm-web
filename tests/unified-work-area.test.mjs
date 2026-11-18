@@ -16,6 +16,7 @@ import {queueAllowed} from '../src/lib/prompt-queue.mjs';
 import {buildFrontendContext} from '../src/lib/agui/frontend-context.mjs';
 import * as selectionMarker from '../src/lib/selection-uncertainty.mjs';
 import * as conversationResult from '../src/lib/conversation-result.mjs';
+import {chooseDevice} from '../src/lib/device-choice.mjs';
 
 const compile=source=>ts.transpileModule(source,{reportDiagnostics:true,compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}});
 const source=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
@@ -149,6 +150,7 @@ function workspaceHarness(sharedStorage,sharedLocks){
   '@/lib/workflow-state':{workflowState:()=>({label:'Saved'}),hasPendingQuestion:workflow.hasPendingQuestion},
   '@/lib/plan-build-flow':{planBuildStep:()=>null},
   '@/lib/settled-poll.mjs':{openChatPollMs:()=>null,settledPoll:update=>{void update();return ()=>{};}},
+  '@/lib/device-choice.mjs':{chooseDevice},
   '@/lib/agui-chat-transport':{AguiChatTransport:class{
    resumeQuestion(props,questionId,version,payload,clientSubmissionId){return new Promise((resolve,reject)=>requests.push({path:'/api/agui',init:{body:JSON.stringify({forwardedProps:props,resume:[{interruptId:`${questionId}:${version}`,status:'resolved',payload}]})},reject,resolve:()=>resolve(new ReadableStream({start(c){c.enqueue({type:'data-run',data:{id:props.taskId,clientSubmissionId}});c.close();}}))}));}
   }},
@@ -247,7 +249,8 @@ test('session readiness is bound to device and account before effects and ignore
   else if(pending.path.endsWith('/runs'))pending.resolve([]);
   else if(pending.path.endsWith('/projects'))pending.resolve([]);
  }
- await offline;w=h.render();assert.equal(w.selectedDevice.online,false);assert.equal(w.revitSessions,null,'offline state invalidates readiness immediately');
+ // A went offline while B is online: the workspace moves to B (chooseDevice), and readiness still resets at once.
+ await offline;w=h.render();assert.equal(w.selectedDevice.id,'b');assert.equal(w.selectedDevice.online,true);assert.equal(w.revitSessions,null,'a device change invalidates readiness immediately');
  w=h.render('account-b');assert.equal(w.revitSessions,null,'account change invalidates before effects');
  w=h.render('account-a');assert.equal(w.revitSessions,null,'returning to A cannot reuse earlier account observation');
  cleanupA();cleanupB();cleanupA2();cleanupB2();cleanupA3();cleanupMalformed();

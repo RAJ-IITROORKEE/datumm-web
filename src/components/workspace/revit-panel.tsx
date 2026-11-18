@@ -3,7 +3,7 @@ import {useState, type ReactNode} from 'react';
 import {Button} from '@/components/ui/button';
 import {
   groupChecks, healthPath, imageLabel, NO_MODEL_GUIDANCE, onlySession, parseModelHealth,
-  parsePlanImage, parseViews, planImageRequest, revitFailureMessage, showElementsRequest,
+  parsePlanImage, parsePlanSnapshot, parseViews, planImageRequest, planSnapshotRequest, revitFailureMessage, showElementsRequest,
   toolsPath, viewsRequest, type HealthCheck, type ModelHealth, type PlanImage, type PlanView,
 } from '@/lib/model-health.mjs';
 import styles from './revit-panel.module.css';
@@ -31,6 +31,7 @@ export function RevitPanel({deviceId, online, call, plan}: {
   const [more, setMore] = useState(false);
   const [viewId, setViewId] = useState('');
   const [image, setImage] = useState<PlanImage | null>(null);
+  const [style, setStyle] = useState<'measured' | 'render'>('measured');
   const [imageBusy, setImageBusy] = useState(false);
   const [imageProblem, setImageProblem] = useState('');
   if (!online || !deviceId) return <p className={styles.note}>{NO_MODEL_GUIDANCE}</p>;
@@ -76,7 +77,9 @@ export function RevitPanel({deviceId, online, call, plan}: {
     try {
       const id = await session();
       if (!id) { setImageProblem(noSession); return; }
-      const parsed = parsePlanImage(await tool<unknown>(planImageRequest(id, viewId)));
+      const parsed = style === 'measured'
+        ? parsePlanSnapshot(await tool<unknown>(planSnapshotRequest(id, viewId)))
+        : parsePlanImage(await tool<unknown>(planImageRequest(id, viewId)));
       if (parsed) setImage(parsed);
       else setImageProblem('Revit sent an image DATUMM cannot show. Try another view.');
     } catch (error) { setImageProblem(revitFailureMessage(error)); }
@@ -122,13 +125,15 @@ export function RevitPanel({deviceId, online, call, plan}: {
         : <div className={styles.pick}>
           <label>Floor plan<select value={viewId} onChange={event => { setViewId(event.target.value); setImage(null); }}>
             {views.map(view => <option key={view.id} value={view.id}>{view.name} (1:{view.scale})</option>)}</select></label>
+          <label>Drawing<select value={style} onChange={event => { setStyle(event.target.value === 'render' ? 'render' : 'measured'); setImage(null); }}>
+            <option value="measured">Measured walls and rooms</option><option value="render">Revit render</option></select></label>
           <Button size="sm" disabled={imageBusy || !viewId} onClick={() => void loadImage()}>{imageBusy ? 'Reading…' : 'Show the plan'}</Button>
         </div>}
       {more && <p className={styles.note}>Only the first views are listed.</p>}
       {imageProblem && <p role="alert" className={styles.fail}>{imageProblem}</p>}
       {image && <div className={styles.compare}>
         <figure><img src={image.src} width={image.width} height={image.height} alt={`Revit floor plan, ${imageLabel(image)}`} />
-          <figcaption>Revit · {imageLabel(image)}</figcaption></figure>
+          <figcaption>{style === 'measured' ? 'Measured from Revit' : 'Revit render'} · {imageLabel(image)}</figcaption></figure>
         {plan ? <figure><div className={styles.drawing}>{plan}</div><figcaption>DATUMM plan</figcaption></figure>
           : <p className={styles.note}>Select a DATUMM plan to see it next to this view.</p>}
         {health && image.revision !== health.revision && <p className={styles.note}>The model changed after the last check. Check the model again.</p>}
