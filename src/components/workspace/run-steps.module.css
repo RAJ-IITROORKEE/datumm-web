@@ -1,0 +1,16 @@
+.tree { display: grid; gap: 1px; min-width: 0; margin: 0; }
+.row { display: flex; align-items: flex-start; gap: 4px; min-width: 0; padding-block: 4px; padding-inline-end: 6px; border-radius: 6px; font-size: 12px; line-height: 1.5; color: var(--ink); }
+.row:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.row:hover { background: var(--chip); }
+.chevron { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--text); cursor: pointer; }
+.chevron[data-leaf='true'] { visibility: hidden; }
+.chevron svg { transition: transform 120ms ease; }
+.chevron[data-open='true'] svg { transform: rotate(90deg); }
+.text { display: grid; min-width: 0; overflow-wrap: anywhere; }
+.label { font-weight: 500; }
+.row[data-kind='run'] .label { font-weight: 600; }
+.meta { color: var(--text); font-size: 11px; font-variant-numeric: tabular-nums; }
+.row[data-status='failed'] .meta { color: var(--aui-danger); }
+.row:is([data-status='waiting'], [data-status='running']) .meta { color: var(--aui-warning); }
+.note { margin: 0; color: var(--text); font-size: 12px; }
+@media (prefers-reduced-motion: reduce) { .chevron svg { transition: none; } }

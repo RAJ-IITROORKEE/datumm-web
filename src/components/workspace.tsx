@@ -1159,7 +1159,7 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
                 <aside className={activityStyles.detail} aria-label="Selected activity details">
                   {activityRun && activityView ? (
                     <>
-                      <ActivityPanel key={activityRun.id} run={activityRun} runId={activityRun.id} currentActivity={activityView} executing={activityView.active} mode={activityRun.mode} model={activityRun.model} eventDetail={event => event.detail} />
+                      <ActivityPanel key={activityRun.id} run={activityRun} runId={activityRun.id} currentActivity={activityView} executing={activityView.active} mode={activityRun.mode} model={activityRun.model} eventDetail={event => event.detail} runSteps={featureEnabled(w.capabilities, 'runSteps')} />
                       <Button
                         variant="secondary"
                         disabled={mediaBusy || actionBusy}
@@ -1209,7 +1209,7 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
               {run?.data.agent_scheduler && <AgentScheduler value={run.data.agent_scheduler} />}
             </div>
           ) : null }</>,
-            activity: <><ActivityPanel key={scope.key} run={run} runId={runId} currentActivity={w.currentActivity} executing={executing} mode={mode} model={w.model} eventDetail={w.eventDetail}/><details className="studio-diagnostics"><summary>Tool diagnostics</summary>{w.mcpToolsError?<p>{w.mcpToolsError}</p>:w.mcpTools.length?w.mcpTools.map(tool=><details key={tool.name}><summary>{tool.name}</summary><p>{tool.description??'No description was provided by the bridge.'}</p><pre>{JSON.stringify(tool.inputSchema,null,2)}</pre></details>):<p>No tool catalog is available.</p>}<Button variant="secondary" onClick={()=>void refresh()}>Refresh tools</Button></details></>,
+            activity: <><ActivityPanel key={scope.key} run={run} runId={runId} currentActivity={w.currentActivity} executing={executing} mode={mode} model={w.model} eventDetail={w.eventDetail} runSteps={featureEnabled(w.capabilities,'runSteps')}/><details className="studio-diagnostics"><summary>Tool diagnostics</summary>{w.mcpToolsError?<p>{w.mcpToolsError}</p>:w.mcpTools.length?w.mcpTools.map(tool=><details key={tool.name}><summary>{tool.name}</summary><p>{tool.description??'No description was provided by the bridge.'}</p><pre>{JSON.stringify(tool.inputSchema,null,2)}</pre></details>):<p>No tool catalog is available.</p>}<Button variant="secondary" onClick={()=>void refresh()}>Refresh tools</Button></details></>,
             assets: <>{assetNotice&&matches(assetNotice.scope)&&<p role="status">{assetNotice.text}</p>}{w.selectionUncertain&&<p role="status">Confirm the saved selection in Design → Properties before choosing another concept.</p>}<AssetsPanel rows={assetRows} onActivate={activateAsset} onSelectAlternative={onSelectAlternative} selectionBusy={Boolean(w.busy||w.actionBusy||w.selectionUncertain)}/></>,
             exports: <ExportsPanel workspace={w} scope={scope} outputs={outputWorkspace.outputs} report={parsedReport} actions={actions}/>,
           }}/>

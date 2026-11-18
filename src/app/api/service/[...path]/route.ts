@@ -16,7 +16,7 @@ function boundedRasterSvg(svg:string):Buffer|null{
 }
 async function proxy(request:Request,context:{params:Promise<{path:string[]}>}){
  const {path}=await context.params;const suffix=path.join('/');
-    const taskRoute=/^tasks(?:\/[a-zA-Z0-9-]+(?:\/(?:commands|build-context|events|questions\/answer|cancel|queue(?:\/(?:resume|[a-f0-9-]+))?|design-review|reports(?:\/[a-f0-9-]{1,64}(?:\/export\/(?:json|csv|elements-csv))?)?|specialist-artifacts\/[a-f0-9]{64}|history\/(?:pin|archive|delete)|goal|title|project|share|feedback))?)?$/.test(suffix)||/^projects(?:\/[a-zA-Z0-9-]{1,64}(?:\/(?:title|brief|history\/archive))?)?$/.test(suffix);
+    const taskRoute=/^tasks(?:\/[a-zA-Z0-9-]+(?:\/(?:commands|build-context|events|questions\/answer|cancel|queue(?:\/(?:resume|[a-f0-9-]+))?|design-review|reports(?:\/[a-f0-9-]{1,64}(?:\/export\/(?:json|csv|elements-csv))?)?|specialist-artifacts\/[a-f0-9]{64}|history\/(?:pin|archive|delete)|goal|title|project|share|feedback|steps))?)?$/.test(suffix)||/^projects(?:\/[a-zA-Z0-9-]{1,64}(?:\/(?:title|brief|history\/archive))?)?$/.test(suffix);
  if(!allowed.test(suffix)&&!taskRoute)return Response.json({code:'DATUMM_PROXY_NOT_ALLOWED',detail:'This web build does not expose that route.'},{status:404});
  let phase='backend';
  try{

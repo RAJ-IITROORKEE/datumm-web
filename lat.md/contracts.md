@@ -112,7 +112,19 @@ The composer shows "N left today" only while a per-user daily limit exists, and 
 
 The backend config's `capabilities` object is read as a tri-state per feature; anything missing or malformed is unknown, never off, so older backends keep working.
 
-Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. `adminTraces`, `feedback`, `adminHistory`, `adminModels`, `modelInfo` and `planEditing` are the exception: unknown is off, because no deployed backend serves them yet. See `src/lib/capabilities.mjs`.
+Unknown admin features still call the endpoint, and unknown planning goals keep the live-runtime gate. `adminTraces`, `feedback`, `adminHistory`, `adminModels`, `modelInfo`, `planEditing` and `runSteps` are the exception: unknown is off, because no deployed backend serves them yet. See `src/lib/capabilities.mjs`.
+
+## Run steps tree
+
+The Details drawer's Activity tab shows a Run steps tree only when the backend capability `runSteps` is on, built from `GET tasks/{id}/steps` and shown as labels, durations, tokens and cost.
+
+`src/lib/run-steps.mjs` parses the v1 body strictly: a bad envelope is null (the panel shows an error), and invalid runs or nodes are dropped instead of guessed at. Costs arrive as exact decimal strings and are only rounded for display. The proxy opens `tasks/{id}/steps` alongside the other task routes. The section loads only once opened, and has loading, empty and error states. See `src/components/workspace/run-steps.tsx`.
+
+## Run steps keyboard
+
+The tree follows the WAI-ARIA tree pattern: one tab stop, arrows move, Right and Left open, close or step to the parent, Home and End jump, Enter and Space toggle.
+
+`treeKey` in `src/lib/run-steps.mjs` returns a focus move or a toggle for the visible rows and null for every other key, so Tab and typing are untouched. Rows are flat `treeitem`s with `aria-level`, `aria-setsize`, `aria-posinset` and `aria-expanded` on parents only.
 
 ## Admin tools rows
 

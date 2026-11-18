@@ -15,6 +15,7 @@ import { PipelineTrace } from '../pipeline-trace';
 import type { Mode, Run } from './use-workspace-state';
 import { EmptyState } from '../vendor/affectui/empty-state-clean';
 import { PlanDock } from './plan-dock';
+import { RunStepsView, useRunSteps } from './run-steps';
 import styles from './activity-panel.module.css';
 
 export type ActivityPanelProps = {
@@ -25,6 +26,8 @@ export type ActivityPanelProps = {
   mode: Mode;
   model: string;
   eventDetail: (event: TaskEvent) => string;
+  /** Backend capability `runSteps`: shows the Run steps tree. */
+  runSteps?: boolean;
 };
 
 const label = (stage: string) => stage === 'paused_limit' ? 'Analysis checkpoint' : stage.replaceAll('_', ' ');
@@ -42,10 +45,10 @@ const publicDetail = (event: TaskEvent, detail: ActivityPanelProps['eventDetail'
   ? event.detail.match(/step \d+/i)?.[0] ?? 'Model step'
   : detail(event);
 
-export function ActivityPanel({ run, runId, currentActivity, executing, mode, model, eventDetail }: ActivityPanelProps) {
+export function ActivityPanel({ run, runId, currentActivity, executing, mode, model, eventDetail, runSteps = false }: ActivityPanelProps) {
   const selectedRun = run && (!runId || run.id === runId) ? run : null;
   const identity = `${runId || selectedRun?.id || 'no-task'}:${currentActivity?.index ?? 0}`;
-  const emptyView = { identity, query: '', stage: '', reviews: false, diagnostics: false, runtime: false, trace: false, memory: false };
+  const emptyView = { identity, query: '', stage: '', reviews: false, diagnostics: false, runtime: false, trace: false, memory: false, steps: false };
   const [storedView, setView] = useState(emptyView);
   // Derive defaults synchronously so a task/turn switch cannot flash old filters or disclosures.
   const view = storedView.identity === identity ? storedView : emptyView;
@@ -54,6 +57,7 @@ export function ActivityPanel({ run, runId, currentActivity, executing, mode, mo
   const id = useId();
   // The trace is a host feature; the web host reports it off until hosted run traces exist (TR1).
   const showTrace = useHost().capabilities.has('runTrace');
+  const steps = useRunSteps(runSteps && view.steps && Boolean(run), run?.id ?? '', `${run?.status ?? ''}:${currentActivity?.index ?? 0}`);
 
   if (!selectedRun) return <section className={styles.panel} aria-label="Task activity">
     <h2 className={styles.title}>Task activity</h2>
@@ -139,6 +143,13 @@ export function ActivityPanel({ run, runId, currentActivity, executing, mode, mo
       <summary><span>Recorded specialist reviews</span><ChevronDown size={14} aria-hidden="true" /></summary>
       {view.reviews && <><p className={styles.recordNote}>Recorded for this task; timing within the task is not specified.</p><AgentSpecialists results={selectedRun.data.agent_specialists} taskId={selectedRun.id} /></>}
     </details> : null}
+
+    {runSteps && <details key={`steps-${identity}`} className={styles.disclosure} open={view.steps} onToggle={event => {
+      if (event.currentTarget.open !== view.steps) update({ steps: event.currentTarget.open });
+    }}>
+      <summary>Run steps<ChevronDown size={14} aria-hidden="true" /></summary>
+      {view.steps && <RunStepsView state={steps} />}
+    </details>}
 
     <details key={identity} className={styles.diagnostics} open={view.diagnostics} onToggle={event => {
       if (event.currentTarget.open !== view.diagnostics) update({ diagnostics: event.currentTarget.open });
