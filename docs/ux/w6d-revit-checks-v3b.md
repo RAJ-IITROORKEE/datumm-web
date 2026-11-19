@@ -72,4 +72,9 @@ So the add-in work waits until the user points to the alpha.40 source. This wave
 
 ## 5. Result
 
-To fill in at checkpoint.
+| Item | Outcome |
+| --- | --- |
+| Build | Backend `5f1754e`: warnings in health (desktop contract, identity keys, unavailable fallback) and `POST /v1/devices/{id}/compare-plan`. Web `fe01262`: Revit warnings section, "Since the last check", and Compare with the DATUMM plan. Dev fixture checked in the browser (delta "2 new warnings, 1 resolved"; compare flags −20 %). |
+| Gates | Backend: pytest 961 + 26 subtests; all 9 image checks; `lat check`. Web: typecheck, 1024/1024, build, `lat check`. |
+| Live, 19 Nov | Backend `5f1754e` live at 05:12Z (rehearsal 37,114 documents, 0 tracebacks; Service and Task only). Web `0d10531`, smoke passed. **Bug found live:** the real connector refuses an unlisted tool with the plain text "Unsupported MCP tool." (no code), so health returned 409 for the installed add-in. **Hotfix `d569fda`** (that text means unavailable; test added) went live at 05:27Z. Health on the architect's model "new2" then returned 200, 9 rooms, `warnings: {coverage: "unavailable"}`, and the add-in-update limitation. **Compare-plan** of the test plan v7 against "new2" returned 200: 2 matched by name (Bedroom 1 and Kitchen, both over 10 %), 4 only in the plan, 7 only in Revit. Correct for two different designs. |
+| Deferred | Add-in tools, reinstall, live warnings, delta, boundary overlay: see HANDOFF "Now (19 Nov)". |

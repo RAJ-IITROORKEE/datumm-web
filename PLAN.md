@@ -47,7 +47,7 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | A4c | MCP registry | Packet proposed 17 Nov; waits for the user on A4c-a (new dependency) and A4c-c (new secret + template change) | [Packet](docs/ux/a4c-mcp-registry.md) |
 | N5 | Provider streaming and measured performance | Done; **live** 19 Nov (backend `3dc1d1d`, web `7261f99`); answer drafts stream, first-token time recorded | [Packet](docs/ux/w6b-answer-streaming.md) |
 | W6c | V3a Revit checks: model health, Select in Revit, Validate in Revit (existing add-in reads) | Done; **live** 19 Nov (backend `16f78c0`, web `4ba8275`); tested on the architect's Revit model | [Packet](docs/ux/w6c-revit-checks-v3a.md) |
-| W6d | V3b hosted and web: Revit warnings in model health (lights up when the add-in has `get_model_warnings`), warnings delta, compare with the DATUMM plan | Built and gated 19 Nov (backend `5f1754e`, web `fe01262`); release pending AWS sign-in. **Deferred:** add-in tools, reinstall, live Revit test (see HANDOFF) | [Packet](docs/ux/w6d-revit-checks-v3b.md) |
+| W6d | V3b hosted and web: Revit warnings in model health (lights up when the add-in has `get_model_warnings`), warnings delta, compare with the DATUMM plan | Done; **live** 19 Nov (backend `5f1754e` + hotfix `d569fda`, web `0d10531`); health and compare-plan checked on the architect's Revit. **Deferred:** add-in tools, reinstall, live Revit test (see HANDOFF) | [Packet](docs/ux/w6d-revit-checks-v3b.md) |
 | W1 | Right work area on AG-UI state | Proposed; separate go or no-go | Roadmap |
 | R1 | Knowledge for NBC compliance (research first) | Proposed | Decision §5 |
 
