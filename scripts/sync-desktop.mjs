@@ -130,7 +130,8 @@ export function transform(file, source) {
   const text = rewriteImports(file, source.replace(/\r\n/g, '\n'));
   const left = findImports(file, text).filter(s => s.startsWith('@/'));
   if (left.length) throw new Error(`${file} still has unrewritten ${left.join(', ')}`);
-  return text;
+  // `@lat:` links point at datumm-web's lat.md; in the desktop repo they would be dangling refs.
+  return text.replace(/@lat:\s*\[\[/g, 'datumm-web lat.md: [[');
 }
 
 export function buildPlan(root, config) {

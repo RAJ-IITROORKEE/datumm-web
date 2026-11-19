@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {
-  applySync, buildPlan, checkSync, dirtySources, findImports, loadConfig, rewriteImports, main,
+  applySync, buildPlan, checkSync, dirtySources, findImports, loadConfig, rewriteImports, main, transform,
 } from '../scripts/sync-desktop.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -184,4 +184,11 @@ test('the real shell resolves with no errors and none of the denied surfaces', (
     (/^src\/(app\/api|components\/(admin|billing|dev))\//.test(f) || /proxy\.|middleware|next\.config/.test(f)));
   assert.deepEqual(bad, []);
   assert.ok(!plan.files.includes('src/lib/backend.ts'));
+});
+
+test('@lat links are turned into plain notes so the desktop lat check has no dangling refs', () => {
+  const out = transform('src/lib/x.ts', "// @lat: [[architecture#Hosted workspace]]\nimport a from '@/lib/a';\n");
+  assert.ok(!out.includes('@lat:'));
+  assert.ok(out.includes('datumm-web lat.md: [[architecture#Hosted workspace]]'));
+  assert.ok(out.includes("'@shared/lib/a'"));
 });
