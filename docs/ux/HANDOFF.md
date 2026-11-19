@@ -2,9 +2,19 @@
 
 Overwritten at every checkpoint. Read [AGENTS.md](../../AGENTS.md) first, then this file, then the packet named under "Active phase". Older detail is in Git history and [docs/ux/history/](history/handoff-before-agui-progress-review-2026-11-16.md).
 
-Updated 17 November 2026, end of UI1.
+Updated 19 November 2026, after W6d (V3b hosted and web side).
 
-## Now
+## Now (19 Nov)
+
+- **Way of working since 17 Nov:** work on local `main`, test in the built-in browser on localhost, push, release backend (scratchpad `release_psec.sh`) and web (Vercel), then test live. Phase packets and results are in `docs/ux/w*.md`; PLAN.md has one row per wave. The "Hold" notes below are from 17 Nov and are superseded by that.
+- **Live now:** backend `16f78c0` (V3a), web `47e7233`. W6d (V3b) is committed (backend `5f1754e`, web `fe01262`), **not released**: the AWS session expired, and two sign-in links timed out. Release with the script once the user signs in again.
+- **Deferred by the user (19 Nov: "skip the revit actual test and record this, we will do it later"):**
+  1. Add `get_model_warnings` and `get_room_boundaries` to the DATUMM add-in. Blocked on the source: `revit-datumm-plugin` is mid-change (45 uncommitted entries, `revit-mcp/` and `apps/connector/` deleted on disk) and is at alpha.28, while the installed add-in is 0.5.0-alpha.40 from another source. Ask the user where the alpha.40 source is. Then build, package, and reinstall with Revit closed. Contracts are in `apps/desktop/src/main/native-warnings.ts` and `room-connections.ts`.
+  2. Live test on the architect's Revit: warnings appear (and the delta after an edit in Revit), compare-plan against a plan built in Revit, and the plan-to-model boundary overlay (needs `get_room_boundaries`).
+  3. Check the V3a device refresh live: the Revit tab appears without a reload when Revit connects after the page loaded.
+- **Open user decisions:** main-door NBC note (advice / 900 mm / 1000 mm); confirm the 14 NBC rows (including the 22.5 m travel distance); the meaning of "JEV" (model routing track).
+
+## Now (17 Nov, history)
 
 - **Hold:** the roadmap is approved (16 Nov). No application code changes until the user approves each phase packet. Do not deploy, merge to a remote, release or push. AWS login is unavailable; do not request it. The user's direction (17 Nov, D24): this work is going to the live site (backend on AWS, web on Vercel) after approval of [the go-live plan](g1-go-live-plan.md); nothing has been pushed or deployed.
 - **Branch:** both repos are on local `main`, not pushed (web is ahead of `origin/main`; the backend `origin` is a local folder). Backend S0 to A3 are local commits on `main`. A preview launch config for the dev server is at the workspace root `Datumm/.claude/launch.json` (outside both repos).
