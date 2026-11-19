@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **proposed 17 Nov** |
+| Status | **approved 19 Nov 2026**: A4c-a SDK (user: "Approve the SDK"), A4c-c sealed `MCP_SECRET_KEY` (user), A4c-b, d, e, f, g, h at their recommendations (A). See section 3a. |
 | Depends on | A4a tool catalog, approval cards and `_tool_gate` (backend `1e67551`); A4b load-drop of unknown `tools` ids (`32f8672`); A2 versioned config; T1 runtime-secret pattern; [parity plan](panda-parity-plan-2026-11-17.md) row 14, step 7; H5 = A |
 | Approved by / date | Not approved. A4c-a (new backend dependency) and A4c-c (new runtime secret and stack-template change) need the user's explicit approval; the standing "recommended option" instruction does not cover a new dependency (AGENTS.md section 6) |
 | Base commits | Backend local `main` `115980f` (read 17 Nov). Web `main` as read 17 Nov. Panda `panda-agent-ui/Panda-agent` working tree as read 17 Nov |
@@ -116,6 +116,20 @@ per-tool Allow/Ask/Never segment), "New or changed tools start as Never"
 8. **A4c-h Local browser test.** **(A) The scratchpad local backend script mounts an in-process
    test MCP server and swaps the client's transport factory** (no repo setting can relax SSRF).
    (B) A `MCP_DEV_ALLOW_HOSTS` setting honoured only in local mode.
+
+## 3a. Decisions and research (19 Nov)
+
+- **Research** (sources dated up to 3 Nov 2026):
+  - **AG-UI** connects the agent to its frontend, so it is complementary to MCP and not a substitute; keep it for approval cards.
+  - **Cloudflare Code Mode** is experimental, on a 0.x TypeScript Agents SDK. It would turn approval of one call into approval of model-written code, so it is deferred. Cloudflare remote MCP servers on Workers can be used later as ordinary servers.
+  - **`langchain-mcp-adapters`** pins `mcp<2`, so it is out.
+  - **OpenRouter** documents no provider-side remote MCP, which would bypass our checks anyway.
+- **A4c-a: official `mcp` 2.x** (2.3.0, pinned `>=2.3,<3`), client side only, current spec 2026-07-28 plus the older handshake.
+  - It needs an `httpx2.AsyncClient`, so our SSRF and DNS checks live on that client. Redirects are limited to the same origin since 2.2.0.
+  - It brings `httpx2`, `starlette`, `sse-starlette`, `uvicorn`, `python-multipart`, `pyjwt[crypto]`, `jsonschema`, `opentelemetry-api` and `mcp-types`, and needs `pydantic>=2.12`.
+  - **Gate kept:** if `uv lock` changes the existing FastAPI, Starlette, httpx or pydantic pins (beyond adding packages), stop and fall back to the hand-written client.
+- **A4c-c:** sealed with AES-256-GCM under `MCP_SECRET_KEY`. **The user** adds the key to the runtime secret, and a template change wires it in. Until then the capability reports MCP as unavailable and no server can be saved.
+- **Others:** each at recommendation A.
 
 ## 4. Design (recommended options)
 
