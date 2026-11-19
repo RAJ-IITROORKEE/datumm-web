@@ -4,9 +4,9 @@ import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 import {
-  groupChecks, healthPath, imageLabel, MAX_IMAGE_BASE64, onlySession, parseModelHealth,
-  parsePlanImage, parsePlanSnapshot, parseViews, planImageRequest, planSnapshotRequest, revitFailureMessage, showElementsRequest,
-  toolsPath, viewsRequest,
+  comparePath, deltaText, differsFromPlan, groupChecks, groupWarnings, healthPath, imageLabel, MAX_IMAGE_BASE64, onlySession, parseModelHealth,
+  parsePlanImage, parsePlanModelCompare, parsePlanSnapshot, parseViews, planImageRequest, planSnapshotRequest, revitFailureMessage, showElementsRequest,
+  toolsPath, viewsRequest, warningDelta,
 } from '../src/lib/model-health.mjs';
 
 const check = (over = {}) => ({
@@ -144,6 +144,13 @@ test('the proxy forwards the health read and nothing next to it', async () => {
     assert.equal((await get(path)).status, 404, path);
   }
   assert.equal(calls.length, 0);
+  const post = (path) => context.exports.POST(new Request(`https://preview.example/api/service/${path}`, {method: 'POST', body: '{}'}), {params: Promise.resolve({path: path.split('/')})});
+  assert.equal((await post('devices/dev-1/compare-plan')).status, 200);
+  assert.equal(calls[0].path, '/v1/devices/dev-1/compare-plan');
+  for (const path of ['devices/dev-1/compare-plan/x', 'devices/dev-1/compare']) {
+    assert.equal((await post(path)).status, 404, path);
+  }
+  assert.equal(calls.length, 1);
 });
 
 test('parsePlanSnapshot shows the measured drawing and refuses active or odd SVG', () => {
@@ -159,4 +166,92 @@ test('parsePlanSnapshot shows the measured drawing and refuses active or odd SVG
   assert.equal(parsePlanSnapshot({ data: { svg, revision: -1, viewName: 'v' } }), null);
   assert.deepEqual(planSnapshotRequest('s', 'v'),
     { name: 'get_plan_snapshot', arguments: { sessionId: 's', viewId: 'v' } });
+});
+
+const warning = (key, description, elementIds = [1]) => ({
+  key, failureDefinitionId: 'f-1', severity: 'Warning', description, elementIds,
+});
+const withWarnings = (items, over = {}, revision = 7) => parseModelHealth(health({
+  revision, warnings: {coverage: 'complete', total: items.length, items, ...over},
+}));
+
+// @lat: [[contracts#Revit checks]]
+test('a missing or unavailable warnings block reads as unavailable; a bad one rejects the report', () => {
+  assert.equal(parseModelHealth(health()).warnings.coverage, 'unavailable');
+  assert.equal(parseModelHealth(health({warnings: {coverage: 'unavailable'}})).warnings.items.length, 0);
+  const ok = withWarnings([warning('k1', 'Walls overlap')]);
+  assert.equal(ok.warnings.items[0].key, 'k1');
+  for (const bad of [
+    'x', {coverage: 'full', total: 0, items: []}, {coverage: 'complete', items: []},
+    {coverage: 'complete', total: 1, items: [warning('', 'x')]},
+    {coverage: 'complete', total: 1, items: [warning('k', '')]},
+    {coverage: 'complete', total: 1, items: [warning('k', 'x', Array.from({length: 21}, (_, i) => i))]},
+    {coverage: 'complete', total: 1, items: [warning('k', 'x', [{}])]},
+    {coverage: 'complete', total: 201, items: Array.from({length: 201}, (_, i) => warning(`k${i}`, 'x'))},
+  ]) assert.equal(parseModelHealth(health({warnings: bad})), null, JSON.stringify(bad)?.slice(0, 60));
+});
+
+test('warnings group by description, and the service REVIT_WARNING checks are not listed twice', () => {
+  const parsed = withWarnings([warning('a', 'Walls overlap', [1, 2]), warning('b', 'Walls overlap', [2, 3]), warning('c', 'Room not enclosed', [9])]);
+  const groups = groupWarnings(parsed.warnings);
+  assert.deepEqual(groups.map((g) => [g.message, g.count, g.elementIds]),
+    [['Walls overlap', 2, [1, 2, 3]], ['Room not enclosed', 1, [9]]]);
+  assert.equal(showElementsRequest(parsed, groups[0], 'show').arguments.elementIds.length, 3);
+  const withChecks = parseModelHealth(health({checks: [check({code: 'REVIT_WARNING', message: 'Walls overlap'}), check()]}));
+  assert.deepEqual(groupChecks(withChecks).problems.map((row) => row.code), ['rooms.unplaced']);
+});
+
+// @lat: [[contracts#Revit checks]]
+test('the delta counts new and resolved warnings only between two complete checks of one model', () => {
+  const a = withWarnings([warning('k1', 'x'), warning('k2', 'x')], {}, 7);
+  const b = withWarnings([warning('k2', 'x'), warning('k3', 'y'), warning('k4', 'y')], {}, 8);
+  assert.deepEqual(warningDelta(a, b), {added: 2, resolved: 1});
+  assert.equal(deltaText({added: 1, resolved: 0}), 'Since the last check: 1 new warning, 0 resolved');
+  assert.equal(deltaText({added: 2, resolved: 3}), 'Since the last check: 2 new warnings, 3 resolved');
+  const other = parseModelHealth(health({documentId: 'doc-2', revision: 8, warnings: {coverage: 'complete', total: 0, items: []}}));
+  const partial = withWarnings([warning('k1', 'x')], {coverage: 'partial'}, 8);
+  const capped = withWarnings([warning('k1', 'x')], {total: 5}, 8);
+  const same = withWarnings([warning('k1', 'x')], {}, 7);
+  for (const next of [other, partial, capped, same, parseModelHealth(health({revision: 8}))]) {
+    assert.equal(warningDelta(a, next), null);
+  }
+  assert.equal(warningDelta(null, b), null);
+  assert.equal(warningDelta(a, null), null);
+});
+
+const compare = (over = {}) => ({
+  schema: 'datumm.plan-model-compare.v1', documentId: 'doc-1', revision: 7, planId: 'p1', version: 2,
+  matched: [{name: 'Living', planAreaM2: 24, revitAreaM2: 25, differencePct: 4.2, revitElementId: 11},
+    {name: 'Bedroom', planAreaM2: 18, revitAreaM2: 12, differencePct: -33.3, revitElementId: '12'}],
+  onlyInPlan: ['Bath'], onlyInRevit: [{name: 'Store', elementId: 13}],
+  limitations: ['Rooms are matched by name and area only.'], ...over,
+});
+const ask = {planId: 'p1', version: 2};
+
+// @lat: [[contracts#Revit checks]]
+test('parses the plan comparison strictly, flags area gaps over 10 %, and checks the plan asked about', () => {
+  const parsed = parsePlanModelCompare(compare(), ask);
+  assert.equal(comparePath('dev-1'), 'devices/dev-1/compare-plan');
+  assert.deepEqual(parsed.matched.map(differsFromPlan), [false, true]);
+  assert.equal(differsFromPlan({differencePct: 10}), false);
+  assert.equal(differsFromPlan({differencePct: -10.1}), true);
+  for (const bad of [
+    null, [], {}, compare({schema: 'datumm.plan-model-compare.v2'}), compare({documentId: ''}),
+    compare({revision: -1}), compare({planId: 'other'}), compare({version: 3}),
+    compare({matched: 'x'}), compare({onlyInPlan: [3]}), compare({onlyInRevit: [{name: 'A'}]}),
+    compare({limitations: [1]}),
+    compare({matched: [{name: 'A', planAreaM2: -1, revitAreaM2: 1, differencePct: 0, revitElementId: 1}]}),
+    compare({matched: [{name: 'A', planAreaM2: 1, revitAreaM2: 1, differencePct: '3', revitElementId: 1}]}),
+    compare({matched: [{name: 'A', planAreaM2: 1, revitAreaM2: 1, differencePct: 0}]}),
+    compare({onlyInPlan: Array.from({length: 501}, (_, i) => `r${i}`)}),
+  ]) assert.equal(parsePlanModelCompare(bad, ask), null, JSON.stringify(bad)?.slice(0, 60));
+});
+
+// @lat: [[contracts#Revit checks]]
+test('select in Revit for a room only in the model uses the comparison document and revision', () => {
+  const parsed = parsePlanModelCompare(compare(), ask);
+  assert.deepEqual(showElementsRequest(parsed, {elementIds: [parsed.onlyInRevit[0].elementId]}), {
+    name: 'show_model_elements',
+    arguments: {documentId: 'doc-1', expectedRevision: 7, elementIds: [13], action: 'select'},
+  });
 });

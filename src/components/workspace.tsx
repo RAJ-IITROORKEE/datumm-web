@@ -1101,6 +1101,7 @@ function WorkspacePanels({w, reportSelection, setReportSelection, reportTrigger,
             technical: <TechnicalDetails run={scopedRun}/>,
             revit: featureEnabled(w.capabilities, 'revitChecks') && selectedDevice?.online
               ? <RevitPanel key={selectedDevice.id} deviceId={selectedDevice.id} online call={api}
+                planRef={activeDrawing ? {planId: activeDrawing.planId, version: activeDrawing.version} : undefined}
                 plan={activeDrawing ? <PlanDrawing graph={activeDrawing.graph} mode="presentation" compact label={`${activeDrawingTitle}, DATUMM plan`}/> : undefined}/>
               : undefined,
             page: studioView === 'workspace' ? null : <>{studioView === 'activity' ? (

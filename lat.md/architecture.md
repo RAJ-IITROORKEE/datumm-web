@@ -128,7 +128,9 @@ The Edit panel can read a marked-up image or PDF page and list the changes a mod
 
 The Details drawer's Revit tab lets an architect check the open Revit model, select or zoom to the affected elements in Revit and compare a Revit floor-plan image with the DATUMM plan. See [[contracts#Revit checks]].
 
-`workspace/revit-panel.tsx` takes the workspace `api` helper as `call`, so the `/dev/ux` "Revit checks fixture" answers every call itself (health with problems, partial coverage, a plan image, a stale-revision refusal and offline). `workspace.tsx` passes the tab through the `revit` slot of `details-drawer.tsx` only when `revitChecks` is on and the selected device is online; the DATUMM plan beside the Revit image is a static `PlanDrawing` of the plan on screen. The tab is local to the drawer, like Technical, and has no stored section.
+`workspace/revit-panel.tsx` takes the workspace `api` helper as `call`, so the `/dev/ux` "Revit checks fixture" answers every call itself (health with problems, partial coverage, a plan image, a stale-revision refusal and offline). `workspace.tsx` passes the tab through the `revit` slot of `details-drawer.tsx` only when `revitChecks` is on and the selected device is online; the DATUMM plan beside the Revit image is a static `PlanDrawing` of the plan on screen, and `planRef` (the plan id and version on screen) switches on the comparison.
+
+`workspace/revit-plan-compare.tsx` is the "Compare with the DATUMM plan" section: one button, then rooms in both (areas more than 10 % apart flagged), rooms only in the plan, and rooms only in Revit with "Select in Revit". The panel keeps the last check of each open model in a ref (never stored) so `warningDelta` can say what changed. The fixture adds Revit warnings, unavailable warnings, a change after a second check and a comparison. The tab is local to the drawer, like Technical, and has no stored section.
 
 ## Admin console
 

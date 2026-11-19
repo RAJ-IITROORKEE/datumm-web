@@ -11,6 +11,7 @@
 .actions{display:flex;flex-wrap:wrap;gap:8px}
 .ok{margin:0;color:var(--foreground)}
 .fail{margin:8px 0 0;color:var(--destructive,#b42318)}
+.flag{margin:0;color:var(--destructive,#b42318);font-weight:500}
 .limits{margin:0;padding-left:16px;font-size:12px;line-height:18px;color:var(--muted-foreground)}
 .validate{padding-top:16px;border-top:1px solid var(--separator)}
 .pick{display:grid;gap:8px;justify-items:start}

@@ -1,17 +1,18 @@
 'use client';
-import {useState, type ReactNode} from 'react';
+import {useRef, useState, type ReactNode} from 'react';
 import {Button} from '@/components/ui/button';
 import {
-  groupChecks, healthPath, imageLabel, NO_MODEL_GUIDANCE, onlySession, parseModelHealth,
+  deltaText, groupChecks, groupWarnings, healthPath, imageLabel, NO_MODEL_GUIDANCE, onlySession, parseModelHealth,
   parsePlanImage, parsePlanSnapshot, parseViews, planImageRequest, planSnapshotRequest, revitFailureMessage, showElementsRequest,
-  toolsPath, viewsRequest, type HealthCheck, type ModelHealth, type PlanImage, type PlanView,
+  toolsPath, viewsRequest, warningDelta, type HealthCheck, type ModelHealth, type PlanImage, type PlanView,
 } from '@/lib/model-health.mjs';
+import {RevitPlanCompare, type PlanRef} from './revit-plan-compare';
 import styles from './revit-panel.module.css';
 
 export type RevitCall = <T>(path: string, method?: string, body?: unknown) => Promise<T>;
 type Tool = {name: string; arguments: Record<string, unknown>};
 
-const NEEDS_UPDATE = 'Revit warnings and room boundaries are not checked yet: they need the DATUMM add-in update.';
+const WARNINGS_NEED_UPDATE = 'Revit warnings need the DATUMM add-in update.';
 const noSession = 'Open one Revit project and connect DATUMM, then try again.';
 
 /**
@@ -19,10 +20,15 @@ const noSession = 'Open one Revit project and connect DATUMM, then try again.';
  * compare a Revit floor-plan image with the DATUMM plan. Every call is a read; nothing here
  * writes the model. `call` is the workspace `api` helper, so a fixture can stand in for the service.
  */
-export function RevitPanel({deviceId, online, call, plan}: {
+export function RevitPanel({deviceId, online, call, plan, planRef}: {
   deviceId: string | null; online: boolean; call: RevitCall; plan?: ReactNode;
+  /** Which saved DATUMM plan version is on screen; the comparison is offered only with it. */
+  planRef?: PlanRef;
 }) {
   const [health, setHealth] = useState<ModelHealth | null>(null);
+  // The last check of each open model, kept only in this page, to tell what changed since.
+  const lastCheck = useRef<Record<string, ModelHealth>>({});
+  const [delta, setDelta] = useState<{added: number; resolved: number} | null>(null);
   const [checking, setChecking] = useState(false);
   const [problem, setProblem] = useState('');
   const [shown, setShown] = useState<{code: string; ok: boolean; text: string} | null>(null);
@@ -43,8 +49,11 @@ export function RevitPanel({deviceId, online, call, plan}: {
     setChecking(true); setProblem(''); setShown(null);
     try {
       const parsed = parseModelHealth(await call<unknown>(healthPath(deviceId)));
-      if (parsed) setHealth(parsed);
-      else { setHealth(null); setProblem('DATUMM could not read the model check. Try again.'); }
+      if (parsed) {
+        setDelta(warningDelta(lastCheck.current[parsed.documentId] ?? null, parsed));
+        lastCheck.current[parsed.documentId] = parsed;
+        setHealth(parsed);
+      } else { setHealth(null); setProblem('DATUMM could not read the model check. Try again.'); }
     } catch (error) { setHealth(null); setProblem(revitFailureMessage(error)); }
     finally { setChecking(false); }
   };
@@ -87,6 +96,7 @@ export function RevitPanel({deviceId, online, call, plan}: {
   };
 
   const groups = health ? groupChecks(health) : null;
+  const warnings = health ? groupWarnings(health.warnings) : [];
   const row = (item: HealthCheck) => <li key={item.code} className={styles.check}>
     <div className={styles.checkText}><span>{item.message}</span><b aria-label={`${item.count} found`}>{item.count}</b></div>
     {item.elementIds.length > 0 && <div className={styles.actions}>
@@ -109,15 +119,23 @@ export function RevitPanel({deviceId, online, call, plan}: {
           {Object.keys(health.counts).length > 0 && ` · ${Object.entries(health.counts).map(([name, n]) => `${n} ${name}`).join(', ')}`}</p>
         <p className={styles.meta}>{health.coverage === 'complete'
           ? 'Everything the add-in could read was checked.' : 'Partial check: only part of the model could be read.'}</p>
-        {health.checks.length === 0 && <p className={styles.ok}>No problems found in what was checked.</p>}
+        {groups.problems.length + groups.notes.length + warnings.length === 0
+          && <p className={styles.ok}>No problems found in what was checked.</p>}
         {section('Problems', groups.problems)}
         {section('Notes', groups.notes)}
+        {health.warnings.coverage === 'unavailable' ? <p className={styles.note}>{WARNINGS_NEED_UPDATE}</p>
+          : <>
+            {delta && <p role="status" className={styles.meta}>{deltaText(delta)}</p>}
+            {warnings.length === 0 ? <p className={styles.ok}>Revit reports no warnings.</p> : section('Revit warnings', warnings)}
+            {health.warnings.coverage === 'partial' && <p className={styles.note}>Only some of Revit&apos;s warnings could be read ({health.warnings.items.length} of {health.warnings.total}).</p>}
+          </>}
         <ul className={styles.limits}>
-          {!health.limitations.some(line => /add-in/i.test(line)) && <li>{NEEDS_UPDATE}</li>}
-          {health.limitations.map(line => <li key={line}>{line}</li>)}
+          {health.limitations.filter(line => health.warnings.coverage !== 'unavailable' || !/warnings.*add-in/i.test(line))
+            .map(line => <li key={line}>{line}</li>)}
         </ul>
       </div>}
     </section>
+    {planRef && <RevitPlanCompare key={`${planRef.planId}-${planRef.version}`} deviceId={deviceId} call={call} plan={planRef}/>}
     <section aria-label="Validate in Revit" className={styles.validate}>
       <h3 className={styles.h}>Validate in Revit</h3>
       <p className={styles.note}>Pick a floor plan and see how Revit draws it, next to your DATUMM plan.</p>
