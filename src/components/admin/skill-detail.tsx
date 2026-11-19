@@ -18,6 +18,7 @@ const when = (iso: string | null) => {
   const date = iso ? new Date(iso) : null;
   return date && !Number.isNaN(+date) ? date.toLocaleString() : 'time not supplied';
 };
+const FIELD_WORDS: Record<string, string> = { toolHints: 'tools that help' };
 const whyNot = (version: SkillVersion) => (version.kind === 'removed'
   ? 'The skill was removed in this revision.'
   : version.restorable ? undefined : 'Contains data that cannot be restored');
@@ -68,7 +69,7 @@ function Versions({ id, versions, state, rows, busy, onRestore }: {
             {when(version.at)}{version.by ? ` · ${version.by}` : ''}
           </span>
           {version.fields.length > 0 && (
-            <span className={styles.sub}>Changed: {version.fields.join(', ')}</span>
+            <span className={styles.sub}>Changed: {version.fields.map(field => FIELD_WORDS[field] ?? field).join(', ')}</span>
           )}
         </div>
         <Button type="button" variant="outline" size="sm" title={whyNot(version)}

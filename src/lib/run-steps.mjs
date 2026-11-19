@@ -1,6 +1,6 @@
 // TR1: parse GET tasks/{id}/steps and word its rows. The body is untrusted: anything malformed is dropped,
 // and a malformed envelope is null, so the UI shows an error instead of a wrong step.
-const KINDS = ['model', 'tool', 'question', 'approval', 'check', 'edit', 'stage'];
+const KINDS = ['model', 'tool', 'question', 'approval', 'check', 'edit', 'stage', 'skill'];
 const STATUSES = ['succeeded', 'failed', 'partial', 'stale', 'skipped', 'stopped', 'running', 'waiting', 'unknown'];
 const STATUS_WORDS = { failed: 'Failed', partial: 'Partial', stale: 'Stale', skipped: 'Skipped', stopped: 'Stopped',
   running: 'Running', waiting: 'Waiting', unknown: 'Not confirmed' };
@@ -15,8 +15,13 @@ function parseNode(raw, depth) {
   if (!KINDS.includes(raw.kind) || !label) return null;
   const tokens = raw.tokens && count(raw.tokens.input) && count(raw.tokens.output)
     ? { input: raw.tokens.input, output: raw.tokens.output } : null;
+  // Only a skill node carries `skill`; the id and short hash identify what was loaded.
+  const info = raw.kind === 'skill' && raw.skill && typeof raw.skill === 'object' ? raw.skill : null;
+  const skill = typeof info?.id === 'string' && /^[a-z0-9-]{1,40}$/.test(info.id)
+    ? { id: info.id, hash: typeof info.hash === 'string' && /^[a-f0-9]{4,64}$/.test(info.hash) ? info.hash : null }
+    : null;
   return {
-    kind: raw.kind, label, startedAt: text(raw.startedAt, 40),
+    kind: raw.kind, label, skill, startedAt: text(raw.startedAt, 40),
     durationMs: count(raw.durationMs) ? raw.durationMs : null,
     firstTokenMs: raw.kind === 'model' && count(raw.firstTokenMs) ? raw.firstTokenMs : null,
     status: STATUSES.includes(raw.status) ? raw.status : 'unknown',
@@ -58,7 +63,8 @@ export const formatTokens = tokens => tokens ? `${tokens.input.toLocaleString('e
 /** The grey line under a label: status when it is not plain success, then time, tokens and cost. */
 export function nodeMeta(node) {
   const firstWord = formatDuration(node.firstTokenMs);
-  return [STATUS_WORDS[node.status] ?? '', formatDuration(node.durationMs),
+  const skill = node.skill ? [node.skill.id, node.skill.hash?.slice(0, 8)].filter(Boolean).join(' · ') : '';
+  return [STATUS_WORDS[node.status] ?? '', formatDuration(node.durationMs), skill,
     firstWord && `first word ${firstWord}`, formatTokens(node.tokens), formatUsd(node.usd)]
     .filter(Boolean).join(' · ');
 }
@@ -74,7 +80,7 @@ export function treeRows(runs) {
   runs.forEach((run, index) => {
     const id = `r${index}`;
     const node = { kind: 'run', label: `Run ${index + 1}`, startedAt: run.startedAt, durationMs: null,
-      status: 'unknown', model: null, tokens: null, usd: null, children: run.children, runStatus: run.status,
+      status: 'unknown', model: null, tokens: null, usd: null, skill: null, children: run.children, runStatus: run.status,
       truncated: run.truncated };
     rows.push({ id, parent: null, level: 1, node, size: runs.length, position: index + 1, hasChildren: run.children.length > 0 });
     walk(run.children, id, 2, id);

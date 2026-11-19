@@ -5,20 +5,28 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/input';
+import { BUILTIN_PREFIX } from '@/lib/admin-config.mjs';
+import type { ToolHintOption } from '@/lib/skill-hints.mjs';
 import {
-  SKILL_LIMITS, hasUseWhen, parseSkillMd, skillMdCounts, type SkillText,
+  SKILL_LIMITS, hasUseWhen, parseSkillMd, setSkillMdTools, skillMdCounts, skillMdTools,
+  type SkillText,
 } from '@/lib/skill-md.mjs';
+import { SkillToolHints } from './skill-tool-hints';
 import styles from './skills-section.module.css';
 
 /** The editor is a single SKILL.md; the draft changes only when the file parses cleanly. */
-export function SkillEditorDialog({ initialText, originalId, otherIds, full, onApply, onClose }: {
+export function SkillEditorDialog({
+  initialText, originalId, otherIds, full, toolOptions, onApply, onClose,
+}: {
   initialText: string; originalId: string | null; otherIds: string[]; full: boolean;
+  toolOptions: ToolHintOption[];
   onApply: (skill: SkillText) => void; onClose: () => void;
 }) {
   const [text, setText] = useState(initialText);
   const base = useId();
   const parsed = useMemo(() => parseSkillMd(text), [text]);
   const counts = skillMdCounts(text);
+  const tools = skillMdTools(text);
   const errors: string[] = parsed.ok ? [] : parsed.errors.map(error => error.message);
   if (parsed.ok) {
     const id = parsed.skill.id;
@@ -28,6 +36,9 @@ export function SkillEditorDialog({ initialText, originalId, otherIds, full, onA
     }
     if (!originalId && otherIds.includes(id)) {
       errors.push(`A skill named "${id}" exists. Open it and edit it instead.`);
+    }
+    if (!originalId && id.startsWith(BUILTIN_PREFIX)) {
+      errors.push(`The "${BUILTIN_PREFIX}" prefix is reserved for DATUMM starter skills.`);
     }
     if (!originalId && full) errors.push('The registry holds at most 30 skills.');
   }
@@ -49,6 +60,8 @@ export function SkillEditorDialog({ initialText, originalId, otherIds, full, onA
         <Textarea id={`${base}-text`} className={styles.editor} rows={14} value={text}
           spellCheck={false} aria-invalid={errors.length > 0} aria-describedby={describedBy}
           onChange={event => setText(event.target.value)} />
+        <SkillToolHints options={toolOptions} selected={tools}
+          onChange={names => setText(setSkillMdTools(text, names))} />
         <p id={`${base}-counters`} className={styles.counters}>
           <span data-over={counts.description > SKILL_LIMITS.description}>
             description {counts.description} of {SKILL_LIMITS.description}

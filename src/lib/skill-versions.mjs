@@ -25,12 +25,13 @@ export function skillVersions(rows, id) {
   return out;
 }
 
-/** The skill from a history detail snapshot, trimmed to the six stored fields, or null. */
+/** The skill from a history detail snapshot, trimmed to the stored fields (six, plus toolHints), or null. */
 export function skillFromSnapshot(detail, id) {
   const list = detail?.config?.skills;
   const found = Array.isArray(list) ? list.find(item => item?.id === id) : null;
   if (!found) return null;
   const item = Object.fromEntries(KEYS.map(key => [key, found[key]]));
+  if (found.toolHints !== undefined) item.toolHints = found.toolHints;
   if (typeof item.enabled !== 'boolean' || !Array.isArray(item.modes)
     || item.modes.some(mode => !MODES.includes(mode))) return null;
   const errors = validateConfig({ ...emptyConfig(), skills: [item] });

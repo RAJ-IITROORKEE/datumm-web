@@ -1,5 +1,10 @@
 export type Mode = 'ask' | 'plan' | 'build';
-export type AdminSkill = { id: string; name: string; description: string; instructions: string; modes: Mode[]; enabled: boolean };
+export type AdminSkill = {
+  id: string; name: string; description: string; instructions: string; modes: Mode[]; enabled: boolean;
+  /** Optional "Tools that help": model-facing tool names, at most 6. Suggests only. */
+  toolHints?: string[];
+};
+export type BuiltinSkillSetting = { id: string; modes: Mode[] };
 export type AdminMcp = { id: string; name: string; url: string; enabled: boolean; toolAllowlist: string[] };
 export type AdminConfig = {
   models: string[]; defaultModel: string; defaultReasoningEffort: '' | 'low' | 'medium' | 'high'; runUsdLimit: number;
@@ -7,6 +12,8 @@ export type AdminConfig = {
   webSearch: { enabled: boolean; includeDomains: string[]; maxResults: number };
   webSearchProvider?: 'openrouter' | 'tavily';
   skills: AdminSkill[]; mcpServers: AdminMcp[];
+  /** Present only when the backend reports starter skills; never added by the editor otherwise. */
+  builtinSkills?: BuiltinSkillSetting[];
   /** Present only when the backend reports `adminTools`; never added by the editor otherwise. */
   tools?: Record<string, { modes: Mode[] }>;
   /** Present only when the backend reports `dailyLimits`; null means unlimited. */
@@ -14,6 +21,7 @@ export type AdminConfig = {
 };
 export const LIMIT_KEYS: string[];
 export const MODES: Mode[];
+export const BUILTIN_PREFIX: 'datumm-';
 export const EFFORTS: string[];
 export const SEARCH_PROVIDERS: string[];
 export const CORPORA: string[];

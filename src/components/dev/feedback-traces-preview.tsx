@@ -37,12 +37,15 @@ const base = (traceId: string, ageHours: number, extra: Record<string, unknown>)
   steps: { total: 5, succeeded: 5, failed: 0, skipped: 0, stopped: 0, retried: 0, unconfirmed: 0 },
   tools: [{ name: 'revit.query', calls: 2, failed: 0 }], specialists: [], calls: [call],
   callsTruncated: false, tokens: { input: 1200, output: 300, reasoning: 0 }, usd: '0.0123',
-  signals: [] as string[], feedback: null, ...extra,
+  signals: [] as string[], feedback: null, skills: [] as unknown[], ...extra,
 });
+const skill = (id: string, name: string, hash: string) => ({ id, name, hash });
 // Rows 1 and 2 carry phases; rows 3 and 4 omit them (older backend); row 5 is a short-path turn.
 const FIXTURE_ROWS = [
   base(EXECUTION, 1, { taskId: TASK, turnId: TURN, ownerHash: 'a1b2c3d4e5f60718',
     route: { lane: 'full', rule: null, floor: null },
+    skills: [skill('datumm-brief-writing', 'Brief writing', 'a1b2c3d4e5f6'),
+      skill('nbc-egress', 'NBC egress', '0f9e8d7c6b5a')],
     phases: { admitMs: 35, startMs: 120, firstCallMs: 480, answerMs: 4100, modelMs: 3100,
       toolMs: 700, stepMs: 3900, unattributedMs: 400, maxPacketBytes: 48213,
       maxToolSchemaBytes: 9120 } }),
@@ -56,6 +59,7 @@ const FIXTURE_ROWS = [
       toolMs: 1200, stepMs: null, unattributedMs: 8500, maxPacketBytes: 61002,
       maxToolSchemaBytes: null } }),
   base('trace-fixture-3', 30, { mode: 'plan',
+    skills: [skill('datumm-brief-writing', 'Brief writing', 'a1b2c3d4e5f6')],
     servedModels: ['openai/gpt-6-luna', 'openai/gpt-6-mini'], signals: ['model_fallback'],
     durationMs: 61000 }),
   base('trace-fixture-4', 200, { outcome: 'cancelled', status: 'cancelled', ownerHash: null,
@@ -100,6 +104,10 @@ export function fixtureTraces(query: URLSearchParams, votes: RatingStore) {
     const reason = row.feedback?.reason;
     if (reason) reasons[reason] = (reasons[reason] ?? 0) + 1;
   }
+  const use = new Map<string, { id: string; name: string; runs: number }>();
+  for (const row of rows) for (const s of row.skills as { id: string; name: string }[]) {
+    use.set(s.id, { id: s.id, name: s.name, runs: (use.get(s.id)?.runs ?? 0) + 1 });
+  }
   const sum = (pick: (row: (typeof rows)[number]) => number) =>
     rows.reduce((total, row) => total + pick(row), 0);
   const rated = (rating: string) => rows.filter(row => row.feedback?.rating === rating).length;
@@ -109,7 +117,7 @@ export function fixtureTraces(query: URLSearchParams, votes: RatingStore) {
       failed: rows.filter(row => row.outcome === 'failed').length,
       p50Ms: percentile(durations, 0.5), p95Ms: percentile(durations, 0.95),
       inputTokens: sum(row => row.tokens.input), outputTokens: sum(row => row.tokens.output),
-      usd: sum(row => Number(row.usd)).toFixed(4),
+      usd: sum(row => Number(row.usd)).toFixed(4), skillUse: [...use.values()],
       feedback: { up: rated('up'), down: rated('down'), reasons } },
     rows: rows.slice(start, start + PAGE).map(({ _age, ...row }) => row),
     nextCursor: start + PAGE < rows.length ? `o${start + PAGE}` : null };

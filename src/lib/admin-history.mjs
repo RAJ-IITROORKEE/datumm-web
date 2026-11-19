@@ -68,6 +68,17 @@ export function formatChange(change) {
     + `${has('after') ? cell(change.after) : '(none)'}`;
 }
 
+// Plain words for the skill paths; every other path stays as the backend wrote it.
+const SKILL_PATHS = [
+  [/^builtinSkills\[([^\]]+)\]\.modes$/, 'Starter skill $1: modes'],
+  [/^builtinSkills\[([^\]]+)\]$/, 'Starter skill $1'],
+  [/^skills\[([^\]]+)\]\.toolHints$/, 'Skill $1: tools that help'],
+];
+export function pathLabel(path) {
+  const hit = SKILL_PATHS.find(([pattern]) => pattern.test(path));
+  return hit ? path.replace(hit[0], hit[1]) : path;
+}
+
 /** Up to `max` changed paths for a table cell, plus how many more there are. */
 export function changedPaths(changes, truncated = false, max = 3) {
   const list = Array.isArray(changes) ? changes : [];

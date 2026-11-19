@@ -1,6 +1,7 @@
 // Pure row model for /admin/tools. The catalog is code-owned on the server; the page can only
 // narrow each tool inside its `allowedModes` ceiling (never widen, never touch a Revit write).
 import { MODES } from './admin-config.mjs';
+import { TOOL_NAME } from './skill-hints.mjs';
 
 export const TOOL_ID = /^[a-z0-9_-]{1,40}$/;
 export const TOOL_GROUPS = [
@@ -19,13 +20,15 @@ export function parseToolCatalog(raw) {
   const seen = new Set(), rows = [];
   for (const item of raw) {
     if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
-    const { id, label, description, group, runsOn, risk, required, locked, allowedModes, defaultModes } = item;
+    const { id, label, description, group, runsOn, risk, required, locked, allowedModes, defaultModes, toolNames } = item;
     if (typeof id !== 'string' || !TOOL_ID.test(id) || seen.has(id)) continue;
     if (![label, description, group].every(text) || !(risk in RISK_LABELS)) continue;
     if (!modeList(allowedModes) || !modeList(defaultModes) || defaultModes.some(m => !allowedModes.includes(m))) continue;
     seen.add(id);
     rows.push({ id, label, description, group, runsOn: typeof runsOn === 'string' ? runsOn : '', risk,
-      required: required === true, locked: locked === true, allowedModes, defaultModes });
+      required: required === true, locked: locked === true, allowedModes, defaultModes,
+      // Model-facing names for skill hints; absent or malformed means none.
+      toolNames: Array.isArray(toolNames) ? [...new Set(toolNames.filter(n => typeof n === 'string' && TOOL_NAME.test(n)))] : [] });
   }
   return rows;
 }

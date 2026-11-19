@@ -112,6 +112,22 @@ function parseRoute(value) {
     : null;
 }
 
+// Skills a run loaded: admin-authored names and a short content hash, never skill text.
+const SKILL_ID = /^[a-z0-9-]{1,40}$/;
+const SKILL_HASH = /^[a-f0-9]{4,64}$/;
+const skillName = (value, id) => (typeof value === 'string' && value.length >= 1
+  && value.length <= 120 && !/[\u0000-\u001f\u007f]/.test(value) ? value : id);
+const parseSkill = item => {
+  const id = isObject(item) ? pick(item.id, SKILL_ID) : null;
+  return id ? { id, name: skillName(item.name, id), hash: pick(item.hash, SKILL_HASH) } : null;
+};
+const parseSkillUse = item => {
+  const id = isObject(item) ? pick(item.id, SKILL_ID) : null;
+  return id && count(item.runs) > 0 ? { id, name: skillName(item.name, id), runs: count(item.runs) }
+    : null;
+};
+const byUse = (a, b) => b.runs - a.runs || a.name.localeCompare(b.name);
+
 function parseRow(row) {
   if (!isObject(row)) return null;
   const traceId = pick(row.traceId, TOKEN);
@@ -137,6 +153,7 @@ function parseRow(row) {
     usd: usd(row.usd), signals: list(row.signals, TRACE_SIGNALS.length, parseSignal),
     feedback: parseFeedback(row.feedback),
     phases: parsePhases(row.phases), route: parseRoute(row.route),
+    skills: list(row.skills, 10, parseSkill),
   };
 }
 
@@ -154,6 +171,7 @@ export function parseTraces(raw) {
       firstTokenP50Ms: ms(stats.firstTokenP50Ms), firstTokenP95Ms: ms(stats.firstTokenP95Ms),
       inputTokens: count(stats.inputTokens), outputTokens: count(stats.outputTokens),
       usd: usd(stats.usd),
+      skillUse: list(stats.skillUse, 40, parseSkillUse).sort(byUse),
       feedback: {
         up: count(feedback.up), down: count(feedback.down),
         reasons: Object.fromEntries(TRACE_REASONS.map(key => [key, count(reasons[key])])),

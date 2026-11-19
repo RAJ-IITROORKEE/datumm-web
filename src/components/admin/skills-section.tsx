@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Plus, Upload } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,9 @@ import {
 } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { MODES, type AdminConfig, type AdminSkill } from '@/lib/admin-config.mjs';
-import { MODE_LABELS } from '@/lib/admin-tools.mjs';
+import { MODE_LABELS, parseToolCatalog } from '@/lib/admin-tools.mjs';
+import { parseBuiltinCatalog } from '@/lib/skill-builtin.mjs';
+import { toolHintOptions } from '@/lib/skill-hints.mjs';
 import { featureEnabled } from '@/lib/capabilities.mjs';
 import { editedSkill, formatSkillMd, type SkillText } from '@/lib/skill-md.mjs';
 import { activeModes, toggleSkillMode } from '@/lib/skill-versions.mjs';
@@ -21,6 +23,7 @@ import { SkillsSection } from './config-sections';
 import { ConfigPage, SettingsGroup, useSharedAdminConfig } from './form';
 import { SkillDetail } from './skill-detail';
 import { SkillEditorDialog } from './skill-editor-dialog';
+import { StarterSkills } from './starter-skills';
 import { SkillTester } from './skill-tester';
 import styles from './skills-section.module.css';
 
@@ -93,7 +96,16 @@ function Registry({ draft, update }: {
   draft: AdminConfig; update: (patch: Partial<AdminConfig>) => void;
 }) {
   const narrow = useNarrow();
-  const revision = useSharedAdminConfig().base?.revision;
+  const base = useSharedAdminConfig().base;
+  const revision = base?.revision;
+  // Both catalogs arrive beside the config; an older backend sends neither, so nothing extra shows.
+  const starters = useMemo(() => parseBuiltinCatalog(base?.builtinSkillCatalog), [base]);
+  const toolOptions = useMemo(
+    () => toolHintOptions(parseToolCatalog(base?.toolCatalog)), [base]);
+  const hints = useMemo(() => ({
+    ...Object.fromEntries(starters.map(s => [s.id, s.toolHints])),
+    ...Object.fromEntries(draft.skills.map(s => [s.id, s.toolHints ?? []])),
+  }), [starters, draft.skills]);
   const [filter, setFilter] = useState<Filter>('all');
   const [selected, setSelected] = useState<string | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -148,6 +160,10 @@ function Registry({ draft, update }: {
   );
 
   return <>
+    {starters.length > 0 && (
+      <StarterSkills catalog={starters} settings={draft.builtinSkills}
+        onChange={builtinSkills => update({ builtinSkills })} />
+    )}
     <div className={styles.toolbar}>
       <ul className={styles.chips} aria-label="Filter skills">
         {FILTERS.map(f => (
@@ -206,12 +222,13 @@ function Registry({ draft, update }: {
     )}
     <SettingsGroup title="Test a prompt"
       description="Which skills would the agent list for a prompt, and which one would it attach?">
-      <SkillTester skills={skills} />
+      <SkillTester skills={skills} hints={hints} />
     </SettingsGroup>
     {editor && (
       <SkillEditorDialog key={`${editor.originalId ?? 'new'}:${editor.text.length}`}
         initialText={editor.text} originalId={editor.originalId}
-        otherIds={skills.map(s => s.id)} full={skills.length >= 30} onApply={apply}
+        otherIds={skills.map(s => s.id)} full={skills.length >= 30} toolOptions={toolOptions}
+        onApply={apply}
         onClose={() => { setEditor(null); restoreFocus(); }} />
     )}
     <Dialog open={Boolean(removing)}

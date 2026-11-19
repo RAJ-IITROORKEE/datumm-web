@@ -17,7 +17,9 @@ const UNREADABLE: Result<unknown> = {
 const names = (ids: string[]) => (ids.length ? ids.join(', ') : 'none');
 
 /** Asks the backend which skills a prompt would list and attach, over the unsaved draft. */
-export function SkillTester({ skills }: { skills: AdminSkill[] }) {
+export function SkillTester({ skills, hints }: {
+  skills: AdminSkill[]; hints: Record<string, string[]>;
+}) {
   const client = useAdminClient();
   const id = useId();
   const [prompt, setPrompt] = useState('');
@@ -63,6 +65,9 @@ export function SkillTester({ skills }: { skills: AdminSkill[] }) {
           <p className={styles.result}>
             <span>Would list: {names(answer.listed)}</span>
             <span>Would attach: {answer.attached ?? 'none'}</span>
+            {answer.listed.filter(id => hints[id]?.length).map(id => (
+              <span key={id}>Tools that help, {id}: {hints[id].join(', ')}</span>
+            ))}
           </p>
         )}
       </div>

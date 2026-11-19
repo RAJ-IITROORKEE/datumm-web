@@ -43,12 +43,18 @@ export interface TraceRow {
   usd: string | null; signals: TraceSignal[];
   feedback: { rating: 'up' | 'down'; reason: TraceReason | null; at: string | null } | null;
   phases: TracePhases | null; route: TraceRoute | null;
+  /** Skills this run loaded; empty from an older backend. */
+  skills: TraceSkill[];
 }
+export interface TraceSkill { id: string; name: string; hash: string | null }
+export interface SkillUse { id: string; name: string; runs: number }
 export interface TraceStats {
   turns: number; scanned: number; truncated: boolean; failed: number;
   p50Ms: number | null; p95Ms: number | null;
   firstTokenP50Ms: number | null; firstTokenP95Ms: number | null;
   inputTokens: number; outputTokens: number; usd: string | null;
+  /** Runs per skill across the scanned rows, most used first; empty from an older backend. */
+  skillUse: SkillUse[];
   feedback: { up: number; down: number; reasons: Record<TraceReason, number> };
 }
 export interface Traces {

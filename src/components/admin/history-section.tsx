@@ -4,7 +4,7 @@ import { History, Loader2, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  actionLabel, changedPaths, historyPath, parseHistory, parseHistoryDetail, restoredStatus,
+  actionLabel, changedPaths, historyPath, pathLabel, parseHistory, parseHistoryDetail, restoredStatus,
   type HistoryDetail, type HistoryPage, type HistoryRow,
 } from '@/lib/admin-history.mjs';
 import { ChangeList } from './change-list';
@@ -33,7 +33,7 @@ function Paths({ row }: { row: HistoryRow }) {
   if (paths.length === 0) return <span className={styles.note}>No setting changed</span>;
   return (
     <div className={styles.paths}>
-      {paths.map(path => <code key={path}>{path}</code>)}
+      {paths.map(path => <code key={path} title={path}>{pathLabel(path)}</code>)}
       {(more > 0 || truncated) && <span>{more > 0 ? `and ${more} more` : 'and more'}</span>}
     </div>
   );

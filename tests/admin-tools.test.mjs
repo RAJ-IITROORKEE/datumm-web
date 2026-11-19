@@ -90,3 +90,10 @@ test('the dev fixture uses the server group casing', () => {
   assert.ok(groups.length >= 9);
   for (const group of groups) assert.ok(['Core', 'Research', 'Revit', 'Design'].includes(group), group);
 });
+
+test('catalog rows keep model-facing toolNames and tolerate their absence', () => {
+  assert.deepEqual(row('web_search').toolNames, ['web_search']);
+  const [odd] = parseToolCatalog([entry({ id: 'odd', toolNames: ['ok_name', 'Bad', 3, 'ok_name'] })]);
+  assert.deepEqual(odd.toolNames, ['ok_name']);
+  assert.deepEqual(parseToolCatalog([entry({ id: 'none', toolNames: undefined })])[0].toolNames, []);
+});

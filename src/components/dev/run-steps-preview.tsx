@@ -15,6 +15,8 @@ const model = (seconds: number, children: unknown[]) => node('model', 'Model cal
 const FIXTURE = parseRunSteps({ schemaVersion: 1, runs: [
   { runId: 'fixture-run-1', startedAt: at(0), status: 'completed', truncated: false, children: [
     model(1, [node('stage', 'Agent step', 3.1, { durationMs: 900, children: [
+      node('skill', 'Skill: Brief writing', 3.15,
+        { skill: { id: 'datumm-brief-writing', hash: '0123456789ab' } }),
       node('tool', 'Tool · Revit read: model elements', 3.2, { durationMs: 420 })] })]),
     model(6, [node('stage', 'Agent step', 8, { durationMs: 1300, children: [
       node('tool', 'Tool · Revit read: selection', 8.1, { durationMs: 80, status: 'failed' }),

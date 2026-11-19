@@ -1,4 +1,4 @@
-import { formatChange, type ConfigChange } from '@/lib/admin-history.mjs';
+import { formatChange, pathLabel, type ConfigChange } from '@/lib/admin-history.mjs';
 import styles from './history-section.module.css';
 
 /** Changed settings as "path: before → after", or "changed" where the value is hidden. */
@@ -10,7 +10,7 @@ export function ChangeList({ changes, truncated = false, empty }: {
     <ul className={styles.changes}>
       {changes.map((change, index) => (
         <li key={`${change.path}:${index}`}>
-          <code>{change.path}</code> <span>{formatChange(change)}</span>
+          <code title={change.path}>{pathLabel(change.path)}</code> <span>{formatChange(change)}</span>
         </li>
       ))}
     </ul>

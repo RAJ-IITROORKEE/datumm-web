@@ -270,3 +270,25 @@ test('first word times are optional: kept when measured, null when absent or unu
   assert.ok(phaseTimeItems({ firstTokenMs: 910 }).some(item => item.label === 'First word'));
   assert.ok(!phaseTimeItems({ answerMs: 1 }).some(item => item.label === 'First word'));
 });
+
+// @lat: [[contracts#Hosted contract tests#Skill use in traces]]
+test('rows list the skills a run loaded and stats count runs per skill, both optional', () => {
+  const none = parseTraces(doc());
+  assert.deepEqual(none.rows[0].skills, []);
+  assert.deepEqual(none.stats.skillUse, []);
+  const parsed = parseTraces(doc([row({ skills: [
+    { id: 'datumm-brief-writing', name: 'Brief writing', hash: 'a1b2c3d4', text: 'CANARY-7f3' },
+    { id: 'Bad Id', name: 'x', hash: 'a1b2c3d4' }, { id: 'nbc-egress', name: '', hash: 'zz' },
+    { id: 'plain', name: 'Plain\u0007' }, 'x'] })], { stats: { ...doc().stats, skillUse: [
+    { id: 'nbc-egress', name: 'NBC egress', runs: 2 },
+    { id: 'datumm-brief-writing', name: 'Brief writing', runs: 5 },
+    { id: 'zero', name: 'Zero', runs: 0 }, { id: 'Bad Id', name: 'x', runs: 3 },
+    { id: 'a-skill', runs: 2 }, null] } }));
+  assert.deepEqual(parsed.rows[0].skills, [
+    { id: 'datumm-brief-writing', name: 'Brief writing', hash: 'a1b2c3d4' },
+    { id: 'nbc-egress', name: 'nbc-egress', hash: null }, { id: 'plain', name: 'plain', hash: null }]);
+  assert.deepEqual(parsed.stats.skillUse.map(s => [s.id, s.name, s.runs]), [
+    ['datumm-brief-writing', 'Brief writing', 5], ['a-skill', 'a-skill', 2],
+    ['nbc-egress', 'NBC egress', 2]]);
+  assert.ok(!JSON.stringify(parsed).includes('CANARY'));
+});

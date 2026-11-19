@@ -10,6 +10,7 @@ import {
 } from '@/lib/admin-traces.mjs';
 import { EmptyState, Table } from './data-sections';
 import { Field, PageHeader } from './form';
+import { SkillUseTable } from './skill-use-table';
 import { TRACE_HEAD, TraceRows, type PickKey } from './trace-rows';
 import { ResultState, useAdminClient, useAdminResource, type Result } from './use-admin';
 import data from './data-sections.module.css';
@@ -70,6 +71,7 @@ function Stats({ traces }: { traces: Traces }) {
         stat('Tokens out', formatCount(stats.outputTokens)),
         stat('Reported cost', formatUsd(stats.usd)), stat('Ratings up · down', ratings),
       ]}</dl>
+      <SkillUseTable rows={stats.skillUse} />
       {reasons.length > 0 && (
         <p className={styles.note} style={{ padding: '0 20px 18px' }}>
           Reasons: {reasons.join(' · ')}

@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  SKILL_LIMITS, editedSkill, formatSkillMd, hasUseWhen, parseSkillMd, skillMdCounts,
+  SKILL_LIMITS, editedSkill, formatSkillMd, hasUseWhen, parseSkillMd, setSkillMdTools,
+  skillMdCounts, skillMdTools,
 } from '../src/lib/skill-md.mjs';
 
 const file = (head = 'name: nbc-egress\ndescription: Use when checking exits.', body = 'Check the exit width.') =>
@@ -102,4 +103,47 @@ test('Apply with no edits leaves a legacy skill byte-identical; a real edit is w
   assert.deepEqual(editedSkill(legacy, { ...untouched, instructions: 'Step two.' }),
     { ...untouched, instructions: 'Step two.' });
   assert.deepEqual(editedSkill(undefined, untouched), untouched);   // a new skill is always written
+});
+
+// @lat: [[contracts#Hosted contract tests#Skill tool hints]]
+test('tools: header round trips to toolHints, dedupes and is omitted when empty', () => {
+  const text = file('name: a\ndescription: Use when x\ntools: web_search, knowledge_search, web_search');
+  const parsed = parseSkillMd(text);
+  assert.deepEqual(parsed.skill.toolHints, ['web_search', 'knowledge_search']);
+  assert.ok(formatSkillMd(parsed.skill).includes('\ntools: web_search, knowledge_search\n---'));
+  assert.deepEqual(parseSkillMd(formatSkillMd(parsed.skill)).skill, parsed.skill);
+  assert.ok(!('toolHints' in parseSkillMd(file()).skill));
+  assert.ok(!formatSkillMd({ id: 'a', name: 'a', description: 'd', instructions: 'b', toolHints: [] })
+    .includes('tools:'));
+  assert.deepEqual(parseSkillMd(file('name: a\ndescription: d\ntools: [web_search]')).skill.toolHints,
+    ['web_search']);
+});
+
+test('tools: refuses more than 6 names and names that are not tool ids', () => {
+  const seven = Array.from({ length: 7 }, (_, i) => `tool_${i}`).join(', ');
+  const six = seven.split(', ').slice(0, 6).join(', ');
+  assert.deepEqual(fields(parseSkillMd(file(`name: a\ndescription: d\ntools: ${seven}`))), ['tools']);
+  assert.equal(parseSkillMd(file(`name: a\ndescription: d\ntools: ${six}`)).ok, true);
+  assert.deepEqual(fields(parseSkillMd(file('name: a\ndescription: d\ntools: Read, web search'))),
+    ['tools']);
+});
+
+test('editedSkill sees a changed hint list as an edit and an unchanged one as none', () => {
+  const stored = { id: 'a', name: 'a', description: 'Use when x', instructions: 'b',
+    toolHints: ['web_search'] };
+  const same = parseSkillMd(formatSkillMd(stored)).skill;
+  assert.equal(editedSkill(stored, same), null);
+  assert.deepEqual(editedSkill(stored, { ...same, toolHints: ['web_search', 'knowledge_search'] })
+    .toolHints, ['web_search', 'knowledge_search']);
+  const { toolHints, ...without } = same;
+  assert.deepEqual(editedSkill(stored, without), without);
+});
+
+test('the editor can read and rewrite the tools line even in a file that does not parse', () => {
+  const text = '---\nname: BAD\ndescription: d\ntools: web_search\n---\nbody';
+  assert.deepEqual(skillMdTools(text), ['web_search']);
+  assert.equal(setSkillMdTools(text, ['a', 'b']), '---\nname: BAD\ndescription: d\ntools: a, b\n---\nbody');
+  assert.equal(setSkillMdTools(text, []), '---\nname: BAD\ndescription: d\n---\nbody');
+  assert.equal(setSkillMdTools('no header', ['a']), 'no header');
+  assert.deepEqual(skillMdTools('nothing'), []);
 });

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  AUDIT_KINDS, actionLabel, auditPath, changedPaths, formatChange, historyPath, kindLabel,
+  AUDIT_KINDS, actionLabel, auditPath, changedPaths, formatChange, historyPath, kindLabel, pathLabel,
   parseAuditRows, parseHistory, parseHistoryDetail, restoreBlock, restoreBody,
 } from '../src/lib/admin-history.mjs';
 import { createHistoryFixture } from '../src/components/dev/admin-history-fixture.ts';
@@ -261,4 +261,12 @@ test('model test audit rows keep their kind, action and summary text', () => {
   assert.equal(actionLabel('test'), 'Tested');
   assert.ok(AUDIT_KINDS.includes('model_test'), 'the audit kind filter offers it');
   assert.equal(auditPath({ kind: 'model_test' }), 'admin/audit?limit=25&kind=model_test');
+});
+
+test('starter-skill and tools-that-help paths read plainly; other paths are untouched', () => {
+  assert.equal(pathLabel('builtinSkills[datumm-room-sizing]'), 'Starter skill datumm-room-sizing');
+  assert.equal(pathLabel('builtinSkills[datumm-room-sizing].modes'), 'Starter skill datumm-room-sizing: modes');
+  assert.equal(pathLabel('skills[a].toolHints'), 'Skill a: tools that help');
+  assert.equal(pathLabel('skills[a].modes'), 'skills[a].modes');
+  assert.equal(pathLabel('parallelChats'), 'parallelChats');
 });

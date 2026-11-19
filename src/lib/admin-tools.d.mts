@@ -4,6 +4,8 @@ export type ToolRisk = 'read' | 'external' | 'device' | 'write';
 export type ToolRow = {
   id: string; label: string; description: string; group: string; runsOn: string; risk: ToolRisk;
   required: boolean; locked: boolean; allowedModes: Mode[]; defaultModes: Mode[];
+  /** Model-facing tool names (skill hints); empty when the backend sent none. */
+  toolNames: string[];
 };
 export type ToolsMap = Record<string, { modes: Mode[] }>;
 export const TOOL_ID: RegExp;

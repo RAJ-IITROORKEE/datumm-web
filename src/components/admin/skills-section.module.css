@@ -135,3 +135,24 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+.starter { display: grid; gap: 10px; min-width: 0; }
+.groupTitle { margin: 0; font-size: 14px; font-weight: 500; line-height: 22px; }
+.hints { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.hints legend { padding: 0; font-size: 13px; font-weight: 500; }
+.hintGroups {
+  display: grid;
+  gap: 8px;
+  max-height: 168px;
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--separator);
+  border-radius: 8px;
+}
+.hintGroup { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 12px; }
+.hintGroup > span { flex: 0 0 100%; color: var(--text); }
+.hintGroup label { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); }
+.hintGroup input:disabled + span { opacity: 0.55; }
+.chipsRow { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.useTable { width: 100%; border-collapse: collapse; font-size: 12px; }
+.useTable th, .useTable td { padding: 6px 12px; text-align: left; border-top: 1px solid var(--separator); }
+.useTable td:last-child, .useTable th:last-child { text-align: right; font-variant-numeric: tabular-nums; }

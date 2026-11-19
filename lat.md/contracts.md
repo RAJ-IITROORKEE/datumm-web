@@ -152,15 +152,33 @@ An untouched config gets no `tools` key. `adminTools` is strict: unknown is off,
 
 ## Skill SKILL.md format
 
-SKILL.md is only the editor and import/export format for a skill; the stored item keeps today's six fields and no new field is sent to the backend.
+SKILL.md is only the editor and import/export format for a skill; the stored item keeps its six fields plus the optional `toolHints` (see Skill tool hints).
 
 `parseSkillMd` in `src/lib/skill-md.mjs` maps frontmatter `name` to the id, optional `title` to the name (default: the id), `description` to the description and the body to the instructions. It refuses control characters (tab and newline stay legal), files over 6000 characters, a missing header, bad ids and anything over the backend caps of 300 and 4000, and reports each problem with its field. CRLF and a byte-order mark parse like LF. The editor changes the draft only on a valid parse, and a rename is refused so version history stays keyed by id.
+
+## Skill tool hints
+
+A skill's "Tools that help" are model-facing tool names that suggest what the skill works best with; they never turn a tool on.
+
+The optional frontmatter line `tools: a, b` round-trips to `toolHints` (at most 6 distinct names matching `^[a-z][a-z0-9_]{0,63}$`; `[a, b]` is accepted) and is omitted when empty, so older skills are byte-identical. The editor's checkboxes rewrite that line through `setSkillMdTools` and read it with `skillMdTools`, which work on files that do not parse yet. The options come only from the `toolNames` of the `toolCatalog` rows (`toolHintOptions` in `src/lib/skill-hints.mjs`), each name once, so the Revit write row, which has none, never appears; a selected name the catalog does not list stays visible so it can be removed. `validateConfig` refuses more than 6 hints, repeats and bad names, and refuses admin skill ids that start with `datumm-`. The Test a prompt panel lists the hints of the skills it would list.
+
+## Starter skills
+
+DATUMM starter skills are code-owned, off until turned on, and the only thing an admin changes is the modes each is on in.
+
+`parseBuiltinCatalog` in `src/lib/skill-builtin.mjs` keeps valid `builtinSkillCatalog` entries from the config envelope (`datumm-` id, name, description at most 300, instructions at most 4000, hints) and drops the rest; an older backend sends none and the group does not show. `toggleBuiltinMode` writes `builtinSkills: [{id, modes}]` into the draft, saved by the normal Save bar, and removes an entry whose last mode goes off. `View` shows the read-only SKILL.md. `validateConfig` accepts `builtinSkills` only with `datumm-` ids and distinct modes, and the editor never adds the key to a backend that did not send it. See `src/components/admin/starter-skills.tsx`.
+
+## Skill use in traces
+
+A run's loaded skills show as chips on its trace row and as a "Skill use" table, parsed key by key and optional.
+
+`src/lib/admin-traces.mjs` keeps per row `skills: [{id, name, hash}]` (at most 10; id pattern, name 1 to 120 without control characters, short hex hash or null) and in stats `skillUse: [{id, name, runs}]` (runs above 0, most used first). Absent from an older backend means empty and nothing shows. The run steps parser also accepts a `skill` node, labelled by the backend as "Skill: <name>", in the same tree as tools; only that node may carry `skill: {id, hash}`, shown as the id and the first 8 hash characters. History and change lists word `builtinSkills[id]`, `builtinSkills[id].modes` and `skills[id].toolHints` plainly through `pathLabel` in `src/lib/admin-history.mjs`, keeping the raw path as the tooltip. See `src/components/admin/skill-use-table.tsx`.
 
 ## Skill versions
 
 A skill's versions are the config history rows whose changes touch `skills[<id>]`, and a restore puts that skill back into the draft only.
 
-`src/lib/skill-versions.mjs` filters rows by exact `skills[id]` or `skills[id].` paths, so `ab` never matches `a`. `skillFromSnapshot` reads the item from the raw history detail (the history parser drops the snapshot), keeps the six stored fields and validates them with `validateConfig`. `withSkill` replaces or appends and refuses a thirty-first skill. Nothing saves until the admin presses Save changes, which writes a normal revision.
+`src/lib/skill-versions.mjs` filters rows by exact `skills[id]` or `skills[id].` paths, so `ab` never matches `a`. `skillFromSnapshot` reads the item from the raw history detail (the history parser drops the snapshot), keeps the stored fields (and `toolHints` when present) and validates them with `validateConfig`. `withSkill` replaces or appends and refuses a thirty-first skill. Nothing saves until the admin presses Save changes, which writes a normal revision.
 
 ## Skill preview
 

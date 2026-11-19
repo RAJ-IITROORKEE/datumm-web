@@ -82,3 +82,25 @@ test('a model node shows its first word time when the backend sent one, and only
   assert.equal(nodeMeta(timed), '1.5 s · first word 640 ms');
   assert.equal(nodeMeta(plain), '1.5 s');
 });
+
+// @lat: [[contracts#Run steps tree]]
+test('a skill node is kept with its label and shows no extra meta', () => {
+  const parsed = parseRunSteps({schemaVersion: 1, runs: [{runId: 'r', children: [
+    node('Skill: Brief writing', {kind: 'skill', durationMs: null}), node('x', {kind: 'skillz'})]}]});
+  assert.deepEqual(parsed.runs[0].children.map(n => [n.kind, n.label]), [['skill', 'Skill: Brief writing']]);
+  assert.equal(nodeMeta(parsed.runs[0].children[0]), '');
+});
+
+test('a skill node keeps its id and short hash, and other nodes never carry one', () => {
+  const run = nodes => parseRunSteps({schemaVersion: 1, runs: [{runId: 'r', children: nodes}]}).runs[0].children;
+  const [good, noHash, bad, tool] = run([
+    node('Skill: Room sizing advice', {kind: 'skill', skill: {id: 'datumm-room-sizing', hash: '0123456789ab'}}),
+    node('Skill: B', {kind: 'skill', skill: {id: 'b', hash: 'XYZ'}}),
+    node('Skill: C', {kind: 'skill', skill: {id: 'Bad Id'}}),
+    node('Tool', {kind: 'tool', skill: {id: 'datumm-room-sizing'}})]);
+  assert.deepEqual(good.skill, {id: 'datumm-room-sizing', hash: '0123456789ab'});
+  assert.equal(nodeMeta(good), '1.5 s · datumm-room-sizing · 01234567');
+  assert.deepEqual(noHash.skill, {id: 'b', hash: null});
+  assert.equal(bad.skill, null);
+  assert.equal(tool.skill, null);
+});

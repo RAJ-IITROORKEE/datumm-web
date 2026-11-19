@@ -1,10 +1,12 @@
-export type StepKind = 'model' | 'tool' | 'question' | 'approval' | 'check' | 'edit' | 'stage';
+export type StepKind = 'model' | 'tool' | 'question' | 'approval' | 'check' | 'edit' | 'stage' | 'skill';
 export type StepStatus = 'succeeded' | 'failed' | 'partial' | 'stale' | 'skipped' | 'stopped' | 'running' | 'waiting' | 'unknown';
 export type StepTokens = { input: number; output: number };
 export type StepNode = {
   kind: StepKind; label: string; startedAt: string | null; durationMs: number | null;
   firstTokenMs: number | null; status: StepStatus;
   model: string | null; tokens: StepTokens | null; usd: string | null; children: StepNode[];
+  /** Present (non-null) only on skill nodes: the loaded skill and its short content hash. */
+  skill: { id: string; hash: string | null } | null;
 };
 export type StepRun = { runId: string; startedAt: string | null; status: string; truncated: boolean; children: StepNode[] };
 export type RunSteps = { runs: StepRun[] };
@@ -20,7 +22,7 @@ export function formatDuration(ms: number | null | undefined): string;
 export function formatUsd(usd: string | null | undefined): string;
 export function formatTokens(tokens: StepTokens | null | undefined): string;
 export function nodeMeta(
-  node: Pick<StepNode, 'status' | 'durationMs' | 'firstTokenMs' | 'tokens' | 'usd'>,
+  node: Pick<StepNode, 'status' | 'durationMs' | 'firstTokenMs' | 'tokens' | 'usd'> & { skill?: StepNode['skill'] },
 ): string;
 export function treeRows(runs: StepRun[]): TreeRow[];
 export function initialExpanded(runs: StepRun[]): Set<string>;

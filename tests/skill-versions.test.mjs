@@ -73,3 +73,10 @@ test('switching modes keeps at least one stored mode and uses enabled for "all o
   const back = toggleSkillMode(last, 'build', true);
   assert.deepEqual([back.modes, back.enabled], [['build'], true]);
 });
+
+test('a restored snapshot keeps toolHints and refuses an invalid list', () => {
+  const detail = list => ({ config: { skills: [item({ toolHints: list })] } });
+  assert.deepEqual(skillFromSnapshot(detail(['web_search']), 'a').toolHints, ['web_search']);
+  assert.equal(skillFromSnapshot(detail(['Bad Name']), 'a'), null);
+  assert.ok(!('toolHints' in skillFromSnapshot({ config: { skills: [item()] } }, 'a')));
+});

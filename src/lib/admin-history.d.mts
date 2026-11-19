@@ -37,6 +37,8 @@ export function actionLabel(value: string | null | undefined): string;
 export function kindLabel(value: string): string;
 /** "before → after" when values were sent, otherwise "changed". */
 export function formatChange(change: ConfigChange): string;
+/** Plain wording for starter-skill and tools-that-help paths; any other path is returned as is. */
+export function pathLabel(path: string): string;
 export function changedPaths(
   changes: ConfigChange[], truncated?: boolean, max?: number,
 ): { paths: string[]; more: number; truncated: boolean };

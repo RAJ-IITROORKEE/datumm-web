@@ -1,5 +1,5 @@
 export const CAPABILITY_VERSION = 1;
-export const CAPABILITY_FEATURES = ['adminConfig', 'adminAudit', 'adminOverview', 'adminKnowledge', 'planningGoals', 'frontendContext', 'displayActions', 'adminTraces', 'feedback', 'adminHistory', 'adminModels', 'modelInfo', 'attachments', 'tavilySearch', 'adminTools', 'approvalModes', 'skillsOnDemand', 'planEditing', 'dailyLimits', 'runSteps', 'redlines', 'revitChecks'];
+export const CAPABILITY_FEATURES = ['adminConfig', 'adminAudit', 'adminOverview', 'adminKnowledge', 'planningGoals', 'frontendContext', 'displayActions', 'adminTraces', 'feedback', 'adminHistory', 'adminModels', 'modelInfo', 'attachments', 'tavilySearch', 'adminTools', 'approvalModes', 'skillsOnDemand', 'builtinSkills', 'planEditing', 'dailyLimits', 'runSteps', 'redlines', 'revitChecks'];
 
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 

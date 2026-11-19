@@ -1,6 +1,10 @@
 // Pure validation for the /admin config editor. Bounds mirror AppConfig in the domain API (app_config.py).
+import { HINT_MAX, validHints } from './skill-hints.mjs';
+
 export const LIMIT_KEYS = ['agent_model_calls', 'agent_tool_calls', 'agent_research_calls', 'agent_web_searches', 'agent_knowledge_searches', 'continuation_segments'];
 export const MODES = ['ask', 'plan', 'build'];
+// Admin skill ids may not use it; the code-owned starter skills do.
+export const BUILTIN_PREFIX = 'datumm-';
 export const EFFORTS = ['', 'low', 'medium', 'high'];
 export const SEARCH_PROVIDERS = ['openrouter', 'tavily'];
 export const CORPORA = ['nbc', 'revit', 'pyrevit', 'other'];
@@ -53,16 +57,27 @@ export function validateConfig(cfg) {
   if (!Array.isArray(ws.includeDomains) || ws.includeDomains.length > 30) e['webSearch.includeDomains'] = 'At most 30 domains.';
   else if (ws.includeDomains.some(d => !DOMAIN.test(d))) e['webSearch.includeDomains'] = 'Domains use a-z, 0-9, dot and dash (3 to 100 characters).';
   if (cfg.webSearchProvider !== undefined && !SEARCH_PROVIDERS.includes(cfg.webSearchProvider)) e.webSearchProvider = 'OpenRouter or Tavily.';
-  const dupes = (items, key) => items.forEach((item, i) => { if (items.findIndex(o => o.id === item.id) !== i) e[`${key}.${i}.id`] = 'Duplicate id.'; });
+  const dupes = (items, key) => items.forEach((item, i) => { if (items.findIndex(o => o?.id === item?.id) !== i) e[`${key}.${i}.id`] = 'Duplicate id.'; });
   list('skills', 30, (s, i) => {
     const p = `skills.${i}.`;
     if (!ID.test(s.id)) e[p + 'id'] = 'Lowercase letters, digits and dashes, 1 to 40.';
+    else if (String(s.id).startsWith(BUILTIN_PREFIX)) e[p + 'id'] = `The "${BUILTIN_PREFIX}" prefix is reserved for built-in skills.`;
     if (!short(s.name)) e[p + 'name'] = '1 to 120 characters.';
+    if (s.toolHints !== undefined && !validHints(s.toolHints)) e[p + 'toolHints'] = `At most ${HINT_MAX} tool names, each once.`;
     if ((s.description ?? '').length > 300) e[p + 'description'] = 'At most 300 characters.';
     if (!s.instructions || s.instructions.length > 4000) e[p + 'instructions'] = '1 to 4000 characters.';
     if (!Array.isArray(s.modes) || !s.modes.length || s.modes.some(m => !MODES.includes(m))) e[p + 'modes'] = 'Pick at least one mode.';
   });
   dupes(cfg.skills ?? [], 'skills');
+  // Starter skills are code-owned: the editor stores only which modes each is on in.
+  if (cfg.builtinSkills !== undefined) {
+    list('builtinSkills', 30, (b, i) => {
+      const p = `builtinSkills.${i}.`;
+      if (!ID.test(b?.id) || !String(b?.id).startsWith(BUILTIN_PREFIX)) e[p + 'id'] = `Starter skill ids start with "${BUILTIN_PREFIX}".`;
+      if (!Array.isArray(b?.modes) || !b.modes.length || b.modes.some(m => !MODES.includes(m)) || new Set(b.modes).size !== b.modes.length) e[p + 'modes'] = 'Pick ask, plan or build, each at most once.';
+    });
+    if (Array.isArray(cfg.builtinSkills)) dupes(cfg.builtinSkills, 'builtinSkills');
+  }
   list('mcpServers', 20, (s, i) => {
     const p = `mcpServers.${i}.`;
     if (!ID.test(s.id)) e[p + 'id'] = 'Lowercase letters, digits and dashes, 1 to 40.';

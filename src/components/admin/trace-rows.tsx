@@ -146,6 +146,16 @@ export function TraceRows({ rows, onPick }: { rows: TraceRow[]; onPick: Pick }) 
               {served.length > 0 && (
                 <span className={styles.muted}>Served: {served.join(', ')}</span>
               )}
+              {row.skills.length > 0 && (
+                <div className={styles.badges} role="group" aria-label="Skills loaded">
+                  {row.skills.map(skill => (
+                    <Badge key={skill.id} variant="secondary"
+                      title={`${skill.id}${skill.hash ? ` · ${skill.hash.slice(0, 8)}` : ''}`}>
+                      Skill: {skill.name}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           </td>
           <td>
