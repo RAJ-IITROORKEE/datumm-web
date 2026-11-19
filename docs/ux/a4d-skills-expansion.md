@@ -79,4 +79,9 @@
 
 ## 5. Result
 
-To fill in at checkpoint.
+| Item | Outcome |
+| --- | --- |
+| Build | Backend `b69a295`: `builtin_skills.py` (6 `datumm-` skills, off by default), `builtinSkills` config, `toolHints` (model-facing names only, shown only when offered, never add a tool), skill nodes in run steps, `skills` and `skillUse` in traces. Web `0ecadf3` + `d148fdf`: starter skills group, a Tools that help picker, plain history wording, Run steps and trace skill views; switch names "Use <skill> in <mode>". |
+| Gates | Backend: pytest 973 + 26 subtests; all 9 image checks; `lat check`. Web: typecheck, 1052 (then 1063) tests, build, `lat check`. |
+| Live, 19 Nov | Backend `b69a295` live at 15:50Z (Service and Task only). The admin page lists the 6 starter skills, all off. Turning on "Room sizing advice" for Ask saved config revision 2. A matching Ask chat **loaded the skill**: Run steps showed "Skill: Room sizing advice", and the trace showed the skill with its hash. The skill was turned off again (revision 3). |
+| Found | (1) **Every Ask-mode chat failed** with `provider_unavailable` (the last Ask success was 15 Nov). The cause was the N5 streaming path: OpenRouter sends a mid-stream error chunk on HTTP 200 and cannot fail over once streaming has started. Fixed in backend `183bfc5`: one unstreamed retry of the same reserved call, plus a warning log with the error class, status, code and type, never the message. Live at 16:56Z; the same Ask question then completed with 6 calls and no retry needed. (2) The switch names said "enabled" in every state; fixed. (3) Streamed calls record their finish reason as "other"; this is a telemetry follow-up. |

@@ -335,6 +335,13 @@ delete them), `mcp_call` events, `mcp_result` observations, audit rows.
 
 | Item | Outcome |
 | --- | --- |
+| Build | Backend `8b6e4ea`: `mcp` 2.3.0 (the lock only adds packages; fastapi, starlette, httpx and pydantic are unchanged), `mcp_client.py` (pinned `httpx2` transport: https only, a public address re-checked on every call, no redirects), `mcp_secret.py` (AES-256-GCM, associated data per server and header), `mcp_registry.py`, `mcp_admin.py` (`/v1/admin/mcp*`), the catalog row `mcp` (Ask and Plan, never Build), 4 calls per run, results untrusted, and the `mcp__` prefix never enabled unless registered. The stack template gains `MCP_SECRET_KEY` (not deployed yet). Web `d148fdf`: the MCP servers admin page and plain approval wording. |
+| Gates | Backend: pytest 1028 + 26 subtests (52 new MCP tests through the real SDK against an in-process server); all image checks; `lat check`. Web: 1063 tests, build, `lat check`; the dev fixture was checked in the browser (server list, tool radio groups, a switch named "Offer <name> in admin chats"). |
+| Live, 19 Nov | Backend `8b6e4ea` live at 16:56Z. `mcpRegistry` is false until `MCP_SECRET_KEY` is set. |
+| Pending | The user adds `MCP_SECRET_KEY` to the runtime secret. Then a template change set wires it in, followed by a live test with one public read-only MCP server. |
+
+| Item | Outcome |
+| --- | --- |
 | Commit | |
 | Gates run (command, Node version, counts, date) | |
 | Browser evidence (tool, URL, scenario, result) | |
