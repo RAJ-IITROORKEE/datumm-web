@@ -21,6 +21,7 @@ src/app/          routes, layouts and API handlers      → src/app/README.md
 src/components/   UI components                         → src/components/README.md
 src/lib/          pure logic, AG-UI adapter, themes     → src/lib/README.md
 tests/            node --test suite and runtime smoke   → tests/README.md
+scripts/          desktop sync script and its config    → scripts/README.md
 docs/             handoff, phase packets, research
 lat.md/           knowledge graph linked from code
 ```

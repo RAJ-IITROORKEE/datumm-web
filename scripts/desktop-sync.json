@@ -1,0 +1,39 @@
+{
+  "entries": [
+    "src/components/workspace.tsx",
+    "src/components/workspace-entry.tsx",
+    "src/components/host-provider.tsx"
+  ],
+  "extras": [
+    "src/app/globals.css"
+  ],
+  "deniedPaths": [
+    "src/components/admin/",
+    "src/components/billing/",
+    "src/components/dev/",
+    "src/app/api/",
+    "src/proxy.ts",
+    "src/middleware.ts",
+    "next.config."
+  ],
+  "allowedExceptions": {
+    "src/components/admin/use-admin.tsx": "imported by permissions-settings.tsx (Result and admin client hook; no admin screen)",
+    "src/components/billing/pricing-plans.tsx": "imported by desktop-settings.tsx (plans card)",
+    "src/components/admin/admin-form.module.css": "styles for use-admin.tsx",
+    "src/components/billing/pricing-plans.module.css": "styles for pricing-plans.tsx"
+  },
+  "excludedFiles": {
+    "src/lib/backend.ts": "hosted backend access (server only)",
+    "src/lib/request-body.ts": "server request parsing"
+  },
+  "serverOnlySpecifiers": [
+    "server-only",
+    "next/headers",
+    "next/server",
+    "@clerk/nextjs/server",
+    "@resvg/resvg-js",
+    "sharp"
+  ],
+  "dest": "src/shared",
+  "target": "../datumm-orchestrator/apps/web"
+}

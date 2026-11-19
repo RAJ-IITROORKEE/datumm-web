@@ -30,6 +30,7 @@ src/components/   UI. ui/ = shadcn-style primitives; vendor/affectui/ = pinned a
                   connections/, ai-elements/, dev/ (development-only fixtures)
 src/lib/          pure logic (.mjs + .d.mts types), AG-UI adapter (agui/), theme tokens (themes/)
 tests/            node --test files, one per lib module or behaviour, plus runtime-smoke.mjs
+scripts/          sync-desktop.mjs: one-way sync of the shell into the desktop renderer
 docs/             ux/ (handoff, phase packets), agui/ (research and plan), egm/ (original design
                   reports), backend-candidates/ (patches), plan-viewer/ (screenshots)
 lat.md/           knowledge graph: architecture and contract notes linked from code with @lat
