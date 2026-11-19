@@ -5,7 +5,7 @@ import { ShieldQuestion } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { RISK_LABELS } from '@/lib/admin-tools.mjs';
-import { approvalAnnouncement, approvalAnswers, approvalStatus, type ToolApproval } from '@/lib/permissions.mjs';
+import { approvalAnnouncement, approvalAnswers, approvalStatus, plainApprovalText, type ToolApproval } from '@/lib/permissions.mjs';
 import type { AgentQuestion, ReplyPayload } from './agent-questions';
 import styles from './question-card.module.css';
 
@@ -45,7 +45,7 @@ export function ToolApprovalCard({ question, approval, expired = false, onReply 
         <h3>DATUMM asks to use a tool</h3>
         {approval.risk && <Badge variant={approval.risk === 'read' ? 'secondary' : 'outline'}>{RISK_LABELS[approval.risk]}</Badge>}
       </header>
-      <p className={styles.reason}>{question.question}</p>
+      <p className={styles.reason}>{plainApprovalText(question.question)}</p>
       {status.label && <p className={styles.reason}>{status.label}</p>}
       <p role="status" className="sr-only">{approvalAnnouncement(approval, now, expired || lapsed)}</p>
       {status.expired && <p className={styles.error}>This approval expired. Send a new message and the agent will ask again.</p>}

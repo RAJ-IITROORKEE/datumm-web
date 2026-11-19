@@ -1,6 +1,7 @@
 export type HistoryAction = 'update' | 'restore' | 'baseline';
-export type AuditKind = 'config' | 'knowledge' | 'model_test';
-export type AuditAction = HistoryAction | 'add' | 'reindex' | 'delete' | 'test';
+export type AuditKind = 'config' | 'knowledge' | 'model_test' | 'mcp';
+export type AuditAction = HistoryAction | 'add' | 'reindex' | 'delete' | 'test' | 'mcp_create' | 'mcp_update'
+  | 'mcp_test' | 'mcp_tool_mode' | 'mcp_enable' | 'mcp_disable' | 'mcp_remove';
 type Shown = string | number | boolean | (string | number | boolean)[];
 
 export interface ConfigChange {

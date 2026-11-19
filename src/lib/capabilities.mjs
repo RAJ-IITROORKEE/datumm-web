@@ -1,5 +1,5 @@
 export const CAPABILITY_VERSION = 1;
-export const CAPABILITY_FEATURES = ['adminConfig', 'adminAudit', 'adminOverview', 'adminKnowledge', 'planningGoals', 'frontendContext', 'displayActions', 'adminTraces', 'feedback', 'adminHistory', 'adminModels', 'modelInfo', 'attachments', 'tavilySearch', 'adminTools', 'approvalModes', 'skillsOnDemand', 'builtinSkills', 'planEditing', 'dailyLimits', 'runSteps', 'redlines', 'revitChecks'];
+export const CAPABILITY_FEATURES = ['adminConfig', 'adminAudit', 'adminOverview', 'adminKnowledge', 'planningGoals', 'frontendContext', 'displayActions', 'adminTraces', 'feedback', 'adminHistory', 'adminModels', 'modelInfo', 'attachments', 'tavilySearch', 'adminTools', 'approvalModes', 'skillsOnDemand', 'builtinSkills', 'planEditing', 'dailyLimits', 'runSteps', 'redlines', 'revitChecks', 'mcpRegistry'];
 
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -13,7 +13,15 @@ export function parseCapabilities(config) {
     const value = known ? raw.features[name] : undefined;
     features[name] = typeof value === 'boolean' ? (value ? 'on' : 'off') : 'unknown';
   }
-  return { version: known ? CAPABILITY_VERSION : null, features };
+  // Why a feature is off, in the server's words (plain text only, never markup).
+  const reasons = {};
+  if (known && isObject(raw.reasons)) {
+    for (const name of CAPABILITY_FEATURES) {
+      const why = raw.reasons[name];
+      if (features[name] === 'off' && typeof why === 'string' && why.length <= 200 && !/[\u0000-\u001f\u007f]/.test(why)) reasons[name] = why;
+    }
+  }
+  return { version: known ? CAPABILITY_VERSION : null, features, reasons };
 }
 
 export const featureState = (capabilities, name) => capabilities?.features?.[name] ?? 'unknown';

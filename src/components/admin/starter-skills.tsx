@@ -65,7 +65,7 @@ export function StarterSkills({ catalog, settings, onChange }: {
                     <li key={mode}>
                       <label htmlFor={`${skill.id}-${mode}`}>{MODE_LABELS[mode]}</label>
                       <Switch id={`${skill.id}-${mode}`} checked={live.includes(mode)}
-                        aria-label={`${MODE_LABELS[mode]}: enabled for ${skill.id}`}
+                        aria-label={`Use ${skill.name} in ${MODE_LABELS[mode]}`}
                         onCheckedChange={on => onChange(
                           toggleBuiltinMode(settings, skill.id, mode, on),
                         )} />

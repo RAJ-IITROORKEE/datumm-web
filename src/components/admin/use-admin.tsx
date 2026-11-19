@@ -6,7 +6,9 @@ import { emptyConfig, sameConfig, validateConfig, type AdminConfig } from '@/lib
 import styles from './admin-form.module.css';
 
 export type Fail = 'blocked' | 'missing' | 'forbidden' | 'stale' | 'error';
-export type Result<T> = { ok: true; data: T } | { ok: false; reason: Fail; message: string };
+// `issues` is a 422 validation list cut down to where and why; the rejected input is never kept.
+export type Issue = { loc: (string | number)[]; msg: string };
+export type Result<T> = { ok: true; data: T } | { ok: false; reason: Fail; message: string; issues?: Issue[] };
 export type AdminClient = <T>(path: string, init?: { method?: string; body?: unknown }) => Promise<Result<T>>;
 
 /** Admin call through the same-origin service proxy; 404 (proxy or backend), 403 and 409 get their own friendly states. */
@@ -17,7 +19,8 @@ export async function adminCall<T>(path: string, init?: { method?: string; body?
     const body = await response.json().catch(() => null);
     const detail = typeof body?.detail === 'string' ? body.detail : '';
     const reason: Fail = response.status === 404 ? (body?.code === 'DATUMM_PROXY_NOT_ALLOWED' ? 'blocked' : 'missing') : response.status === 403 ? 'forbidden' : response.status === 409 ? 'stale' : 'error';
-    return { ok: false, reason, message: detail || `Request failed (${response.status}).` };
+    const issues: Issue[] = Array.isArray(body?.detail) ? body.detail.slice(0, 10).filter((i: Issue) => Array.isArray(i?.loc) && typeof i?.msg === 'string').map((i: Issue) => ({ loc: i.loc.filter(p => typeof p === 'string' || typeof p === 'number'), msg: i.msg })) : [];
+    return { ok: false, reason, message: detail || `Request failed (${response.status}).`, ...(issues.length ? { issues } : {}) };
   } catch {
     return { ok: false, reason: 'error', message: 'Could not reach the service. Check your connection.' };
   }

@@ -59,3 +59,7 @@ export function approvalAnnouncement(approval, now, serverExpired = false) {
   const left = approval.expiresAt - now;
   return left <= 60000 ? 'This approval expires in 1 minute.' : left <= 300000 ? 'This approval expires in 5 minutes.' : '';
 }
+
+// The service names an outside MCP tool `mcp__<server>__<tool>`; people read "<tool> on <server>".
+export const plainApprovalText = text => (typeof text === 'string'
+  ? text.replace(/\bmcp__([a-z0-9-]{1,20})__([A-Za-z0-9_-]{1,38})\b/g, '$2 on $1') : '');

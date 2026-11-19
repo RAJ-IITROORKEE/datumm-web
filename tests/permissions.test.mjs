@@ -163,3 +163,12 @@ test('changing the approval mode keeps focus: no disabled fieldset, busy panel, 
   assert.equal(radio('safe').props.checked, true);
   assert.equal(h.render(PermissionsSettings, {}).find(n => n.type === 'section').props['aria-busy'], false);
 });
+
+// @lat: [[contracts#Hosted contract tests#Admin MCP registry]]
+test('an outside MCP tool reads as "<tool> on <server>" in the approval text', () => {
+  const text = permissions.plainApprovalText('Allow mcp__docs__search_pages (outside service): "kitchen"?');
+  assert.equal(text, 'Allow search_pages on docs (outside service): "kitchen"?');
+  assert.equal(permissions.plainApprovalText('Allow generate_concept_image (outside service)?'), 'Allow generate_concept_image (outside service)?');
+  assert.equal(permissions.plainApprovalText('mcp__BAD__x mcp__a b__x'), 'mcp__BAD__x mcp__a b__x');
+  assert.equal(permissions.plainApprovalText(undefined), '');
+});

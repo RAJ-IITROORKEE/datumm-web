@@ -41,7 +41,7 @@ const subscribe = (notify: () => void) => {
   query.addEventListener('change', notify);
   return () => query.removeEventListener('change', notify);
 };
-const useNarrow = () => useSyncExternalStore(
+export const useNarrow = () => useSyncExternalStore(
   subscribe, () => matchMedia(NARROW).matches, () => false,
 );
 
@@ -80,7 +80,7 @@ function SkillRow({ skill, selected, onOpen, onChange }: {
             <li key={mode}>
               <label htmlFor={`${skill.id}-${mode}`}>{MODE_LABELS[mode]}</label>
               <Switch id={`${skill.id}-${mode}`} checked={live.includes(mode)}
-                aria-label={`${MODE_LABELS[mode]}: enabled for ${skill.id}`}
+                aria-label={`Use ${skill.name} in ${MODE_LABELS[mode]}`}
                 onCheckedChange={on => onChange(toggleSkillMode(skill, mode, on))} />
             </li>
           ))}

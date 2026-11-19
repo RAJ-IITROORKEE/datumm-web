@@ -2,7 +2,8 @@
 
 import {useMemo,useState,type ReactNode} from 'react';
 import {AdminShell} from '../admin/admin-shell';
-import {AgentSection,WebSearchSection,McpSection} from '../admin/config-sections';
+import {AgentSection,WebSearchSection} from '../admin/config-sections';
+import {McpRoute} from '../admin/mcp-section';
 import {SkillsRoute} from '../admin/skills-section';
 import {TracesSection} from '../admin/traces-section';
 import {FeedbackSection} from '../admin/feedback-section';
@@ -16,12 +17,13 @@ import {DesktopSettings} from '../desktop-settings';
 import {fixtureTraces} from './feedback-traces-preview';
 import {createHistoryFixture} from './admin-history-fixture';
 import {createModelsFixture} from './admin-models-fixture';
+import {createMcpFixture,type McpScenario} from './admin-mcp-fixture';
 import {STARTER_CATALOG} from './admin-skills-fixture';
 import {emptyConfig,type AdminSkill,type Mode} from '@/lib/admin-config.mjs';
 import release from '../../../public/downloads/release.json';
 import '../../app/admin/admin.css';
 
-type Scenario='ready'|'empty'|'missing'|'forbidden'|'conflict'|'save-error'|'traces-off'|'history-off'|'models-off'|'models-none'|'tavily-off'|'tavily-on'|'tools-off'|'skills-on'|'skills-old';
+type Scenario='ready'|'empty'|'missing'|'forbidden'|'conflict'|'save-error'|'traces-off'|'history-off'|'models-off'|'models-none'|'tavily-off'|'tavily-on'|'tools-off'|'skills-on'|'skills-old'|McpScenario;
 const entry=(id:string,label:string,group:string,risk:string,allowed:string[],extra:Record<string,unknown>={})=>({id,label,description:'Synthetic description for '+label.toLowerCase()+'. Fixture data only.',group,runsOn:'DATUMM service',risk,required:false,allowedModes:allowed,defaultModes:allowed,toolNames:[id],...extra});
 const TOOL_CATALOG=[
  entry('core','Core tools','Core','read',['ask','plan','build'],{required:true,locked:false,toolNames:['finish_answer','ask_question','plan_task','lookup_evidence']}),
@@ -33,6 +35,7 @@ const TOOL_CATALOG=[
  entry('generate_concept_image','Concept images','Design','external',['ask','plan'],{runsOn:'Image model provider'}),
  entry('create_design','Create design','Design','read',['plan']),
  entry('propose_changes','Propose changes','Design','read',['plan','build']),
+ entry('mcp','MCP tools','Research','external',['ask','plan'],{runsOn:'Outside MCP servers',toolNames:[]}),
 ];
 const FIXTURE_SKILLS:AdminSkill[]=[
  {id:'fixture-skill',name:'Fixture skill',description:'Use when a prompt mentions fixtures. Synthetic skill.',instructions:'Synthetic instructions, revision 12.',modes:['ask'],enabled:true,toolHints:['web_search']},
@@ -48,9 +51,10 @@ function previewSkills(body:{prompt:string;mode:string;skills:typeof FIXTURE_SKI
 }
 function fixtureClient(scenario:Scenario):AdminClient {
   // Traces, history and models are on in every state except their own '-off' state.
-  const capabilities={version:1,features:{adminTraces:scenario!=='traces-off',adminHistory:scenario!=='history-off',adminModels:scenario!=='models-off',adminTools:scenario!=='tools-off',approvalModes:scenario!=='tools-off',...(scenario==='skills-on'||scenario==='skills-old'?{skillsOnDemand:true}:{}),...(scenario==='skills-on'?{builtinSkills:true}:{}),...(scenario==='tavily-off'||scenario==='tavily-on'?{tavilySearch:scenario==='tavily-on'}:{})}};
+  const capabilities={version:1,reasons:scenario==='mcp-off'?{mcpRegistry:'MCP_SECRET_KEY not configured'}:{},features:{adminTraces:scenario!=='traces-off',adminHistory:scenario!=='history-off',adminModels:scenario!=='models-off',adminTools:scenario!=='tools-off',approvalModes:scenario!=='tools-off',...(scenario==='skills-on'||scenario==='skills-old'?{skillsOnDemand:true}:{}),...(scenario.startsWith('mcp-')?{mcpRegistry:scenario!=='mcp-off'}:{}),...(scenario==='skills-on'?{builtinSkills:true}:{}),...(scenario==='tavily-off'||scenario==='tavily-on'?{tavilySearch:scenario==='tavily-on'}:{})}};
   let envelope:ConfigEnvelope&{capabilities?:unknown}={capabilities,toolCatalog:scenario==='tools-off'?undefined:TOOL_CATALOG,config:{...emptyConfig(),models:['openai/gpt-6.1-sol','openai/gpt-6-luna','google/gemini-3-pro'],defaultModel:'openai/gpt-6-luna',...(scenario==='skills-on'||scenario==='skills-old'?{skills:FIXTURE_SKILLS}:{}),...(scenario==='skills-on'?{builtinSkills:[{id:'datumm-brief-writing',modes:['ask']}]}:{})},...(scenario==='skills-on'?{builtinSkillCatalog:STARTER_CATALOG}:{}),effective:{models:['openai/gpt-6.1-sol','openai/gpt-6-luna'],defaultModel:'openai/gpt-6-luna',defaultReasoningEffort:'high'},revision:12,updatedBy:'preview@example.invalid'};
   let sources=scenario==='empty'?[]:[{id:'fixture-revit',url:'https://example.invalid/revit-room-guide',title:'Revit room review guide',corpus:'revit',status:'ready',chunks:24,updatedAt:'2026-11-12T06:00:00Z'},{id:'fixture-failed',url:'https://example.invalid/unavailable-source',title:'Unavailable public source',corpus:'other',status:'failed',chunks:0,updatedAt:'2026-11-12T05:00:00Z',error:'Synthetic indexing error. No external page was fetched.'}];
+  const mcp=scenario.startsWith('mcp-')?createMcpFixture(scenario as McpScenario):null;
   const history=createHistoryFixture(envelope.config,Number(envelope.revision),'preview@example.invalid');
   let nextSource=0,approvalMode='ask';
   const models=createModelsFixture(()=>({models:envelope.config.models,defaultModel:envelope.config.defaultModel}),{none:scenario==='models-none'});
@@ -59,6 +63,8 @@ function fixtureClient(scenario:Scenario):AdminClient {
     if(scenario==='missing'||scenario==='forbidden')return {ok:false,reason:scenario,message:'Synthetic unavailable state.'};
     const method=init?.method??'GET';
     if(method!=='GET'&&scenario==='save-error')return {ok:false,reason:'error',message:'Synthetic save failure. Your edits have been preserved.'};
+    const mcpResult=mcp?.(path,init);
+    if(mcpResult)return mcpResult as Result<T>;
     let data:unknown;
     if(path==='admin/config'){
       if(method==='PUT'){
@@ -116,7 +122,7 @@ function PreviewFrame({children,onClose,tools}:{children:ReactNode;onClose:()=>v
 export function AdminPreview({onClose}:{onClose:()=>void}) {
   const [path,setPath]=useState('/admin'),[scenario,setScenario]=useState<Scenario>('ready');
   const client=useMemo(()=>fixtureClient(scenario),[scenario]);
-  return <PreviewFrame onClose={onClose} tools={<label>Fixture state <select aria-label="Admin fixture state" value={scenario} onChange={event=>setScenario(event.target.value as Scenario)} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:5,padding:5,marginLeft:7}}><option value="ready">Ready</option><option value="empty">Empty lists</option><option value="missing">API unavailable</option><option value="forbidden">Access denied</option><option value="conflict">Save conflict</option><option value="save-error">Save failure</option><option value="traces-off">Traces not provided</option><option value="history-off">History not provided</option><option value="models-off">Models not provided</option><option value="models-none">No models served</option><option value="tavily-off">Tavily key absent</option><option value="tavily-on">Tavily key present</option><option value="tools-off">Tools and approvals not provided</option><option value="skills-on">Skills registry and starter skills on</option><option value="skills-old">Skills registry, no starter skills (older backend)</option></select> <button onClick={()=>setPath('/admin/traces')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Traces path</button> <button onClick={()=>setPath('/admin/feedback')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Feedback path</button> <button onClick={()=>setPath('/admin/history')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open History path</button> <button onClick={()=>setPath('/admin/models')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Models path</button> <button onClick={()=>setPath('/admin/tools')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Tools path</button></label>}><div className="admin-root" style={{position:'absolute'}}><AdminClientProvider key={scenario} client={client}><AdminShell email="preview@example.invalid" activePath={path} onNavigate={setPath}><div key={path}>{path==='/admin'?<OverviewSection/>:path==='/admin/agent'?<AgentSection/>:path==='/admin/web-search'?<WebSearchSection/>:path==='/admin/knowledge'?<KnowledgeSection/>:path==='/admin/skills'?<SkillsRoute/>:path==='/admin/mcp'?<McpSection/>:path==='/admin/plugin'?<PluginSection release={release}/>:path==='/admin/traces'?<TracesSection/>:path==='/admin/feedback'?<FeedbackSection/>:path==='/admin/history'?<HistorySection/>:path==='/admin/models'?<ModelsSection/>:path==='/admin/tools'?<ToolsSection/>:<AuditSection/>}</div></AdminShell></AdminClientProvider></div></PreviewFrame>;
+  return <PreviewFrame onClose={onClose} tools={<label>Fixture state <select aria-label="Admin fixture state" value={scenario} onChange={event=>setScenario(event.target.value as Scenario)} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:5,padding:5,marginLeft:7}}><option value="ready">Ready</option><option value="empty">Empty lists</option><option value="missing">API unavailable</option><option value="forbidden">Access denied</option><option value="conflict">Save conflict</option><option value="save-error">Save failure</option><option value="traces-off">Traces not provided</option><option value="history-off">History not provided</option><option value="models-off">Models not provided</option><option value="models-none">No models served</option><option value="tavily-off">Tavily key absent</option><option value="tavily-on">Tavily key present</option><option value="tools-off">Tools and approvals not provided</option><option value="skills-on">Skills registry and starter skills on</option><option value="skills-old">Skills registry, no starter skills (older backend)</option><option value="mcp-off">MCP servers: no server key</option><option value="mcp-empty">MCP servers: none yet</option><option value="mcp-failed">MCP servers: failed test</option><option value="mcp-ready">MCP servers: tested, with tools</option><option value="mcp-stale">MCP servers: stale version (409)</option></select> <button onClick={()=>setPath('/admin/traces')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Traces path</button> <button onClick={()=>setPath('/admin/feedback')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Feedback path</button> <button onClick={()=>setPath('/admin/history')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open History path</button> <button onClick={()=>setPath('/admin/models')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Models path</button> <button onClick={()=>setPath('/admin/tools')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open Tools path</button> <button onClick={()=>setPath('/admin/mcp')} style={{border:'1px solid var(--border)',borderRadius:5,padding:'5px 10px'}}>Open MCP path</button></label>}><div className="admin-root" style={{position:'absolute'}}><AdminClientProvider key={scenario} client={client}><AdminShell email="preview@example.invalid" activePath={path} onNavigate={setPath}><div key={path}>{path==='/admin'?<OverviewSection/>:path==='/admin/agent'?<AgentSection/>:path==='/admin/web-search'?<WebSearchSection/>:path==='/admin/knowledge'?<KnowledgeSection/>:path==='/admin/skills'?<SkillsRoute/>:path==='/admin/mcp'?<McpRoute/>:path==='/admin/plugin'?<PluginSection release={release}/>:path==='/admin/traces'?<TracesSection/>:path==='/admin/feedback'?<FeedbackSection/>:path==='/admin/history'?<HistorySection/>:path==='/admin/models'?<ModelsSection/>:path==='/admin/tools'?<ToolsSection/>:<AuditSection/>}</div></AdminShell></AdminClientProvider></div></PreviewFrame>;
 }
 export function SettingsPreview({onClose}:{onClose:()=>void}) {
   const [approvals,setApprovals]=useState(true),client=useMemo(()=>fixtureClient('ready'),[]);

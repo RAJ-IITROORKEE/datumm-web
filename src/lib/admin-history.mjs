@@ -2,8 +2,9 @@
 // this module still rebuilds every row key by key, so a later backend change can never put an
 // unknown field (or a whole config snapshot) on screen.
 export const HISTORY_ACTIONS = ['update', 'restore', 'baseline'];
-export const AUDIT_KINDS = ['config', 'knowledge', 'model_test'];
-export const AUDIT_ACTIONS = [...HISTORY_ACTIONS, 'add', 'reindex', 'delete', 'test'];
+export const AUDIT_KINDS = ['config', 'knowledge', 'model_test', 'mcp'];
+export const AUDIT_ACTIONS = [...HISTORY_ACTIONS, 'add', 'reindex', 'delete', 'test', 'mcp_create',
+  'mcp_update', 'mcp_test', 'mcp_tool_mode', 'mcp_enable', 'mcp_disable', 'mcp_remove'];
 export const MAX_NOTE = 200;
 export const HISTORY_LIMIT = 20;
 export const AUDIT_LIMIT = 25;
@@ -12,8 +13,11 @@ const MAX_CHANGES = 50;
 const LABELS = {
   update: 'Edit', restore: 'Restore', baseline: 'Baseline',
   add: 'Source added', reindex: 'Reindex', delete: 'Source removed', test: 'Tested',
+  mcp_create: 'Server added', mcp_update: 'Server edited', mcp_test: 'Connection tested',
+  mcp_tool_mode: 'Tool mode set', mcp_enable: 'Server turned on', mcp_disable: 'Server turned off',
+  mcp_remove: 'Server removed',
 };
-const KIND_LABELS = { config: 'Configuration', knowledge: 'Knowledge', model_test: 'Model test' };
+const KIND_LABELS = { config: 'Configuration', knowledge: 'Knowledge', model_test: 'Model test', mcp: 'MCP server' };
 export const actionLabel = value => LABELS[value] ?? 'Change';
 export const kindLabel = value => KIND_LABELS[value] ?? String(value);
 

@@ -13,3 +13,5 @@ export function parseApproval(question: unknown): ToolApproval | null;
 export function approvalAnswers(approval: ToolApproval, choice: 'allow' | 'deny'): { question_id: string; option_id: string }[];
 export function approvalStatus(approval: ToolApproval, now: number, serverExpired?: boolean): { expired: boolean; label: string };
 export function approvalAnnouncement(approval: ToolApproval, now: number, serverExpired?: boolean): string;
+/** Rewrites `mcp__<server>__<tool>` as `<tool> on <server>`; other text is unchanged. */
+export function plainApprovalText(text: unknown): string;

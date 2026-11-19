@@ -186,6 +186,12 @@ The Test a prompt panel sends the unsaved draft skills to `admin/skills/preview`
 
 `src/lib/skill-preview.mjs` is the one place that knows the request and response shape (prompt up to 2000 characters, a mode, at most 30 skills; answer `listed` ids and `attached` id or null). The proxy allows only that exact path. The Skills page uses the registry only when `skillsOnDemand` is on; unknown keeps the older page and sends nothing new. See `src/components/admin/skills-section.tsx`.
 
+## Admin MCP registry
+
+The MCP page manages outside tool servers through immediate admin calls; a key is sent once and never read back, and the page is a registry only when the service says it can seal keys.
+
+`src/lib/admin-mcp.mjs` rebuilds every server key by key (no key or sealed field survives), shows an unreadable tool mode as Never, and removes control characters from everything a server sent. The editor mirrors the backend: id `^[a-z0-9-]{1,20}$`, an https address with no credentials, query or fragment, and the header name and key set together; on edit an empty key with an unchanged header sends `keepKey`, and a changed header needs the key again. A key is cleared from the dialog state as it is sent. 422 lists are cut to `{loc, msg}` in `adminCall` so rejected input is never kept; 409 means a stale version, or an id clash when adding. The proxy opens `admin/mcp`, `admin/mcp/{id}`, `{id}/test|enable|disable` and `{id}/tools/{tool}` with strict id and tool patterns. `mcpRegistry` off shows an explanation from `capabilities.reasons`; unknown (an older service) keeps the stored-list page. Annotations are shown only as "the server says" hints. Audit rows use kind `mcp` and the seven `mcp_*` actions. The tool approval card words `mcp__<server>__<tool>` as "<tool> on <server>" through `plainApprovalText`. See `src/components/admin/mcp-section.tsx`.
+
 ## Approval modes
 
 The approval mode fails closed to `ask`; a `tool_approval` question is a card only when `approvalModes` is on.
