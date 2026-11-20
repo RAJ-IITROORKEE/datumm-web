@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Status | **approved 19 Nov 2026**: A4c-a SDK (user: "Approve the SDK"), A4c-c sealed `MCP_SECRET_KEY` (user), A4c-b, d, e, f, g, h at their recommendations (A). See section 3a. |
+| Status | **Live and verified 20 Nov 2026.** See section 11. |
 | Depends on | A4a tool catalog, approval cards and `_tool_gate` (backend `1e67551`); A4b load-drop of unknown `tools` ids (`32f8672`); A2 versioned config; T1 runtime-secret pattern; [parity plan](panda-parity-plan-2026-11-17.md) row 14, step 7; H5 = A |
-| Approved by / date | Not approved. A4c-a (new backend dependency) and A4c-c (new runtime secret and stack-template change) need the user's explicit approval; the standing "recommended option" instruction does not cover a new dependency (AGENTS.md section 6) |
+| Approved by / date | The owner approved the SDK and sealed credential design on 19 Nov and the AWS CLI secret and ECS updates on 20 Nov. See section 3a. |
 | Base commits | Backend local `main` `115980f` (read 17 Nov). Web `main` as read 17 Nov. Panda `panda-agent-ui/Panda-agent` working tree as read 17 Nov |
 
 Facts marked **observed** were read in source this session with `path:line`; *inferred* ones were
@@ -337,8 +337,10 @@ delete them), `mcp_call` events, `mcp_result` observations, audit rows.
 | --- | --- |
 | Build | Backend `8b6e4ea`: `mcp` 2.3.0 (the lock only adds packages; fastapi, starlette, httpx and pydantic are unchanged), `mcp_client.py` (pinned `httpx2` transport: https only, a public address re-checked on every call, no redirects), `mcp_secret.py` (AES-256-GCM, associated data per server and header), `mcp_registry.py`, `mcp_admin.py` (`/v1/admin/mcp*`), the catalog row `mcp` (Ask and Plan, never Build), 4 calls per run, results untrusted, and the `mcp__` prefix never enabled unless registered. The stack template gains `MCP_SECRET_KEY` (not deployed yet). Web `d148fdf`: the MCP servers admin page and plain approval wording. |
 | Gates | Backend: pytest 1028 + 26 subtests (52 new MCP tests through the real SDK against an in-process server); all image checks; `lat check`. Web: 1063 tests, build, `lat check`; the dev fixture was checked in the browser (server list, tool radio groups, a switch named "Offer <name> in admin chats"). |
-| Live, 19 Nov | Backend `8b6e4ea` live at 16:56Z. `mcpRegistry` is false until `MCP_SECRET_KEY` is set. |
-| Pending | The user adds `MCP_SECRET_KEY` to the runtime secret. Then a template change set wires it in, followed by a live test with one public read-only MCP server. |
+| Live, 19 Nov | Backend `8b6e4ea` went live at 16:56 UTC with the MCP capability off pending the runtime secret wiring. |
+| AWS rollout, 20 Nov | Added and verified `MCP_SECRET_KEY` in the existing runtime secret, then applied `datumm-a4c-mcp-20261120115223` to the live CloudFormation template. The change set touched `Task` and `Service`. ECS completed at 1/1, the API task has the secret reference, and `/health` returned backend `8b6e4ea`. Verified the scheduled MongoDB backup and zero active runs before execution. |
+| Hosted MCP, 20 Nov | The signed-in Codex browser opened the registry and discovered three tools from the public Microsoft Learn server using protocol `2025-06-18`. The first test returned 502 during rollout and discovery passed on retry. The first Ask showed an approval card but recorded zero calls. An exact-query retry recorded one approved `microsoft_docs_search` call with a 2,500-byte response. The follow-up request was declined. The test server is off and all three tools are set to Never. |
+| Hosted smoke, 20 Nov | All 19 public-site checks passed. The live test covered a public server without provider credentials. |
 
 | Item | Outcome |
 | --- | --- |
