@@ -55,6 +55,7 @@ Verify versions in `package.json` and the lockfile, not from memory.
 All agent-to-UI interaction moves to AG-UI, and all interface components come from affectUI-based shadcn-style primitives. The middle chat migrates first; every later surface (right work area, settings, admin) needs its own approved plan before it starts. Design rules, tokens and the screen map are in [DESIGN.md](DESIGN.md).
 
 - Reuse `src/components/ui` and `src/components/vendor/affectui` before writing a component. Vendored files keep their pinned digests; change them only through the recorded patch process in `vendor/affectui/PROVENANCE.md`.
+- For each affected surface, name the public affectUI screen, block or component and the interaction it informs. Specify layout, keyboard, narrow-screen and loading/error behavior. Use Panda-agent as a reference for execution and tool behavior. Ground visible status, counts and artifacts in DATUMM's own saved run evidence.
 - Reconstruct public Pro previews independently. Never use gated source.
 - Agent-composed UI is validated declarative data from a bounded registry. Never render model-generated React, HTML or JavaScript.
 - "Thinking" means safe operational summaries, never private reasoning.

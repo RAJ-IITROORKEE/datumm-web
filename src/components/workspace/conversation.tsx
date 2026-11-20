@@ -563,26 +563,44 @@ export function ConversationPanel(props: ConversationPanelProps) {
                         const todos = useRunPlan ? deriveTodos({plan:run.data.agent_task_plan, active:executing, settled:['completed','failed','cancelled','interrupted','partial','stale'].includes(run.status)}) : savedTodos !== undefined ? deriveTodos({todos: savedTodos, active: executing && last}) : last ? deriveTodos({todos:currentNativeTodos, active:executing}) : [];
                         const planBound = Boolean(useRunPlan && run.data.agent_task_plan?.turnId && run.data.agent_task_plan.turnId === turn.turnId);
                         const unboundPlan = useRunPlan ? !planBound : savedTodos === undefined && displayedTurns.length > 1;
+                        const checklist = todoSummary(todos);
                         const outcome = historicalOutcome(turn, displayedTurns, run.id, events, saved?.error);
                         const recordedStatus = processTurnStatus({turn,turns:displayedTurns,taskId:run.id,events,last,taskStatus:run.status});
                         const historicalStatus = saved?.error ? 'failed' : outcome === 'rejected' ? rejectedHistoricalStatus(turn, displayedTurns, run.id, events) : outcome ?? recordedStatus;
-                        const legacyRecordedStatus = events.findLast(event => ['completed', 'failed', 'cancelled', 'interrupted', 'needs_input', 'paused_limit', 'paused_recovery', 'partial', 'stale', 'blocked'].includes(event.stage))?.stage;
+                        const lifecycleEvents = events.filter(event => ['completed', 'failed', 'cancelled', 'interrupted', 'needs_input', 'paused_limit', 'paused_recovery', 'partial', 'stale', 'blocked'].includes(event.stage));
+                        const result = run.data.agent_result;
+                        const ownsSettledEvent = recordedStatus === 'completed' && (run.executionId
+                          ? lifecycleEvents.some(event => event.executionId === run.executionId)
+                          : planBound);
+                        const ownsEvictedResult = planBound && recordedStatus === 'unknown' &&
+                          !lifecycleEvents.some(event => event.taskId === run.id);
+                        const recordedPartial = last && !executing && run.status === 'completed' &&
+                          !saved?.error && outcome === null && result?.status === 'partial' &&
+                          Boolean(turn.answer && turn.answer === result.answer && (ownsSettledEvent || ownsEvictedResult) &&
+                            displayedTurns.filter(row => row.turnId === turn.turnId).length === 1);
+                        const legacyRecordedStatus = lifecycleEvents.at(-1)?.stage;
                         const legacyHistoricalStatus = saved?.error ? 'failed' : outcome === 'rejected' ? rejectedHistoricalStatus(turn, displayedTurns, run.id, events) : outcome ?? legacyRecordedStatus ?? 'unknown';
-                        const answerComplete = !saved?.error && outcome === null && turn.completion === undefined && answerHasCompletionProof({turn,turns:displayedTurns,taskId:run.id,events}) && !(executing && last);
-                        const completion = !(executing && last) && !saved?.error && outcome === null && answerCompletionCandidate({turn,turns:displayedTurns,taskId:run.id,events}) ? turn.completion : undefined;
+                        const answerComplete = !recordedPartial && !saved?.error && outcome === null && turn.completion === undefined && answerHasCompletionProof({turn,turns:displayedTurns,taskId:run.id,events}) && !(executing && last);
+                        const completion = !recordedPartial && !(executing && last) && !saved?.error && outcome === null && answerCompletionCandidate({turn,turns:displayedTurns,taskId:run.id,events}) ? turn.completion : undefined;
                         const answerOutputState = legacyAnswerOutputState({last,executing,taskStatus:run.status,historicalStatus:legacyHistoricalStatus});
                         const process = {
                           nativeMessages: executing && last && currentOwned ? run.data.native_messages : turn.nativeMessages,
                           events,
                           active: executing && last,
                           waiting: last && (nativeQuestions.length > 0 || (run.status === 'needs_input' && Boolean(run.data.agent_question))),
-                          status: last ? cancelPending ? 'cancel_requested' : recordedStatus : historicalStatus,
+                          status: last ? cancelPending ? 'cancel_requested' : recordedPartial ? 'partial' : recordedStatus : historicalStatus,
                           manifest: saved?.result?.manifest ?? (last && currentOwned ? run.data.run_manifest : undefined),
                           evidence: saved?.result?.evidence ?? (last && currentOwned ? run.data.run_manifest?.tools : []),
                           scheduler: last && turn.turnId && (run.data.agent_scheduler as (typeof run.data.agent_scheduler & {turnId?:string}))?.turnId === turn.turnId ? run.data.agent_scheduler : undefined,
                           specialists: last ? run.data.agent_specialists : undefined,
                           stepTitles: last && (!run.data.agent_task_plan?.turnId || run.data.agent_task_plan.turnId === turn.turnId) ? Object.fromEntries((run.data.agent_task_plan?.steps ?? []).map((row) => [row.key, row.title])) : {},
                         };
+                        const incompleteChecklist = !unboundPlan && checklist.total > 0 && !checklist.allDone &&
+                          ['completed', 'partial'].includes(process.status);
+                        const checklistLabel = unboundPlan ? 'Run checklist · turn not recorded' : 'Checklist';
+                        const checklistSummary = checklist.total
+                          ? `${checklistLabel} · ${checklist.done} of ${checklist.total}${incompleteChecklist ? ' confirmed' : ''}`
+                          : undefined;
                         // An unbound historical answer does not establish a process status.
                         const emptyHistoricalProcess = !last && process.status === 'unknown' &&
                           !(process.nativeMessages?.length) && !process.events.length &&
@@ -597,13 +615,13 @@ export function ConversationPanel(props: ConversationPanelProps) {
                             </div>
                             {!hideProcess && <TurnProcess
                               {...process}
-                              settledLabel={last ? currentResult?.label : undefined}
+                              settledLabel={incompleteChecklist ? 'Response finished' : last ? currentResult?.label : undefined}
                               {...(props.displayActions?.enabled && turn.turnId ? {
                                 open: props.displayActions.processOpen(run.id, turn.turnId),
                                 onOpenChange: (value: boolean) => props.displayActions?.setProcessOpen(run.id, turn.turnId!, value),
                                 actionRows: props.displayActions.rows(run.id, turn.turnId),
                               } : {})}
-                              publicSummary={todos.length ? `${unboundPlan ? 'Run checklist · turn not recorded' : 'Checklist'} · ${todoSummary(todos).done} of ${todoSummary(todos).total}` : undefined}
+                              publicSummary={checklistSummary}
                               evidenceExtra={
                                 last && run.data.agent_coverage ? (
                                   <EvidenceResults
@@ -614,7 +632,11 @@ export function ConversationPanel(props: ConversationPanelProps) {
                                 ) : undefined
                               }
                             >
-                              {todos.length > 0 && <PlanDock items={todos} title={unboundPlan ? 'Plan · message not recorded' : last ? 'Plan' : 'Previous plan'} />}
+                              {todos.length > 0 && <PlanDock
+                                items={todos}
+                                title={unboundPlan ? 'Plan · message not recorded' : last ? 'Plan' : 'Previous plan'}
+                                note={incompleteChecklist ? 'Review the steps without confirmed completion.' : undefined}
+                              />}
                             </TurnProcess>}
                             {last && currentResult?.note && <p className="conversation-outcome" role="status">{currentResult.note}</p>}
                             {recovery && <div className="conversation-outcome" role="status">

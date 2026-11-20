@@ -1,5 +1,9 @@
 .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;max-width:100%}
-.answerText{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}.answerText p{margin:0}.previewLabel{display:block;margin-bottom:4px;color:var(--text);font-size:12px}
+.answerText{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}.answerExcerpt{margin:0}
+.answerDetails{margin-top:8px}.answerDetails summary{color:var(--text);cursor:pointer;width:fit-content}
+.answerDetails summary:focus-visible{outline:2px solid var(--ui-as-focus);outline-offset:3px}
+.answerDetails summary span:last-child,.answerDetails[open] summary span:first-child,.answerText:has(>.answerDetails[open])>.answerExcerpt{display:none}
+.answerDetails[open] summary span:last-child{display:inline}
 .links button,.toolbar>button{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);padding:7px 10px;font-size:13px;line-height:20px;cursor:pointer;max-width:100%}
 .links button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:210px}
 .links button:hover,.toolbar>button:hover,.iconButton:hover{background:var(--hover)}

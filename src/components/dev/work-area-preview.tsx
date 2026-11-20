@@ -5,6 +5,7 @@ import {openAgui} from '@/lib/agui/adapter.mjs';
 import {applyAppearance, defaultAppearance, readAppearance} from '@/lib/appearance';
 import {Workspace} from '../workspace';
 import type {Run} from '../workspace/use-workspace-state';
+import {createPhaseOneChatFixture, phaseOnePrompt} from './phase-one-chat-fixture';
 
 const model = 'openai/gpt-6-luna';
 const readTaskPath = /^\/api\/service\/(?:runs|tasks)\/([\w-]+)$/;
@@ -95,13 +96,13 @@ function createFixture(onReads: (count: number) => void, interrupt: () => boolea
   };
 }
 
-export function WorkAreaPreview() {
+export function WorkAreaPreview({phaseOneChat = false}: {phaseOneChat?: boolean} = {}) {
   const [ready, setReady] = useState(false), [reads, setReads] = useState(0);
   const [interrupt, setInterrupt] = useState(false), [theme, setTheme] = useState<'dark'|'light'>('dark');
   const cutStream = useRef(false);
   useEffect(() => {
     const originalFetch = window.fetch;
-    const fixture = createFixture(setReads, () => cutStream.current);
+    const fixture = (phaseOneChat ? createPhaseOneChatFixture : createFixture)(setReads, () => cutStream.current);
     const intercept: typeof fetch = (input, init) => {
       const path = new URL(input instanceof Request ? input.url : String(input), window.location.href);
       if (path.origin !== window.location.origin || !path.pathname.startsWith('/api/')) return originalFetch(input, init);
@@ -122,10 +123,10 @@ export function WorkAreaPreview() {
       document.removeEventListener('auxclick', blockServiceLinks, true);
       applyAppearance(readAppearance());
     };
-  }, []);
+  }, [phaseOneChat]);
   return <>
     <nav aria-label="Work area fixture" style={{padding: 8, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap'}}>
-      <strong>Local work area fixture</strong>
+      <strong>{phaseOneChat ? 'Local 3BHK chat fixture' : 'Local work area fixture'}</strong>
       <span role="status">Selected-task reads: {reads}</span>
       <span>Download links are inactive in this fixture.</span>
       <button type="button" onClick={() => {
@@ -137,7 +138,8 @@ export function WorkAreaPreview() {
         cutStream.current = event.target.checked;
         setInterrupt(event.target.checked);
       }}/> Interrupt the fixture stream</label>
+      {phaseOneChat && <><span>{phaseOnePrompt}</span><a href="?surface=phase-one-chat&task=phase-one-legacy">Open historical fixture</a></>}
     </nav>
-    {ready && <Workspace authConfigured accountKey="work-area-fixture"/>}
+    {ready && <Workspace authConfigured accountKey={phaseOneChat ? 'phase-one-chat-fixture' : 'work-area-fixture'}/>}
   </>;
 }

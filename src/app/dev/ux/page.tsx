@@ -4,6 +4,8 @@ import {WorkAreaPreview} from '@/components/dev/work-area-preview';
 
 export default async function Page({searchParams}: {searchParams: Promise<{surface?: string}>}) {
   if(process.env.NODE_ENV !== 'development') notFound();
-  if((await searchParams).surface === 'work-area') return <WorkAreaPreview/>;
+  const {surface} = await searchParams;
+  if(surface === 'work-area') return <WorkAreaPreview/>;
+  if(surface === 'phase-one-chat') return <WorkAreaPreview phaseOneChat/>;
   return <UxPreview/>;
 }

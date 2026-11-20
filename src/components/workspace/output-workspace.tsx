@@ -103,7 +103,11 @@ export function AnswerContent({ text, source, presentation, turnId, answerHash, 
     listLines.every(line => /^\s*(?:[-*+]\s|\d+[.)]\s)\S/.test(line) && !/[|<>]|`{3,}|~{3,}/.test(line));
   const inlineComplete = state === 'saved' && (isCompactProse(text) || compactList);
   const visibleOutputs = outputs.filter(output => !(inlineComplete && output.kind === 'report'));
-  const readyTables = outputs.filter(output => output.kind === 'table' && output.complete);
+  const showInline = state === 'streaming' || text.length <= 720 || !preview.text;
+  const answerKey = `${scopeKey}:${scopeEpoch}:${key}`;
+  const [expandedAnswer, setExpandedAnswer] = useState<string | null>(null);
+  const answer = <MessageResponse isAnimating={state === 'streaming'}
+    tableScopeKey={answerKey}>{text}</MessageResponse>;
   // Rating needs a proven saved answer in this task, a handler, and the owner's votes (for defaultVote).
   const feedback = context?.answerFeedback;
   const votes = feedback?.votes ?? null;
@@ -121,9 +125,15 @@ export function AnswerContent({ text, source, presentation, turnId, answerHash, 
   useEffect(() => { register?.(key, outputs); }, [key, outputs, register]);
   useEffect(() => () => { register?.(key, []); }, [key, register]);
   return <>
-    {state === 'streaming' || inlineComplete ? <div className={styles.answerText}><MessageResponse isAnimating={state === 'streaming'} tableScopeKey={`${scopeKey}:${scopeEpoch}:${key}`}>{text}</MessageResponse></div> : valid ? <p className={styles.answerText}>{valid.summary}</p> : <div className={styles.answerText}>
-      {preview.shortened && preview.text && <span className={styles.previewLabel}>Preview</span>}
-      {preview.text ? <p>{preview.text}</p> : state === 'saved' && readyTables.length ? <p>{readyTables.length === 1 ? `Table ready · ${readyTables[0].rows?.length ?? 0} rows` : `${readyTables.length} tables ready to review`}</p> : text.trim() ? <p>Open the full answer to view its contents.</p> : null}
+    {text.trim() && <div className={styles.answerText}>
+      {showInline ? answer : <>
+        <p className={styles.answerExcerpt}>{valid?.summary ?? preview.text}</p>
+        {(valid || preview.shortened) && <details key={answerKey} className={styles.answerDetails}
+          onToggle={event => setExpandedAnswer(event.currentTarget.open ? answerKey : null)}>
+          <summary><span>Read full answer in chat</span><span>Collapse answer</span></summary>
+          {expandedAnswer === answerKey && answer}
+        </details>}
+      </>}
     </div>}
     {text !== '' && <MessageActions key={JSON.stringify([context?.scope.key, context?.scope.epoch, key, rateable, unsaved])} text={text} disabled={state === 'streaming'} actions={rateable ? ['copy', 'feedback'] : ['copy']} quiet={false} label="Full answer actions" copySuccessLabel="Copied full answer."
       {...(rateable && turnId ? { reasons: FEEDBACK_REASON_LABELS, defaultVote: votes?.[turnId] ?? null, onFeedback: rate } : {})}/>}

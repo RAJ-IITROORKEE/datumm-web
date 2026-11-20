@@ -335,9 +335,52 @@ test('saved structured answers retain their full-answer and table preview contro
  const source={key:'table',taskId:'task-a',conversationIndex:1,state:'saved'},registered=[];
  const current={scope:copyScope('A',1),register:(_key,outputs)=>registered.push(outputs),openOutput:()=>{}};
  const h=componentHarness('../src/components/workspace/output-workspace.tsx',{react:{useContext:()=>current},'@/lib/answer-outputs.mjs':{answerOutputs},'@/lib/answer-presentation.mjs':{answerPreview,isCompactProse,validateAnswerPresentation},'../vendor/affectui/message-actions-clean':{MessageActions:'message-actions'},'../ai-elements/message':{MessageResponse:'message-response'}});
- const tree=h.render('AnswerContent',{text:'| Room | Area |\n| --- | --- |\n| Study | 12 |',source});h.flushEffects();
+ const table='| Room | Area |\n| --- | --- |\n| Study | 12 |';
+ const tree=h.render('AnswerContent',{text:table,source});h.flushEffects();
+ assert.equal(elements(tree).find(row=>row.type==='message-response').props.children,table);
  assert.ok(control(tree,'Open Full answer beside chat'));assert.ok(control(tree,'Open Answer table 1 beside chat'));
  assert.deepEqual(Array.from(registered.at(-1),output=>output.kind),['report','table']);
+});
+
+test('heading-first answers remain readable after save and reload',()=>{
+ const source={key:'3bhk',taskId:'task-a',conversationIndex:1,state:'saved'};
+ const answer='## 3BHK concept for a 20 × 30 m site\n\n- Confirm the buildable footprint.\n- Verify room sizes.';
+ const renderAnswer=()=>{
+  const h=componentHarness('../src/components/workspace/output-workspace.tsx',{
+   react:{useContext:()=>null},
+   '@/lib/answer-outputs.mjs':{answerOutputs},
+   '@/lib/answer-presentation.mjs':{answerPreview,isCompactProse,validateAnswerPresentation},
+   '../vendor/affectui/message-actions-clean':{MessageActions:'message-actions'},
+   '../ai-elements/message':{MessageResponse:'message-response'},
+  });
+  return state=>elements(h.render('AnswerContent',{text:answer,source:{...source,state}}))
+   .find(row=>row.type==='message-response');
+ };
+ const render=renderAnswer();
+ assert.equal(render('streaming').props.isAnimating,true);
+ assert.equal(render('saved').props.children,answer);
+ assert.equal(renderAnswer()('saved').props.children,answer);
+});
+
+test('long answers open inline on demand and do not stay expanded on a different answer',()=>{
+ const current={scope:copyScope('A',1)};
+ const h=componentHarness('../src/components/workspace/output-workspace.tsx',{
+  react:{useContext:()=>current},
+  '@/lib/answer-outputs.mjs':{answerOutputs},
+  '@/lib/answer-presentation.mjs':{answerPreview,isCompactProse,validateAnswerPresentation},
+  '../vendor/affectui/message-actions-clean':{MessageActions:'message-actions'},
+  '../ai-elements/message':{MessageResponse:'message-response'},
+ });
+ const answer='Review the site constraints. '.repeat(45);
+ const render=key=>elements(h.render('AnswerContent',{
+  text:answer,source:{key,taskId:'task-a',conversationIndex:1,state:'saved'},
+ }));
+ let nodes=render('a');
+ assert.equal(nodes.find(row=>row.type==='message-response'),undefined);
+ nodes.find(row=>row.type==='details').props.onToggle({currentTarget:{open:true}});
+ nodes=render('a');
+ assert.equal(nodes.find(row=>row.type==='message-response').props.children,answer);
+ assert.equal(render('b').find(row=>row.type==='message-response'),undefined);
 });
 
 

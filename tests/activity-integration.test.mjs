@@ -156,6 +156,49 @@ test('checklists stay with indexed assistant turns and never float above the com
  assert.equal(nodes.filter(node=>node.type==='PlanDock').length,2);
 });
 
+test('a saved 3BHK response does not complete unverified checklist steps',()=>{
+ const turnId='layout-turn', executionId='layout-run';
+ const answer='## 3BHK concept\nConfirm whether 20 × 30 m is the plot or the buildable footprint.';
+ const steps=[{key:'brief',title:'Resolve footprint'},{key:'concept',title:'Generate a concept'}];
+ const run={
+  ...task('layout',[{prompt:'hi plan a 3bhk layout for revit floor plan of 20x30m',answer,turnId}]),
+  mode:'ask',executionId,data:{agent_task_plan:{turnId,steps,progress:[]},agent_result:{status:'partial',answer}},
+ };
+ const events=['answer','completed'].map((stage,index)=>({
+  ...event(index,stage),detail:answer,sequence:index+1,taskId:run.id,turnId,executionId,
+ }));
+ const saved=traceTurns=>render(props(run,{traceTurns}));
+ for(const nodes of [saved([events]),saved([])]){
+  assert.equal(process(nodes).props.status,'partial');
+  assert.equal(process(nodes).props.publicSummary,'Checklist · 0 of 2 confirmed');
+  const plan=nodes.find(node=>node.type==='PlanDock');
+  assert.equal(plan.props.note,'Review the steps without confirmed completion.');
+  assert.deepEqual(plan.props.items.map(item=>item.status),['unconfirmed','unconfirmed']);
+  assert.equal(nodes.find(node=>node.type==='ConversationAnswer').props.completed,false);
+ }
+ for(const stage of ['failed','cancelled','blocked']){
+  const contradictory={...events[1],stage};
+  assert.equal(process(saved([[events[0],contradictory]])).props.status,stage);
+  assert.equal(process(saved([[...events,{...contradictory,sequence:3}]])).props.status,'unknown');
+ }
+ const obsolete=events.map(value=>({...value,executionId:'previous-run'}));
+ assert.equal(process(saved([obsolete])).props.status,'completed','A terminal event for another execution cannot prove the active result');
+ run.data.agent_result={status:'completed',answer};
+ let nodes=saved([events]);
+ assert.equal(process(nodes).props.status,'completed');
+ assert.equal(process(nodes).props.settledLabel,'Response finished');
+ assert.equal(process(nodes).props.publicSummary,'Checklist · 0 of 2 confirmed');
+ run.data.agent_task_plan.progress=steps.map(({key})=>({key,status:'completed'}));
+ nodes=saved([events]);
+ assert.equal(process(nodes).props.settledLabel,undefined);
+ assert.equal(process(nodes).props.publicSummary,'Checklist · 2 of 2');
+ run.data.agent_result={status:'partial',answer};
+ run.data.agent_task_plan.turnId=undefined;
+ nodes=saved([]);
+ assert.equal(process(nodes).props.status,'unknown');
+ assert.equal(nodes.find(node=>node.type==='PlanDock').props.note,undefined);
+});
+
 test('unowned global plans are labeled and an indexed empty todo snapshot cannot adopt unowned native todos',()=>{
  const run=task('task-a',[{prompt:'First',answer:'Earlier'},{prompt:'Follow up',answer:'Latest'}]);
  run.data.agent_task_plan={steps:[{key:'inspect',title:'Recorded task step'}],progress:[{key:'inspect',status:'running'}]};

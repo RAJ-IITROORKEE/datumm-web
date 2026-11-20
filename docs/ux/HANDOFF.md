@@ -2,7 +2,11 @@
 
 Overwritten at every checkpoint. Read [AGENTS.md](../../AGENTS.md) first, then this file, then the packet named under "Active phase". Older detail is in Git history and [docs/ux/history/](history/handoff-before-agui-progress-review-2026-11-16.md).
 
-Updated 20 November 2026, after the original roadmap's N4 production verification.
+Updated 21 November 2026 after the architectural agent MVP planning review.
+
+## Current design proposal (21 Nov)
+
+Phase 1 of the [architectural agent and retrieval MVP](architectural-agent-mvp-2026-11-21.md#phase-1-local-result) passed local browser checks. The 3BHK Ask and Plan results stayed readable after save and reload. The checklist distinguished confirmed steps from a finished response. Phase 2 covers autonomous planning and dispatch. The Q1 production rollout has a separate trace window and approval.
 
 ## Now (20 Nov)
 
