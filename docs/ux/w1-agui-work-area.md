@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Implemented and verified locally on 20 Nov 2026. Owner approved the packet the same day. |
+| Status | Live and verified on 20 Nov 2026. Owner approved the phase and the release that day. |
 | Depends on | N3 activity and N4 evidence contracts from the [16 Nov roadmap](roadmap-2026-11-16.md#3-order-and-dependencies) |
 | Base | Web `main` at `f5ecbf3` |
 
@@ -60,4 +60,12 @@ Revert the W1 commit to restore the current observation and polling behavior. Th
 | Race checks | The actual hook recovered a newer revision after a joined stale read. It requested fresh state after interruption and kept its recovery notice aligned with the accepted snapshot. |
 | Browser | The Codex in-app browser used the controlled `/dev/ux?surface=work-area` workspace. At desktop width and 390 px, it showed Activity, Files, and scoped Exports. It retained the drawing after closing Details, kept studio A's late result out of studio B, and recovered the saved answer after a simulated interruption. Light and dark views were checked. |
 | Replay | `/dev/chat-composition` replayed a saved response through the real adapter and transport. |
-| Coverage | Local fixtures exercise the browser and transport with controlled saved state. Hosted signed-in behavior and native Revit remain separate release checks. |
+| Coverage | Local fixtures exercised the browser and transport with controlled saved state. Native Revit was outside W1. |
+
+### Production verification · 20 Nov 2026
+
+Vercel marked `1b92fc4` from `main` ready and assigned the production domain to it. The AWS health endpoint reported `8b6e4ea`. All 19 checks passed against the public URL, including the production fixture and auth boundaries.
+
+In the signed-in Codex browser, a saved Plan test chat showed Activity with recorded events, Files, and Exports. The run-record export link matched the selected task. A synthetic Ask was admitted and still in progress when the page reloaded. The same task reopened with one saved prompt and a completed answer. Production request counts were outside this check.
+
+[Production deployment](https://vercel.com/unfiltered-iit-ians/datumm-web/8kJz4cdmvYbVoBASEiG1XRoq2kxW)

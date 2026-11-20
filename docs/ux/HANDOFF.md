@@ -2,12 +2,12 @@
 
 Overwritten at every checkpoint. Read [AGENTS.md](../../AGENTS.md) first, then this file, then the packet named under "Active phase". Older detail is in Git history and [docs/ux/history/](history/handoff-before-agui-progress-review-2026-11-16.md).
 
-Updated 20 November 2026, after the original roadmap's W1 local checkpoint.
+Updated 20 November 2026, after the original roadmap's W1 production verification.
 
 ## Now (20 Nov)
 
-- **W1 verified locally on `main`.** Activity, Files and Exports use the same task projection as chat. AG-UI delivers the saved state, and the workspace makes fewer duplicate active-task reads while retaining saved-state recovery. See [W1 packet and results](w1-agui-work-area.md).
-- **Release status.** The 20 Nov production check recorded web `f5ecbf3` and backend `8b6e4ea`. W1 awaits its own hosted release decision. A4c still needs the MCP runtime secret, stack wiring, and a hosted read-only MCP test. Q1 and N4 activation follow the [go-live plan](g1-go-live-plan.md) and their phase packets.
+- **W1 live.** Vercel serves web `1b92fc4` and the backend health endpoint reported `8b6e4ea`. All 19 production smoke checks passed. A signed-in workspace showed Activity, Files and scoped Exports. A synthetic Ask reopened after an in-progress reload and showed one saved prompt and a completed answer. See [W1 packet and results](w1-agui-work-area.md).
+- **Next rollout gate.** For [A4c MCP](a4c-mcp-registry.md#11-result-fill-at-checkpoint), the AWS operator adds `MCP_SECRET_KEY` to the existing runtime secret before the separately approved template change. A signed-in, read-only MCP server check follows. Q1 and N4 activation follow the [go-live plan](g1-go-live-plan.md) and their phase packets.
 
 ## Now (19 Nov)
 
