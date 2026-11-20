@@ -28,3 +28,11 @@ Revert the backend patch. Old and newly assigned IDs use the existing validated 
 - Backend commit `41e41bf` on `codex/agent-plan-revisions` preserves the layout and report IDs after an independent research step is inserted. Changed prerequisites create a fresh identity. Ambiguous repeated steps preserve identity only through a matching explicit key. Revisions re-evaluate completion evidence.
 - The backend passed 1,032 tests and 26 subtests. `lat check` passed. The controlled offline 20 × 30 m 3BHK run finished both steps and saved its room report with eight rows. The source plan and report hash matched.
 - Graphify refused both the full and scoped refresh because its rebuilt output omitted previously saved semantic nodes. `npm run check:graph` reached the freshness assertion and stopped. The starting manifest also disagrees with untouched files at the baseline commit. The saved graph was preserved.
+
+## Production rollout
+
+On 21 November, the owner approved the AWS image build and rollout for `41e41bf`. The encrypted source upload matched 263 reviewed source and build-kit files. CodeBuild run 94 passed the source, image, planner, revision, Mongo and API checks.
+
+Change set `datumm-plan-41e41bf-20261120231156` deployed digest `sha256:6be6e01df8736ff9ab2653d0992979ab954625f631fd3c98ddf74027c6379100` using the live stack template. The preflight found zero active runs and jobs plus a fresh scheduled backup. CloudFormation reached `UPDATE_COMPLETE`, ECS reached `COMPLETED` at 1/1, and public health reported the exact commit. N4 remained enabled and the MCP secret reference was present. Q1 remained off. All 19 production runtime checks passed.
+
+A signed-in synthetic 20 × 30 m 3BHK Plan saved three alternatives with zero blocking findings. The saved design and 1-of-2 checklist reappeared after reload. The `finish_answer` arguments failed validation twice, including one bounded repair. The run recorded `failed` with a partial goal and no room report revision. This live run used one checklist version. The tested revision behavior remains in the offline regressions. [Synthetic live Plan](https://datumm-web.vercel.app/?task=436cd8b6-3cd2-5d0a-b845-ad9a9871c83a)

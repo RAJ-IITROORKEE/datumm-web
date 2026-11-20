@@ -1,12 +1,12 @@
 # DATUMM UI/UX plan
 
-Updated 20 November 2026. This file holds the decisions, the phase table and the design reference map. Current state and the next step are in [docs/ux/HANDOFF.md](docs/ux/HANDOFF.md); rules for agents are in [AGENTS.md](AGENTS.md). Earlier narrative status is in Git history and in [the archived plan](docs/ux/history/plan-before-workspace-acceptance-2026-11-15.md); old "next step" text there does not reopen anything.
+Updated 21 November 2026. This file holds the decisions, the phase table and the design reference map. Current state and the next step are in [docs/ux/HANDOFF.md](docs/ux/HANDOFF.md); rules for agents are in [AGENTS.md](AGENTS.md). Earlier narrative status is in Git history and in [the archived plan](docs/ux/history/plan-before-workspace-acceptance-2026-11-15.md); old "next step" text there does not reopen anything.
 
 ## Phases
 
 The [21 November architectural agent MVP](docs/ux/architectural-agent-mvp-2026-11-21.md) sets out the chat, orchestration, multimodal retrieval and tool work. [Phase 1](docs/ux/architectural-agent-mvp-2026-11-21.md#phase-1-local-result) passed local save and reload checks for inline answers and checklist status. The table below records the earlier roadmap.
 
-[Phase 2A](docs/ux/phase-2a-plan-revisions.md) rejects cosmetic plan repeats. [Phase 2B](docs/ux/phase-2b-step-identity.md) passed backend tests for stable step IDs through real revisions and evidence-based progress. The repository-wide Graphify freshness check remains open.
+[Phase 2A](docs/ux/phase-2a-plan-revisions.md) rejects cosmetic plan repeats. [Phase 2B](docs/ux/phase-2b-step-identity.md) is live on AWS at 41e41bf. The signed-in 3BHK saved its concepts and checklist, and report validation stopped at 1 of 2 steps. [Phase 2C](docs/ux/phase-2c-plan-completion.md) locally verifies that the agent continues ready work after saving a concept and shows a partial goal when steps are blocked. The live report failure and the Graphify freshness check remain open.
 
 Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/PACKET_TEMPLATE.md). A phase starts after its packet is approved and ends at a checkpoint: gates run, packet result filled, handoff overwritten, this table updated, commit.
 
