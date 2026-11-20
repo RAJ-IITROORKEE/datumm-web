@@ -4,9 +4,11 @@ Overwritten at every checkpoint. Read [AGENTS.md](../../AGENTS.md) first, then t
 
 Updated 21 November 2026 after the architectural agent MVP planning review.
 
-## Current design proposal (21 Nov)
+## Architectural agent MVP (21 Nov)
 
 Phase 1 of the [architectural agent and retrieval MVP](architectural-agent-mvp-2026-11-21.md#phase-1-local-result) passed local browser checks. The 3BHK Ask and Plan results stayed readable after save and reload. The checklist distinguished confirmed steps from a finished response. Phase 2 covers autonomous planning and dispatch. The Q1 production rollout has a separate trace window and approval.
+
+[Phase 2A](phase-2a-plan-revisions.md) now rejects cosmetic plan revisions before they can replace the saved checklist. The backend change is local on `codex/agent-plan-revisions` at `fdc7820`. A controlled offline 3BHK run on that commit recorded two completed steps and published a verified room report. Phase 2 continues with stable identity through substantive revisions.
 
 ## Now (20 Nov)
 
