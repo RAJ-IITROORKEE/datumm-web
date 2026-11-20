@@ -1,6 +1,6 @@
 # DATUMM UI/UX plan
 
-Updated 17 November 2026. This file holds the decisions, the phase table and the design reference map. Current state and the next step are in [docs/ux/HANDOFF.md](docs/ux/HANDOFF.md); rules for agents are in [AGENTS.md](AGENTS.md). Earlier narrative status is in Git history and in [the archived plan](docs/ux/history/plan-before-workspace-acceptance-2026-11-15.md); old "next step" text there does not reopen anything.
+Updated 20 November 2026. This file holds the decisions, the phase table and the design reference map. Current state and the next step are in [docs/ux/HANDOFF.md](docs/ux/HANDOFF.md); rules for agents are in [AGENTS.md](AGENTS.md). Earlier narrative status is in Git history and in [the archived plan](docs/ux/history/plan-before-workspace-acceptance-2026-11-15.md); old "next step" text there does not reopen anything.
 
 ## Phases
 
@@ -20,8 +20,8 @@ Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/P
 | N2 | Frontend capability awareness and reversible actions | Done 16 Nov (local, not pushed) | [Packet](docs/ux/n2-frontend-capabilities-reversible-actions.md) |
 | A1 | Admin: traces and feedback | Done 16 Nov (local, not pushed) | [Packet](docs/ux/a1-admin-traces-feedback.md) |
 | A2 | Admin: versioned config and audit | Done 16 Nov (local, not pushed) | [Packet](docs/ux/a2-admin-versioned-config-audit.md) |
-| N4 | Evidence-backed compositions | Done 16 Nov (local, not pushed) | [Packet](docs/ux/n4-evidence-backed-compositions.md) |
-| Q1 | Rules pre-router and latency measurement (model router deferred) | Done 17 Nov (local, not pushed; flag off by default) | [Packet](docs/ux/q1-rules-prerouter-latency.md) |
+| N4 | Evidence-backed compositions | **Live and verified 20 Nov** (backend `8b6e4ea`, web `1b92fc4`). A saved evidence card reopened the exact historical revision after reload. | [Production result](docs/ux/n4-evidence-backed-compositions.md#10-production-activation) |
+| Q1 | Rules pre-router and latency measurement (model router deferred) | Implemented, production flag off. The seven-day trace check starts 24 Nov at 05:05 IST at the earliest. Activation requires separate approval after the baseline check. | [Go-live gate](docs/ux/g1-go-live-plan.md#3-rollout-order-and-gates) |
 | A3 | Admin: model registry | Done 17 Nov; **live** (backend `95b2361`) | [Packet](docs/ux/a3-admin-model-registry.md) |
 | U1 | Next.js security upgrade (16.4.3 to 16.4.6) | Done 17 Nov (local, not pushed); `next` pinned at 16.4.6, 5 of 5 builds exit 0 | [Packet](docs/ux/u1-nextjs-security-upgrade.md) |
 | G1 | Go-live: backend on AWS, web on Vercel (**live 18 Nov: backend `82d464d` (+R1′b) (… M1, R1′a, A5, U2, AG1, H6, TR1), web `901aef9`**) | Plan approved 17 Nov with all recommended options (D1 to D12); nothing pushed or deployed. Each push, merge, deploy and AWS step needs its own approval; AWS steps are run by the user (D8 option A). [AWS checks runbook](docs/ux/g1-aws-checks.md) prepared, not yet run | [Go-live plan](docs/ux/g1-go-live-plan.md) |

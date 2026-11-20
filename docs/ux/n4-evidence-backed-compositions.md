@@ -261,3 +261,14 @@ A real open of a hosted revision from a live answer needs G1.
 | Not run or not verified | Real Mongo or Cosmos `$in` and field projection, a live model citing revisions, hosted behavior (G1); screen-reader reading; the report-panel notices in a browser |
 | Limits found | Cards cite saved report revisions only, which hold concept geometry, not measured Revit quantities (measurements have no durable id, so they cannot be cited). A turn cannot cite its own new report (published after the answer). The capability `evidenceCompositions` reflects the setting at process start. Python is slightly stricter than the web on dates (`T24:00`, `2026-02-30`), which drops the card, the safe direction. Cited revisions beyond 13 history pages (256) are reported as not found |
 | Next step | Q1 (packet written, awaiting approval), then A3 (model registry), W1 (needs a separate go or no-go), A4, N5, G1 |
+
+## 10. Production activation
+
+20 November 2026. The user approved proceeding with the N4 rollout. The measured compact answer schema grew from 1,474 to 1,648 bytes for chats with saved report evidence.
+
+- CloudFormation change set `datumm-n4-evidence-20261120122300` set `EVIDENCE_COMPOSITIONS_ENABLED=true` on the API task. The preflight found zero active runs and jobs. The stack reached `UPDATE_COMPLETE` and ECS reached `COMPLETED` with one of one tasks running. Health reported backend `8b6e4ea` on the existing image digest. The task still had the MCP secret reference and Q1 defaulted to off.
+- In the signed-in Codex in-app browser on web `1b92fc4`, a synthetic Ask cited the saved room schedule in Revision 1. The evidence card showed Alternative 1 version 1, six rows, six proposed rooms and 104.87 m². **Open revision 1** selected **Revision 1 · Historical** and Revision 2 remained current. After reload, the card reopened the same historical report.
+- A scoped, read-only comparison of the synthetic execution `2683d4a0-fcd4-5122-8953-ec04bf494c1c` confirmed a stored v2 composition with one reference. Its revision ID and content hash both matched the saved Revision 1, and the task still pointed to Revision 2 as current.
+- Checks passed. Backend evidence tests 59/59, web composition and recorded replay tests 13/13, production runtime smoke 19/19.
+- The live CloudFormation template carries the flag. The existing image release procedure uses `--use-previous-template`. Preserve the N4 setting in any later full production template replacement. To roll back N4 independently, set the flag to false and roll the ECS task.
+- Q1 remains gated by seven days of flag-off traces and separate activation approval. See the [go-live plan](g1-go-live-plan.md).

@@ -2,13 +2,14 @@
 
 Overwritten at every checkpoint. Read [AGENTS.md](../../AGENTS.md) first, then this file, then the packet named under "Active phase". Older detail is in Git history and [docs/ux/history/](history/handoff-before-agui-progress-review-2026-11-16.md).
 
-Updated 20 November 2026, after the original roadmap's A4c production verification.
+Updated 20 November 2026, after the original roadmap's N4 production verification.
 
 ## Now (20 Nov)
 
 - **W1 live.** Vercel serves web `1b92fc4` and the backend health endpoint reported `8b6e4ea`. All 19 production smoke checks passed. A signed-in workspace showed Activity, Files and scoped Exports. A synthetic Ask reopened after an in-progress reload and showed one saved prompt and a completed answer. See [W1 packet and results](w1-agui-work-area.md).
 - **A4c MCP live.** The AWS change set added the secret reference to the ECS API task. CloudFormation completed the update, ECS reported 1/1 tasks, and the backend stayed on `8b6e4ea`. Microsoft Learn discovery found three tools and one approved read-only search returned data. The test server is registered and off. See [A4c results](a4c-mcp-registry.md#11-result-fill-at-checkpoint).
-- **Next rollout gates.** N4 needs its schema expansion and flag approval, then hosted evidence citation verification. Q1 needs the flag-off trace baseline before activation. See the [go-live plan](g1-go-live-plan.md).
+- **N4 live.** CloudFormation and ECS finished the flag rollout on backend `8b6e4ea`. In a signed-in synthetic Ask on web `1b92fc4`, the saved card opened historical Revision 1 before and after reload. Its stored revision ID and content hash matched the saved reference. All 19 production smoke checks passed. See the [N4 production result](n4-evidence-backed-compositions.md#10-production-activation).
+- **Q1 is next.** The production flag is off. A read-only aggregate on 20 Nov found 18 `full` / `flag_off` traces and zero short-lane runs. The first qualifying trace was 17 Nov at 05:05:04 IST. Recheck seven days of trace coverage and get the separate activation approval at or after 24 Nov at 05:05:04 IST. See the [go-live plan](g1-go-live-plan.md).
 
 ## Now (19 Nov)
 
@@ -40,8 +41,8 @@ Updated 20 November 2026, after the original roadmap's A4c production verificati
 | N2 | Done 16 Nov: [packet and result](n2-frontend-capabilities-reversible-actions.md) | Live-model and hosted checks belong to G1 |
 | A1 | Done 16 Nov: [packet and result](a1-admin-traces-feedback.md) | Provision `TRACE_OWNER_HASH_SECRET` and check index behavior at G1 |
 | A2 | Done 16 Nov: [packet and result](a2-admin-versioned-config-audit.md) | Index and duplicate-key behavior on real Mongo belong to G1 |
-| N4 | Done 16 Nov: [packet and result](n4-evidence-backed-compositions.md) | Turn on `evidence_compositions_enabled` only after the schema bytes are accepted; live-model quality at G1 |
-| Q1 | Done 17 Nov: [packet and result](q1-rules-prerouter-latency.md) | Reply copy approved by the user 17 Nov; enable `entry_rules_enabled` only at G1 after a baseline trace window |
+| N4 | Live and verified 20 Nov. [Production result](n4-evidence-backed-compositions.md#10-production-activation) | Keep the live flag in later production template updates |
+| Q1 | Implemented 17 Nov. [Packet and result](q1-rules-prerouter-latency.md) | Recheck the seven-day flag-off trace baseline on or after 24 Nov at 05:05 IST, then get separate activation approval |
 | A3 | Done 17 Nov: [packet and result](a3-admin-model-registry.md) | Live provider tests, real prices and rollback behavior belong to G1 |
 | U1 | Done 17 Nov: [packet and result](u1-nextjs-security-upgrade.md) | Vercel build behavior is checked in the W1 preview log |
 | UI1 | Done 17 Nov: [packet and result](ui1-composer-and-sidebar.md); web live | Backend `modelInfo` (`95b2361`) goes live with the A3 backend release; next phase per the [parity plan](panda-parity-plan-2026-11-17.md) (H5 = A) |
