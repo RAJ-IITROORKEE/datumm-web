@@ -38,6 +38,12 @@ Agent work is collapsed by default behind a single "Worked · N steps" row; the 
 
 Each tool call uses [[src/components/ai-elements/tool.tsx#Tool]] with a status badge and bounded, escaped input and output.
 
+### Shared work-area state
+
+Chat and Details read one scoped task projection. The AG-UI adapter emits the verified saved task as a state snapshot and sends ordered activity as the task runs.
+
+The first saved task read supplies a baseline if the stream has only admitted the task. Routine reads slow while a healthy observer covers the same selected task. The browser still reads saved state after cursor gaps, interruption, or independently saved updates. Files and export actions keep their exact source identities.
+
 ### Agent panel
 
 The inspector tab is "Agent". Each agent turn shows the message, then one collapsed process accordion (step, then agent or job, then tool names and statuses); raw output stays in the Activity tab.

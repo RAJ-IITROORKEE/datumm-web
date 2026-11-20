@@ -22,6 +22,8 @@ const event=(type,extra={})=>({type,...extra});
 const wire=events=>events.map(value=>'data: '+JSON.stringify(value)+'\r\n\r\n').join('');
 const response=(text,split=7)=>new Response(new ReadableStream({start(controller){const bytes=new TextEncoder().encode(text);for(let i=0;i<bytes.length;i+=split)controller.enqueue(bytes.slice(i,i+split));controller.close();}}),{headers:{'Content-Type':'text/event-stream'}});
 const read=async stream=>{const values=[];for await(const value of stream)values.push(value);return values;};
+const savedTask=(overrides={})=>({id:'task-1',taskVersion:3,eventCursor:5,executionId:'execution',status:'completed',events:[],data:{},...overrides});
+const state=(run=savedTask(),overrides={})=>event('STATE_SNAPSHOT',{snapshot:{datumm:{schemaVersion:1,taskId:'task-1',run,...overrides}}});
 const frames=input=>[
  event('RUN_STARTED',{threadId:input.threadId,runId:input.runId,protocolVersion:'1.0'}),
  event('ACTIVITY_SNAPSHOT',{messageId:'activity',activityType:'datumm.task',content:{taskId:'task-1',event:null}}),
@@ -38,6 +40,49 @@ test('posts one AG-UI request and maps fragmented UTF-8/SSE to owned chat update
  assert.deepEqual(values.map(value=>value.type),['start','data-run','data-progress','text-start','text-delta','text-end','finish']);
  assert.equal(values[1].data.id,'task-1');assert.equal(values[1].data.clientSubmissionId,'client-1');assert.equal(values[2].data.record.index,4);assert.equal(values[4].delta,'Saved ✓');
  assert.equal(await client.reconnectToStream({chatId:'local'}),null);
+});
+
+test('the saved state feeds the existing task projection and legacy replay remains readable',async()=>{
+ for(const format of ['state','legacy']){
+  const run=savedTask({data:{answer:'Saved ✓'},currentPlanRef:{planId:'plan',version:3,fingerprint:'exact'}});
+  const client=transport(async(_url,request)=>{
+   const all=frames(JSON.parse(request.body));
+   const saved=format==='state'?state(run):event('ACTIVITY_SNAPSHOT',{
+    messageId:'activity',activityType:'datumm.task',content:{taskId:run.id,event:{stage:'snapshot',run}},
+   });
+   return response(wire([...all.slice(0,3),saved,...all.slice(3)]));
+  });
+  const values=await read(await client.sendMessages(options));
+  assert.deepEqual(JSON.parse(JSON.stringify(values[3])),{
+   type:'data-progress',data:{clientSubmissionId:'client-1',record:{stage:'snapshot',run}},transient:true,
+  });
+  assert.equal(values.at(-1).type,'finish');
+ }
+});
+
+test('unadmitted, foreign, malformed, or stale task state is rejected before publication',async()=>{
+ for(const [name,frame,admitted] of [
+  ['unadmitted',state(),false],
+  ['foreign envelope',state(savedTask(),{taskId:'other'}),true],
+  ['foreign run',state(savedTask({id:'other'})),true],
+  ['unrecognized version',state(savedTask(),{schemaVersion:2}),true],
+  ['stale version',state(savedTask({taskVersion:1})),true],
+  ['stale cursor',state(savedTask({eventCursor:4})),true],
+  ['missing cursor',state(savedTask({eventCursor:undefined})),true],
+  ['inconsistent question',state(savedTask({status:'needs_input',data:{agent_question:{id:'q',version:3}}}),{question:{id:'q',version:4}}),true],
+ ]){
+  const client=transport(async(_url,request)=>{
+   const all=frames(JSON.parse(request.body));
+   return response(wire([...all.slice(0,admitted?3:1),frame,all.at(-1)]));
+  });
+  const reader=(await client.sendMessages({...options,body:{...options.body,expectedTaskVersion:2}})).getReader();
+  assert.equal((await reader.read()).value.type,'start',name);
+  if(admitted){
+   assert.equal((await reader.read()).value.type,'data-run',name);
+   assert.equal((await reader.read()).value.data.record.stage,'running',name);
+  }
+  await assert.rejects(reader.read(),/saved task state/i,name);
+ }
 });
 
 test('interrupt and cancelled outcomes finish protocol without fabricating an answer',async()=>{
@@ -102,12 +147,20 @@ test('pre-admission HTTP rejection retains the command error body for draft reco
 
 test('hosted question continuation uses AG-UI resume and retains the original command identity',async()=>{
  let sent,calls=0;
- const client=transport(async(_url,request)=>{calls++;sent=JSON.parse(request.body);const all=frames(sent);return response(wire([all[0],all[1],all.at(-1)]));});
+ const run=savedTask({status:'needs_input',data:{agent_question:{id:'next',version:4,question:'What next?'}}});
+ const client=transport(async(_url,request)=>{
+  calls++;sent=JSON.parse(request.body);
+  const all=frames(sent),outcome={type:'interrupt',interrupts:[{id:'next:4',reason:'question'}]};
+  return response(wire([all[0],all[1],state(run,{question:{id:'next',version:4}}),
+   event('MESSAGES_SNAPSHOT',{messages:[{id:'question:next:4',role:'assistant',content:'What next?'}]}),
+   {...all.at(-1),outcome}]));
+ });
  const payload={questionId:'q',questionVersion:3,answers:[{question_id:'level',option_id:'beginner'}]};
  const values=await read(await client.resumeQuestion({taskId:'task-1',idempotencyKey:'same-command',expectedTaskVersion:2,expectedPlanVersion:0},'q',3,payload,'client-resume'));
  assert.equal(calls,1);assert.equal(RunAgentInputSchema.safeParse(sent).success,true);assert.equal(sent.threadId,'task-1');assert.equal(sent.messages.length,0);
  assert.equal(sent.resume[0].interruptId,'q:3');assert.deepEqual(sent.resume[0].payload,payload);assert.equal(sent.forwardedProps.idempotencyKey,'same-command');
- assert.deepEqual(values.map(value=>value.type),['start','data-run','finish']);
+ assert.deepEqual(values.map(value=>value.type),['start','data-run','data-progress','finish']);
+ assert.equal(values[2].data.record.run.data.agent_question.id,'next');
 });
 
 test('question errors display safe plain messages while preserving HTTP status',async()=>{

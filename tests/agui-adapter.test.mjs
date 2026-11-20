@@ -11,7 +11,7 @@ const input=(props={})=>({threadId:'thread',runId:'run',messages:[{id:'m',role:'
 const parseStart=async response=>response.ok?response.json():response;
 const frame=value=>`data: ${JSON.stringify(value)}\n\n`;
 const receipt={id:'task-1',commandId:'stable-key',taskVersion:1,state:'applied'};
-const snapshot=(status,data={})=>({id:'task-1',status,data,taskVersion:1,executionId:'e1',
+const snapshot=(status,data={})=>({id:'task-1',status,data,taskVersion:1,eventCursor:1,executionId:'e1',
   commandReceipts:[{commandId:'stable-key',state:'applied'}],events:[{turnId:'stable-key',executionId:'e1'}]});
 const streamed=text=>new Response(new ReadableStream({start(c){c.enqueue(new TextEncoder().encode(text));c.close();}}),{headers:{'Content-Type':'text/event-stream'}});
 const events=async response=>(await response.text()).split('\n\n').filter(Boolean).map(line=>EventSchema.parse(JSON.parse(line.slice(6))));
@@ -30,7 +30,7 @@ test('question resume uses one versioned answer command and a source-bound conti
  const payload={questionId:'q',questionVersion:3,answers:[{question_id:'level',option_id:'beginner'}]};
  const request={threadId:'task-1',runId:'resume',messages:[],resume:[{interruptId:'q:3',status:'resolved',payload}],forwardedProps:{taskId:'task-1',idempotencyKey:'stable-key',expectedTaskVersion:2,expectedPlanVersion:0,eventCursor:4}};
  const calls=[];let posted=false;
- const continued={...snapshot('completed',{agent_reply_receipt:{questionId:'q',version:3},answer:'Done'}),taskVersion:3,events:[{stage:'user_answer',sequence:5,turnId:'original-turn',executionId:'e1'},{stage:'completed',sequence:6,turnId:'original-turn',executionId:'e1'}]};
+ const continued={...snapshot('completed',{agent_reply_receipt:{questionId:'q',version:3},answer:'Done'}),taskVersion:3,eventCursor:6,events:[{stage:'user_answer',sequence:5,turnId:'original-turn',executionId:'e1'},{stage:'completed',sequence:6,turnId:'original-turn',executionId:'e1'}]};
  const backend=async(path,options)=>{calls.push([path,options]);if(path==='/v2/tasks/task-1')return Response.json(posted?continued:{id:'task-1',status:'needs_input',eventCursor:4,data:{agent_question:{id:'q',version:3}}});if(path.endsWith('/commands')){posted=true;return Response.json({...receipt,taskVersion:3});}return streamed(frame({stage:'snapshot',run:continued}));};
  const output=await events(await openAgui(request,backend,parseStart));
  assert.equal(calls.filter(([path])=>path.endsWith('/commands')).length,1);assert.deepEqual(JSON.parse(calls[1][1].body).command,{schemaVersion:2,type:'answer',...payload});
@@ -41,7 +41,7 @@ test('accepted answer waits for applied receipt and saved question answer before
  const payload={questionId:'q',questionVersion:3,answer:'one'};
  const request={threadId:'task-1',runId:'resume',messages:[],resume:[{interruptId:'q:3',status:'resolved',payload}],forwardedProps:{taskId:'task-1',idempotencyKey:'stable-key',expectedTaskVersion:2,expectedPlanVersion:0,eventCursor:4}};
  let posts=0,reads=0;
- const continued={...snapshot('completed',{agent_reply_receipt:{questionId:'q',version:3},answer:'Done'}),taskVersion:3,events:[{stage:'user_answer',sequence:5,executionId:'e1'},{stage:'completed',sequence:6,executionId:'e1'}]};
+ const continued={...snapshot('completed',{agent_reply_receipt:{questionId:'q',version:3},answer:'Done'}),taskVersion:3,eventCursor:6,events:[{stage:'user_answer',sequence:5,executionId:'e1'},{stage:'completed',sequence:6,executionId:'e1'}]};
  const backend=async(path)=>{if(path.endsWith('/commands')){posts++;return Response.json({...receipt,state:'accepted',taskVersion:3});}if(path==='/v2/tasks/task-1'){reads++;return Response.json(reads===1?{id:'task-1',status:'needs_input',eventCursor:4,data:{agent_question:{id:'q',version:3}}}:reads===2?{id:'task-1',commandReceipts:[{commandId:'stable-key',state:'accepted'}],data:{}}:continued);}return streamed(frame({stage:'snapshot',run:continued}));};
  const output=await events(await openAgui(request,backend,parseStart));
  assert.equal(posts,1);assert.equal(reads,3);assert.equal(output[1].content.taskId,'task-1');assert.equal(output.at(-1).outcome.type,'success');
@@ -73,8 +73,8 @@ test('old completed snapshot cannot borrow a new answer receipt without a later 
  const payload={questionId:'q',questionVersion:3,answer:'one'};
  const request={threadId:'task-1',runId:'resume',messages:[],resume:[{interruptId:'q:3',status:'resolved',payload}],forwardedProps:{taskId:'task-1',idempotencyKey:'stable-key',expectedTaskVersion:2,expectedPlanVersion:0,eventCursor:4}};
  let posted=false,observations=0;
- const saved={...snapshot('completed',{agent_reply_receipt:{questionId:'q',version:3},answer:'old'}),taskVersion:3,events:[{stage:'user_answer',sequence:4,executionId:'e1'}]};
- const backend=async(path)=>{if(path==='/v2/tasks/task-1')return Response.json(posted?saved:{id:'task-1',status:'needs_input',eventCursor:4,data:{agent_question:{id:'q',version:3}}});if(path.endsWith('/commands')){posted=true;return Response.json({...receipt,taskVersion:3});}observations++;return streamed(frame({stage:'snapshot',run:observations===1?saved:{...saved,data:{...saved.data,answer:'new'},events:[{stage:'user_answer',sequence:5,executionId:'e1'},{stage:'completed',sequence:6,executionId:'e1'}]}}));};
+ const saved={...snapshot('completed',{agent_reply_receipt:{questionId:'q',version:3},answer:'old'}),taskVersion:3,eventCursor:4,events:[{stage:'user_answer',sequence:4,executionId:'e1'}]};
+ const backend=async(path)=>{if(path==='/v2/tasks/task-1')return Response.json(posted?saved:{id:'task-1',status:'needs_input',eventCursor:4,data:{agent_question:{id:'q',version:3}}});if(path.endsWith('/commands')){posted=true;return Response.json({...receipt,taskVersion:3});}observations++;return streamed(frame({stage:'snapshot',run:observations===1?saved:{...saved,eventCursor:6,data:{...saved.data,answer:'new'},events:[{stage:'user_answer',sequence:5,executionId:'e1'},{stage:'completed',sequence:6,executionId:'e1'}]}}));};
  const output=await events(await openAgui(request,backend,parseStart));
  assert.equal(observations,2);assert.deepEqual(output.filter(row=>row.type==='TEXT_MESSAGE_CONTENT').map(row=>row.delta),['new']);
 });
@@ -92,17 +92,20 @@ test('an answer receipt for a different task never starts observation',async()=>
  const output=await openAgui(request,backend,parseStart);assert.equal(output.status,502);assert.equal(reads,1);
 });
 
-test('admission emits activity and full saved answer, not truncated event detail',async()=>{
+// @lat: [[contracts#Hosted contract tests#Poll intervals#AG-UI saved task state]]
+test('admission emits ordered activity and one authoritative task state before the full answer',async()=>{
   const calls=[]; const answer='x'.repeat(2400);
+  const saved=snapshot('completed',{agent_result:{status:'completed',answer}});
   const backend=async(path,options)=>{
     calls.push([path,options]);
     if(path.includes('active=true'))return Response.json([]);
     if(path==='/v2/tasks')return Response.json(receipt);
     return streamed(frame({taskId:'task-1',sequence:1,stage:'answer',detail:'x'.repeat(2000)})+
-      frame({stage:'snapshot',run:snapshot('completed',{agent_result:{status:'completed',answer}})}));
+      frame({stage:'snapshot',run:saved}));
   };
   const result=await events(await openAgui(input(),backend,parseStart));
-  assert.deepEqual(result.map(e=>e.type),['RUN_STARTED','ACTIVITY_SNAPSHOT','ACTIVITY_SNAPSHOT','ACTIVITY_SNAPSHOT','TEXT_MESSAGE_START','TEXT_MESSAGE_CONTENT','TEXT_MESSAGE_END','RUN_FINISHED']);
+  assert.deepEqual(result.map(e=>e.type),['RUN_STARTED','ACTIVITY_SNAPSHOT','ACTIVITY_SNAPSHOT','STATE_SNAPSHOT','TEXT_MESSAGE_START','TEXT_MESSAGE_CONTENT','TEXT_MESSAGE_END','RUN_FINISHED']);
+  assert.deepEqual(result[3].snapshot.datumm,{schemaVersion:1,taskId:'task-1',run:saved});
   assert.equal(result[1].content.taskId,'task-1'); assert.equal(result[5].delta,answer);
   assert.equal(result.at(-1).outcome.type,'success');
   assert.equal(calls.filter(([path])=>path==='/v2/tasks').length,1);
@@ -110,16 +113,18 @@ test('admission emits activity and full saved answer, not truncated event detail
 });
 
 test('waiting, cancellation, failure and pause never masquerade as success',()=>{
-  const snap=(status,data={})=>terminalEvents('t','r','task',{id:'task',status,data});
+  const snap=(status,data={})=>terminalEvents('t','r','task-1',snapshot(status,data));
   const waitingEvents=snap('needs_input',{agent_question:{id:'q',version:3,question:'How many?'}});
   assert.deepEqual(waitingEvents.map(row=>row.type),['STATE_SNAPSHOT','MESSAGES_SNAPSHOT','RUN_FINISHED']);
+  assert.deepEqual(waitingEvents[0].snapshot.datumm.question,{id:'q',version:3});
+  assert.equal(waitingEvents[0].snapshot.datumm.run.status,'needs_input');
   const waiting=waitingEvents.at(-1);
   assert.equal(waiting.outcome.type,'interrupt'); assert.equal(waiting.outcome.interrupts[0].metadata.questionVersion,3);
-  assert.equal(snap('cancelled')[0].outcome.type,'cancelled');
-  assert.equal(snap('failed')[0].type,'RUN_ERROR');
-  assert.equal(snap('paused_recovery')[0].type,'RUN_ERROR');
-  assert.equal(snap('needs_input')[0].type,'RUN_ERROR');
-  assert.equal(snap('awaiting_approval',{agent_draft:{fingerprint:'a'.repeat(64)}})[0].outcome.type,'interrupt');
+  assert.equal(snap('cancelled').at(-1).outcome.type,'cancelled');
+  assert.equal(snap('failed').at(-1).type,'RUN_ERROR');
+  assert.equal(snap('paused_recovery').at(-1).type,'RUN_ERROR');
+  assert.equal(snap('needs_input').at(-1).type,'RUN_ERROR');
+  assert.equal(snap('awaiting_approval',{agent_draft:{fingerprint:'a'.repeat(64)}}).at(-1).outcome.type,'interrupt');
   assert.throws(()=>terminalEvents('t','r','task',{id:'other',status:'completed'}));
 });
 
@@ -155,6 +160,7 @@ test('an old completed snapshot never supplies a new turn answer',async()=>{
   };
   const result=await events(await openAgui(input(),backend,parseStart));
   assert.equal(posts,1);assert.equal(observations,2);
+  assert.deepEqual(result.filter(e=>e.type==='STATE_SNAPSHOT').map(e=>e.snapshot.datumm.run),[current]);
   assert.deepEqual(result.filter(e=>e.type==='TEXT_MESSAGE_CONTENT').map(e=>e.delta),['new answer']);
   assert.equal(result.at(-1).outcome.type,'success');
 });
@@ -165,7 +171,23 @@ test('a rejected admitted command stops without showing an old answer',async()=>
   const backend=async(path)=>path.includes('active=true')?Response.json([]):path==='/v2/tasks'?Response.json(receipt):(observations++,streamed(frame({stage:'snapshot',run:stopped})));
   const result=await events(await openAgui(input(),backend,parseStart));
   assert.equal(observations,1); assert.equal(result.at(-1).code,'DATUMM_COMMAND_STOPPED');
-  assert.ok(!result.some(e=>e.type==='TEXT_MESSAGE_CONTENT'||e.type==='RUN_FINISHED'));
+  assert.deepEqual(result.map(e=>e.type),['RUN_STARTED','ACTIVITY_SNAPSHOT','RUN_ERROR']);
+});
+
+test('a command-bound snapshot behind streamed activity is retried without reposting',async()=>{
+  const current={...snapshot('completed',{answer:'Current answer'}),eventCursor:2};
+  const activity={taskId:'task-1',index:1,sequence:2,stage:'completed',detail:'Saved'};
+  const calls=[];
+  const backend=async path=>{
+    calls.push(path);
+    if(path.includes('active=true'))return Response.json([]);
+    if(path==='/v2/tasks')return Response.json(receipt);
+    if(path.endsWith('after=0'))return streamed(frame(activity)+frame({stage:'snapshot',run:{...current,eventCursor:1}}));
+    return streamed(frame({stage:'snapshot',run:current}));
+  };
+  const result=await events(await openAgui(input(),backend,parseStart));
+  assert.deepEqual(calls.slice(-3),['/v2/tasks','/v2/tasks/task-1/events?after=0','/v2/tasks/task-1/events?after=2']);
+  assert.deepEqual(result.filter(e=>e.type==='STATE_SNAPSHOT').map(e=>e.snapshot.datumm.run),[current]);
 });
 
 test('detaching before observation connects aborts only the observer',async()=>{

@@ -11,14 +11,14 @@ import {conversationTurns,answerCompletionCandidate,verifyAnswerCompletionHash} 
 import {validateChatComposition} from '../src/lib/chat-composition.mjs';
 
 const input={threadId:'local-task',runId:'local-transport-run',messages:[{id:'local-prompt',role:'user',content:'Replay the captured task'}],forwardedProps:{taskId:'local-task',idempotencyKey:'local-command',expectedTaskVersion:2,expectedPlanVersion:0,mode:'ask'}};
-const snapshot={id:'local-task',status:'completed',taskVersion:2,executionId:'local-execution',data:{answer:'Recorded answer'},conversation:[{turnId:'local-command',answer:'Recorded answer',completion:{fixture:true},presentation:{fixture:true}}],commandReceipts:[{commandId:'local-command',state:'applied'}],events:[{index:0,sequence:1,stage:'completed',taskId:'local-task',turnId:'local-command',executionId:'local-execution',detail:'Recorded completion'}]};
+const snapshot={id:'local-task',status:'completed',taskVersion:2,eventCursor:1,executionId:'local-execution',data:{answer:'Recorded answer'},conversation:[{turnId:'local-command',answer:'Recorded answer',completion:{fixture:true},presentation:{fixture:true}}],commandReceipts:[{commandId:'local-command',state:'applied'}],events:[{index:0,sequence:1,stage:'completed',taskId:'local-task',turnId:'local-command',executionId:'local-execution',detail:'Recorded completion'}]};
 
 test('recorded local playback traverses real adapter and preserves exact saved answer fields',async()=>{
  const response=await replayRecordedTask(input,snapshot);
  assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/text\/event-stream/);
  const events=(await response.text()).split('\n\n').filter(Boolean).map(frame=>EventSchema.parse(JSON.parse(frame.slice(6))));
  assert.equal(events[0].type,'RUN_STARTED');assert.equal(events.at(-1).outcome.type,'success');
- assert.deepEqual(events.find(row=>row.type==='ACTIVITY_SNAPSHOT'&&row.content.event?.stage==='snapshot').content.event.run.conversation,snapshot.conversation);
+ assert.deepEqual(events.find(row=>row.type==='STATE_SNAPSHOT').snapshot.datumm.run.conversation,snapshot.conversation);
  assert.equal(events.find(row=>row.type==='TEXT_MESSAGE_CONTENT').delta,'Recorded answer');
 });
 

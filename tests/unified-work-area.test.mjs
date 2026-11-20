@@ -17,6 +17,7 @@ import {buildFrontendContext} from '../src/lib/agui/frontend-context.mjs';
 import * as selectionMarker from '../src/lib/selection-uncertainty.mjs';
 import * as conversationResult from '../src/lib/conversation-result.mjs';
 import {chooseDevice} from '../src/lib/device-choice.mjs';
+import {openChatPollMs,settledPoll} from '../src/lib/settled-poll.mjs';
 
 const compile=source=>ts.transpileModule(source,{reportDiagnostics:true,compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}});
 const source=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
@@ -121,7 +122,7 @@ test('A to B to A, changed brief and removed candidates at either GET boundary p
 
 function fakeLocks(){const tails=new Map();return {request(name,options,callback){assert.equal(options.mode,'exclusive');let result;try{result=tails.has(name)?tails.get(name).then(callback):Promise.resolve(callback());}catch(error){result=Promise.reject(error);}const tail=result.then(()=>{},()=>{});tails.set(name,tail);void tail.then(()=>{if(tails.get(name)===tail)tails.delete(name);});return result;}};}
 const queueEnv={current:null};
-function workspaceHarness(sharedStorage,sharedLocks){
+function workspaceHarness(sharedStorage,sharedLocks,clock){
  const effects=[],requests=[],chat={messages:[],status:'ready',options:null,sent:[]};
  const chatStart={};runInNewContext(compile(source('src/lib/chat-start.ts')).outputText,{exports:chatStart,Response,Error});
  const projection={};runInNewContext(compile(source('src/lib/task-projection.ts')).outputText,{exports:projection,require:()=>chatStart});
@@ -141,7 +142,7 @@ function workspaceHarness(sharedStorage,sharedLocks){
   './use-plan-edit':{usePlanEdit:()=>({busy:false,notice:null,apply:async()=>{},open:async()=>{},dismiss(){}})},
   '@/lib/agui/frontend-context.mjs':{buildFrontendContext},
   '@/lib/task-command':{replaceTerminalCommand:(type,state)=>state==='applied'||state==='rejected'||(state==='interrupted'&&['compare_result','inspect_result'].includes(type))},
-  '@/lib/chat-start':{chatStartFailure:()=>null,savedTaskConnectionNotice:()=>'',admissionMessage:message=>message},
+   '@/lib/chat-start':{chatStartFailure:()=>null,savedTaskConnectionNotice:chatStart.savedTaskConnectionNotice,admissionMessage:message=>message},
   '@/lib/prompt-drafts.mjs':{createPromptDraftStore:()=>draft},
   '@/lib/selection-uncertainty.mjs':selectionMarker,
   '../account-admission':{accountAdmissionState:()=>({localTest:false,admittedSubject:null,needsAccountAdmission:false,workspaceLoading:false})},
@@ -149,7 +150,7 @@ function workspaceHarness(sharedStorage,sharedLocks){
   '../prompt-content':{splitViewportPrompt:text=>({text,references:[]}),hasPromptContent:text=>Boolean(text.trim()),appendViewportPrompt:promptContent.appendViewportPrompt},
   '@/lib/workflow-state':{workflowState:()=>({label:'Saved'}),hasPendingQuestion:workflow.hasPendingQuestion},
   '@/lib/plan-build-flow':{planBuildStep:()=>null},
-  '@/lib/settled-poll.mjs':{openChatPollMs:()=>null,settledPoll:update=>{void update();return ()=>{};}},
+   '@/lib/settled-poll.mjs':clock?{openChatPollMs,settledPoll:(update,delay)=>settledPoll(update,delay,clock.timers)}:{openChatPollMs:()=>null,settledPoll:update=>{void update();return ()=>{};}},
   '@/lib/device-choice.mjs':{chooseDevice},
   '@/lib/agui-chat-transport':{AguiChatTransport:class{
    resumeQuestion(props,questionId,version,payload,clientSubmissionId){return new Promise((resolve,reject)=>requests.push({path:'/api/agui',init:{body:JSON.stringify({forwardedProps:props,resume:[{interruptId:`${questionId}:${version}`,status:'resolved',payload}]})},reject,resolve:()=>resolve(new ReadableStream({start(c){c.enqueue({type:'data-run',data:{id:props.taskId,clientSubmissionId}});c.close();}}))}));}
@@ -159,7 +160,7 @@ function workspaceHarness(sharedStorage,sharedLocks){
  const storage=sharedStorage??(()=>{const values=new Map();return {getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)};})();
  const listeners=new Map(),window={location:{href:'https://datumm.test/'},history:{replaceState(){}},matchMedia:()=>({matches:false}),desktop:null,localStorage:storage,navigator:{locks:sharedLocks??fakeLocks()},addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:name=>listeners.delete(name)};
  let uuid=0;
- const h=harness('src/components/workspace/use-workspace-state.ts',modules,{window,URL,URLSearchParams,Error,AbortController,ReadableStream,crypto:{randomUUID:()=> `submission-${++uuid}`},fetch:(path,init)=>new Promise((resolve,reject)=>requests.push({path,init,reject,resolve:value=>resolve({ok:true,text:async()=>JSON.stringify(value)})}))});
+  const h=harness('src/components/workspace/use-workspace-state.ts',modules,{window,URL,URLSearchParams,Error,AbortController,ReadableStream,Date:clock?.Date??Date,crypto:{randomUUID:()=> `submission-${++uuid}`},fetch:(path,init)=>new Promise((resolve,reject)=>requests.push({path,init,reject,resolve:value=>resolve({ok:true,text:async()=>JSON.stringify(value)})}))});
  return {...h,window,storage,listeners,effects,requests,chat,render:accountKey=>h.render('useWorkspaceState',{authConfigured:true,accountKey:accountKey??'account-a'})};
 }
 const task=(id,more={})=>({id,title:id,status:'completed',mode:'ask',model:'model',events:[],data:{},...more});
@@ -366,6 +367,129 @@ test('a newer selected history revision refreshes the complete task without repl
  assert.equal(h.requests.at(-1).path,'/api/service/tasks/a');assert.equal(h.render().run.status,'completed','List rows do not overwrite full task data');
  h.requests.at(-1).resolve(task('a',{taskVersion:2,status:'running'}));await new Promise(setImmediate);w=h.render();assert.equal(w.run.status,'running');
  const count=h.requests.length;h.effects.findLast(fn=>fn.toString().includes('selectedListVersion'))();assert.equal(h.requests.length,count,'An equal revision does not refetch');
+});
+
+test('a newer list revision catches up after a coalesced reopen returns an older settled revision',async()=>{
+ const h=workspaceHarness();let w=h.render();w.selectRun(task('a',{taskVersion:1}));w=h.render();
+ const reads=()=>h.requests.filter(row=>row.path==='/api/service/tasks/a');
+ const refresh=w.refresh();
+ h.requests.findLast(row=>row.path==='/api/service/config').resolve({models:[]});
+ h.requests.findLast(row=>row.path==='/api/service/devices').resolve([]);
+ h.requests.findLast(row=>row.path==='/api/service/runs').resolve([task('a',{taskVersion:3,status:'running'})]);
+ await refresh;h.render();
+ h.effects.findLast(fn=>fn.toString().includes('selectedListVersion'))();
+ assert.equal(reads().length,1,'The active reopen and list update share the current request');
+ reads()[0].resolve(task('a',{taskVersion:2}));await tick();
+ assert.equal(reads().length,2,'The older settled reply cannot satisfy revision 3');
+ assert.equal(h.render().run.taskVersion,2);
+ reads()[1].resolve(task('a',{taskVersion:3,status:'running'}));await tick();
+ assert.equal(h.render().run.status,'running');
+ assert.equal(reads().length,2,'One catch-up read is enough');
+});
+
+function pollClock(){
+ const pending=new Map();let now=0,sequence=0;
+ return {
+  Date:class extends Date{static now(){return now;}},
+  timers:{setTimeout(fn,ms){const id=++sequence;pending.set(id,{fn,at:now+ms});return id;},clearTimeout(id){pending.delete(id);}},
+  async advance(ms){
+   const until=now+ms;
+   for(const [id,{at,fn}] of pending){
+    if(at>until)break;
+    pending.delete(id);now=at;fn();await tick();
+   }
+   now=until;
+  },
+ };
+}
+
+function observeWorkspace(){
+ const clock=pollClock(),h=workspaceHarness(undefined,undefined,clock);
+ let w=h.render();
+ const sending=w.submit('Inspect this plan');h.chat.status='streaming';w=h.render();
+ const clientSubmissionId=h.chat.sent[0][1].body.clientSubmissionId;
+ const data=(type,payload)=>h.chat.options.onData({type,data:{...payload,clientSubmissionId}});
+ const record=(sequence,stage='assistant_update')=>({stage,index:sequence-1,sequence,taskId:'a',detail:stage});
+ const progress=(sequence,stage)=>data('data-progress',{record:record(sequence,stage)});
+ const snapshot=(sequence,more={})=>task('a',{status:'running',taskVersion:1,eventCursor:sequence,events:Array.from({length:sequence},(_,i)=>record(i+1)),...more});
+ const reads=()=>h.requests.filter(row=>['/api/service/tasks/a','/api/service/runs/a'].includes(row.path));
+ const reconcile=()=>h.effects.findLast(fn=>fn.toString().includes('gapSequence || checkpointSequence'))?.();
+ data('data-run',{id:'a'});w=h.render();
+ const stop=h.effects.findLast(fn=>fn.toString().includes('pollState.current')&&fn.toString().includes('settledPoll'))();
+ return {clock,h,record,progress,snapshot,reads,reconcile,data,stop,async finish(){h.chat.status='ready';h.chat.finish();await sending;}};
+}
+
+// @lat: [[contracts#Hosted contract tests#Poll intervals#AG-UI work-area coverage]]
+test('the actual workspace bootstraps once and sends fewer selected GETs during active observation',async()=>{
+ for(const observing of [true,false]){
+  const o=observeWorkspace();
+  assert.equal(o.reads().length,1,'Admission must still load the saved task');
+  if(observing)o.progress(2);
+  o.reads()[0].resolve(o.snapshot(1));await tick();
+  assert.equal(o.h.render().run.id,'a');
+  for(let i=1;i<=4;i++){
+   if(observing)o.progress(i+2);
+   o.h.render();
+   const before=o.reads().length;
+   await o.clock.advance(1500);
+   if(o.reads().length>before){o.reads().at(-1).resolve(o.snapshot(i+2));await tick();}
+  }
+  assert.equal(o.reads().length,observing?2:5);
+  o.stop();await o.finish();assert.equal(o.h.chat.sent.length,1);
+ }
+});
+
+test('a cursor gap or saved-output checkpoint refreshes promptly and coalesces with an active read',async()=>{
+ const o=observeWorkspace();
+ o.reads()[0].resolve(o.snapshot(1));await tick();o.h.render();
+ o.progress(3);o.h.render();o.reconcile();
+ assert.equal(o.reads().length,2,'Missing event 2 triggers a saved read');
+ o.progress(4,'specialist_complete');o.h.render();o.reconcile();
+ assert.equal(o.reads().length,2,'A checkpoint shares the pending reconciliation');
+ o.reads()[1].resolve(o.snapshot(2));await tick();o.h.render();
+ o.progress(5,'plan_ready');o.h.render();o.reconcile();
+ assert.equal(o.reads().length,3,'The next saved-output checkpoint can refresh after the first settles');
+ o.stop();await o.finish();
+});
+
+test('quiet or disconnected observation restores the fast selected-task fallback',async()=>{
+ const o=observeWorkspace();o.progress(2);
+ o.reads()[0].resolve(o.snapshot(1));await tick();o.h.render();
+ await o.clock.advance(4500);assert.equal(o.reads().length,1);
+ await o.clock.advance(1500);assert.equal(o.reads().length,2);
+ o.reads()[1].resolve(o.snapshot(2));await tick();o.h.render();
+ await o.clock.advance(1500);assert.equal(o.reads().length,3,'Quiet streams stop slowing the active poll');
+ o.reads()[2].resolve(o.snapshot(2));await tick();
+ await o.finish();assert.equal(o.reads().length,4,'Unfinished closure prompts a saved read');
+ assert.equal(o.h.chat.sent.length,1);
+ o.stop();
+});
+
+test('interruption waits for a fresh authoritative read after sharing a pre-interruption request',async()=>{
+ const o=observeWorkspace();
+ o.data('data-progress',{record:{stage:'snapshot',run:o.snapshot(2,{status:'completed',taskVersion:2})}});
+ o.h.chat.error=Object.assign(Error('Interrupted'),{code:'DATUMM_STREAM_INTERRUPTED'});
+ o.h.render();
+ o.h.effects.findLast(fn=>fn.toString().includes('dropOptimistic(pending.text)'))();
+ assert.equal(o.reads().length,1);
+ o.reads()[0].resolve(o.snapshot(1));await tick();
+ assert.equal(o.reads().length,2,'Recovery must get past the pre-interruption response');
+ o.reads()[1].resolve(o.snapshot(1));await tick();
+ assert.equal(o.h.render().run.status,'completed','An older read cannot overwrite the terminal stream');
+ assert.equal(o.h.render().connectionNotice,'','Recovery does not say that a completed task is still receiving updates');
+ assert.equal(o.reads().length,2);
+ o.stop();await o.finish();assert.equal(o.h.chat.sent.length,1);
+});
+
+test('an in-flight equal-revision GET cannot overwrite a streamed task snapshot or follow its scope',async()=>{
+ const o=observeWorkspace();
+ o.data('data-progress',{record:{stage:'snapshot',run:o.snapshot(1,{status:'completed',title:'stream title'})}});
+ o.h.render();o.reads()[0].resolve(o.snapshot(1,{title:'stale title'}));await tick();
+ let w=o.h.render();assert.equal(w.run.title,'stream title');assert.equal(w.run.status,'completed');
+ w.selectRun(task('b'));w=o.h.render();
+ o.data('data-progress',{record:{stage:'snapshot',run:o.snapshot(2,{title:'late A'})}});
+ assert.equal(o.h.render().run.id,'b');
+ o.stop();await o.finish();assert.equal(o.h.chat.sent.length,1);
 });
 
 test('actual Settings, dialog and drawer focus return to the current visible web controls',()=>{

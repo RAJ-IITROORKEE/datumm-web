@@ -9,6 +9,12 @@ test('open chat polls fast only while active, slowly while waiting, never when s
   for(const s of ['completed','failed','cancelled'])assert.equal(openChatPollMs(s),null);
 });
 
+test('a healthy observation slows active reconciliation only',()=>{
+ assert.equal(openChatPollMs('running',true),6000);
+ assert.equal(openChatPollMs('needs_input',true),20000);
+ assert.equal(openChatPollMs('completed',true),null);
+});
+
 test('chat list polls every 6 s while any chat runs, else 30 s',()=>{
   assert.equal(listPollMs([{status:'completed'},{status:'running'}]),6000);
   assert.equal(listPollMs([{status:'completed'}]),30000);

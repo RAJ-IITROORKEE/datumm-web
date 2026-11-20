@@ -37,3 +37,19 @@ test('usage limits keep their meaning; ordinary failures and answers stay exact'
   const answer={stage:'answer',detail:'Use `<div>` tags: `<html><body>Keep this</body></html>`.',index:0,at:'now'};
   for(const view of shown(answer))assert.equal(view,answer);
 });
+
+test('bootstrap keeps scoped early events and a saved read drains any gap that it covers',()=>{
+ const row=(sequence,taskId='task')=>({stage:'running',index:sequence-1,sequence,taskId,detail:String(sequence)});
+ let state=reduceProjection(emptyProjection(),{event:row(3)});
+ state=reduceProjection(state,{event:row(4,'foreign')});
+ state=reduceProjection(state,{event:row(4)});
+ state=reduceProjection(state,{snapshot:{id:'task',taskVersion:1,eventCursor:1,events:[row(1)]}});
+ assert.equal(state.cursor,1);
+ assert.equal(state.pending.length,2);
+ state=reduceProjection(state,{snapshot:{id:'task',taskVersion:2,eventCursor:2,events:[row(1),row(2)]}});
+ assert.equal(state.cursor,4);
+ assert.equal(state.pending.length,0);
+ assert.equal(state.events.map(event=>event.detail).join(),'1,2,3,4');
+ state=reduceProjection(state,{snapshot:{id:'task',taskVersion:3,eventCursor:3,events:[row(1),row(2),row(3)]}});
+ assert.equal(state.events.map(event=>event.detail).join(),'1,2,3,4');
+});

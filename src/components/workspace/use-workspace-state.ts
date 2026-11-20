@@ -10,7 +10,7 @@ import {accountAdmissionState} from '../account-admission';
 import {type ReasoningEffort} from '../model-picker';
 import {hasPendingQuestion,workflowState} from '@/lib/workflow-state';
 import {type DesignPlacementDraft, type DesignRecord, candidateDrawing} from '../design-review';
-import {displayEvent, emptyProjection, reduceProjection, type TaskEvent} from '@/lib/task-projection';
+import {acceptsTaskSnapshot, displayEvent, emptyProjection, reduceProjection, type TaskEvent} from '@/lib/task-projection';
 import {type OpenCodeQuestion} from '../opencode-questions';
 import {activityTurns, latestTaskActivity, type RunManifest} from '../agent-activity';
 import {type SavedTurn} from '../saved-turn-result';
@@ -81,6 +81,13 @@ export function taskStepCompleted(run:Run,step:NonNullable<Run['data']['agent_ta
 }
 
 export const terminal=new Set(['completed','needs_input','failed','cancelled','awaiting_approval','interrupted','paused_limit','paused_recovery','reconciling']);
+const checkpointStages=new Set(['plan_ready','specialist_complete','specialist_completed']);
+type TaskObservation={taskId:string;requestId:string;epoch:number;sequence:number;lastProgressAt:number;checkpoint:number;final:boolean};
+type SelectedTaskRead={
+ route?:'runs'|'tasks';
+ readBase?:Run|null;
+ followUp?:(value:Run|null)=>boolean;
+};
 
 export const completedDraftTitle=(title:string)=>title.replace(/^Dry-run:\s*/i,'').replace(/\s*[—–-]\s*Plan only\s*$/i,'');
 
@@ -199,7 +206,7 @@ export function useWorkspaceState({authConfigured,accountKey,desktopPreview=fals
    const promptQueue=queueData?.prompt_queue??[];
  const draftReferences=[...(queueData?.design?.feedback??[]),...(queueData?.design?.history??[]).flatMap(row=>row.feedback??[])].filter(row=>prompt.includes(JSON.stringify(row))).slice(-6);
  const currentRun=useRef(run);currentRun.current=run;
- const setRun=(value:Run|null)=>setProjection(previous=>value?reduceProjection(previous,{snapshot:value}):emptyProjection<Run>());
+ const setRun=(value:Run|null,readBase?:Run|null)=>setProjection(previous=>value?reduceProjection(previous,{snapshot:value,readBase}):emptyProjection<Run>());
 
  const [error,setError]=useState(''),[connected,setConnected]=useState(false),[serviceError,setServiceError]=useState('');
   const [blockedChat,setBlockedChat]=useState<{id:string;message:string}|null>(null);
@@ -410,6 +417,8 @@ const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacem
  const workAreaView=useRef<{open:boolean;preview:'drawing'|'answer-output'|'saved-report'}>({open:false,preview:'drawing'});
  useEffect(()=>{const live=liveSubmission.current;if(live&&!live.scope&&live.submission.taskId&&live.submission.taskId===runId){live.taskId=runId;live.scope=displayScope();}},[runId,workspaceScopeInput.key]);
  const recoveryEpoch=useRef(0);
+ const observation=useRef<TaskObservation|null>(null);
+ const selectedRead=useRef<{taskId:string;epoch:number;startedAt:number;promise:Promise<Run|null>|null}|null>(null);
  const transportMessageOwner=useRef<{accountKey:string;sourceKey:string;taskId:string|null}|null>(null);
  const setMessagesAfterAccountChange=useRef(false);
  const [uiScope,setUiScope]=useState({key:workspaceScopeInput.key,accountKey:workspaceAccountKey});
@@ -452,11 +461,65 @@ const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacem
   const result=store.confirm(key,text,revision);
   if(promptDrafts.current===store&&draftOwner.current.source===key){setDraftSaveStatus(result);if(promptValue.current===text)displayPrompt(store.get(key));}
  };
- const recoverLiveView=(taskId?:string,code?:string)=>{const epoch=recoveryEpoch.current;setError('');setConnectionNotice(code&&code!=='DATUMM_STREAM_INTERRUPTED'?'Checking the saved task after the run stopped or paused…':'Checking the saved task after the live stream ended…');if(taskId)void api<Run>('tasks/'+encodeURIComponent(taskId)).then(task=>{if(recoveryEpoch.current===epoch){setRun(task);setConnectionNotice(savedTaskConnectionNotice(task));}}).catch(()=>{if(recoveryEpoch.current===epoch)setConnectionNotice('Saved task updates are unavailable. Check the connection before retrying; this message was already admitted.');});};
+ const readSelectedTask=(taskId:string,{route='tasks',readBase=currentRun.current?.id===taskId?currentRun.current:null,followUp}:SelectedTaskRead={}):Promise<Run|null>=>{
+  const epoch=recoveryEpoch.current,previous=selectedRead.current;
+  if(previous?.taskId===taskId&&previous.epoch===epoch&&previous.promise){
+   if(!followUp)return previous.promise;
+   // The joined read predates the update that requested this reconciliation.
+   const after=(value:Run|null)=>{
+    if(epoch!==recoveryEpoch.current||selectedRead.current?.taskId!==taskId)return null;
+    return followUp(value)?readSelectedTask(taskId,{route}):value;
+   };
+   return previous.promise.then(after,()=>after(null));
+  }
+  const promise=api<Run>(route+'/'+encodeURIComponent(taskId)).then(value=>{
+   if(epoch!==recoveryEpoch.current||selectedRead.current?.promise!==promise||value.id!==taskId)return null;
+   const current=currentRun.current;
+   setRun(value,readBase);
+   return current?.id===taskId&&!acceptsTaskSnapshot(current,value,readBase)?current:value;
+  }).finally(()=>{if(selectedRead.current?.promise===promise)selectedRead.current.promise=null;});
+  selectedRead.current={taskId,epoch,startedAt:Date.now(),promise};
+  return promise;
+ };
+ const recoverLiveView=(requestId:string,taskId?:string,code?:string)=>{
+  const epoch=recoveryEpoch.current;
+  if(observation.current?.requestId===requestId)observation.current=null;
+  setError('');setConnectionNotice(code&&code!=='DATUMM_STREAM_INTERRUPTED'?'Checking the saved task after the run stopped or paused…':'Checking the saved task after the live stream ended…');
+  if(taskId)void readSelectedTask(taskId,{followUp:()=>true}).then(task=>{if(task&&recoveryEpoch.current===epoch)setConnectionNotice(savedTaskConnectionNotice(task));}).catch(()=>{if(recoveryEpoch.current===epoch)setConnectionNotice('Saved task updates are unavailable. Check the connection before retrying; this message was already admitted.');});
+ };
  // History rows are a useful immediate preview, not an authoritative task read.
- const refreshSelectedTask=async(taskId:string,epoch=recoveryEpoch.current)=>{
-  try{const value=await api<Run>('tasks/'+encodeURIComponent(taskId));if(epoch===recoveryEpoch.current&&value.id===taskId)setRun(value);}
+ const refreshSelectedTask=async(taskId:string,options?:SelectedTaskRead)=>{
+  const epoch=recoveryEpoch.current;
+  try{await readSelectedTask(taskId,options);}
   catch{if(epoch===recoveryEpoch.current)setConnectionNotice('The saved chat is shown, but its latest updates could not be checked. Reopen it to retry.');}
+ };
+ const startObservation=(taskId:string,requestId:string,cursor:number):TaskObservation=>{
+  const value={taskId,requestId,epoch:recoveryEpoch.current,sequence:cursor,lastProgressAt:-Infinity,checkpoint:0,final:false};
+  observation.current=value;
+  return value;
+ };
+ const observeProgress=(value:unknown)=>{
+  const observed=observation.current;
+  if(!observed||observed.epoch!==recoveryEpoch.current||!value||typeof value!=='object'||!('stage' in value)||typeof value.stage!=='string')return;
+  if(value.stage==='snapshot'){
+   if(!('run' in value)||!value.run||typeof value.run!=='object'||!('id' in value.run)||value.run.id!==observed.taskId||!('events' in value.run)||!Array.isArray(value.run.events)||!('data' in value.run)||!value.run.data||typeof value.run.data!=='object'||!('status' in value.run)||typeof value.run.status!=='string')return;
+   const saved=value.run as Run,current=currentRun.current;
+   if(current?.id===saved.id&&!acceptsTaskSnapshot(current,saved))return;
+   observed.final||=terminal.has(saved.status);
+   observed.lastProgressAt=Date.now();
+   setRun(saved);
+   return;
+  }
+  if(!('index' in value)||typeof value.index!=='number'||!Number.isSafeInteger(value.index)||value.index<0||!('detail' in value)||typeof value.detail!=='string'||('taskId' in value&&value.taskId!==undefined&&value.taskId!==observed.taskId))return;
+  const event={...(value as RunEvent),taskId:observed.taskId};
+  const sequence=event.sequence??event.index+1;
+  if(!Number.isSafeInteger(sequence)||sequence<1)return;
+  if(sequence>observed.sequence){
+   observed.sequence=sequence;
+   observed.lastProgressAt=Date.now();
+   if(terminal.has(event.stage)||checkpointStages.has(event.stage))observed.checkpoint=sequence;
+  }
+  setProjection(previous=>reduceProjection(previous,{event}));
  };
  const openCanvas=(trigger:HTMLButtonElement)=>{canvasTrigger.current=trigger;setStudioView('workspace');closeProperties();setCanvasOpen(true);};
  const restoreDialogFocus=(event:Event)=>{event.preventDefault();const opener=dialogTrigger.current;const trigger=opener?.isConnected&&opener.getClientRects().length&&!opener.closest('[hidden],[inert]')?opener:Array.from(document.querySelectorAll<HTMLElement>('[aria-label="Open workspace navigation"],[aria-label="Expand navigation"],[aria-label="Show sidebar"],[aria-label^="Account settings"],[aria-label="Search chats and projects"],[aria-label="Search tasks"]')).find(element=>element.getClientRects().length>0&&!element.closest('[hidden],[inert]'));trigger?.focus();};
@@ -566,7 +629,9 @@ const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacem
    const taskId=part.data.id;
    if(pendingSubmission.current){
     const pending=pendingSubmission.current,key=pending.sourceKey;
+    if(pending.runStarted)return;
     pending.runStarted=true;pending.taskId=taskId;
+    startObservation(taskId,pending.clientSubmissionId,pending.startCursor);
     if(transportMessageOwner.current)transportMessageOwner.current.taskId=taskId;
     confirmPromptDraft(key,pending.text,pending.draftStore,pending.draftRevision);
     if((key==='new'||key.startsWith('new:'))&&key!==taskId)pending.draftStore.move(key,taskId);
@@ -576,20 +641,7 @@ const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacem
    setRunId(taskId);setAdmissionPending(false);
   }
 
-  if(part.type==='data-progress'){
-
-   if(!('record' in part.data)||!part.data.record||typeof part.data.record!=='object')return;
-   const record=part.data.record;
-   if(!('stage' in record)||typeof record.stage!=='string')return;
-   if(record.stage==='snapshot'){
-    if(!('run' in record)||!record.run||typeof record.run!=='object'||!('id' in record.run)||record.run.id!==pendingSubmission.current.taskId||!('events' in record.run)||!Array.isArray(record.run.events)||!('data' in record.run)||!record.run.data||typeof record.run.data!=='object'||!('status' in record.run)||typeof record.run.status!=='string')return;
-    setRun(record.run as Run);
-   }else{
-    if(!('index' in record)||typeof record.index!=='number'||!Number.isSafeInteger(record.index)||record.index<0||!('detail' in record)||typeof record.detail!=='string'||('taskId' in record&&record.taskId!==pendingSubmission.current.taskId))return;
-    setProjection(previous=>reduceProjection(previous,{event:record as RunEvent}));
-   }
-
-  }
+   if(part.type==='data-progress'&&observation.current?.requestId===part.data.clientSubmissionId&&'record' in part.data)observeProgress(part.data.record);
 
  }});
 
@@ -618,7 +670,7 @@ const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacem
   if(pending&&!pending.runStarted){setPrompt(current=>current||pending.text);if(!currentRun.current)dropOptimistic(pending.text);}
   pendingSubmission.current=null;setAdmissionPending(false);
   if(pending?.runStarted){
-   recoverLiveView(pending.taskId||currentRun.current?.id,(chatError as {code?:string}).code);return;
+   recoverLiveView(pending.clientSubmissionId,pending.taskId||currentRun.current?.id,(chatError as {code?:string}).code);return;
   }
   const failure=chatStartFailure(chatError);
   if(failure){
@@ -750,7 +802,7 @@ const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacem
    const epoch=recoveryEpoch.current;let live=true;
   const taskId=new URL(window.location.href).searchParams.get('task');
   if(taskId)setRunId(taskId);
-   if(taskId)void api<Run>('tasks/'+encodeURIComponent(taskId)).then(value=>{if(!live||epoch!==recoveryEpoch.current)return;setRun(value);setRunId(value.id);setMode(value.mode);setModel(value.model);setReasoningEffort(value.reasoningEffort??'high');}).catch(e=>{if(live&&epoch===recoveryEpoch.current)setError((e as Error).message);});
+   if(taskId)void readSelectedTask(taskId).then(value=>{if(!value||!live||epoch!==recoveryEpoch.current)return;setMode(value.mode);setModel(value.model);setReasoningEffort(value.reasoningEffort??'high');}).catch(e=>{if(live&&epoch===recoveryEpoch.current)setError((e as Error).message);});
    return()=>{live=false;};
  },[desktopPreview,accountStatus?.state,testIdentity]);
 
@@ -761,19 +813,36 @@ const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacem
   window.history.replaceState(null,'',url);
  },[runId]);
 
- const openPollMs=openChatPollMs(run?.id===runId?run.status:undefined);
+ const taskObservation=observation.current?.epoch===recoveryEpoch.current&&observation.current.taskId===runId?observation.current:null;
+ const pollStatus=taskObservation&&!taskObservation.final&&(admitted||questionObserver.current)&&!admittedTerminal?'running':run?.status;
+ const openPollMs=openChatPollMs(pollStatus);
+ const pollState=useRef({pollStatus,hasBase:false});pollState.current={pollStatus,hasBase:Boolean(run&&!projection.pending.length)};
+ const gap=projection.taskId===runId?projection.pending[0]:undefined;
+ const gapSequence=gap?.sequence??(gap?gap.index+1:0);
+ const checkpointSequence=(taskObservation?.checkpoint??0)>(run?.eventCursor??0)?taskObservation?.checkpoint:0;
  const selectedListVersion=runs.find(value=>value.id===runId)?.taskVersion;
  useEffect(()=>{
   const selected=currentRun.current;
   // A newer list revision can resume a settled task in another tab. Fetch its
   // complete record instead of replacing it with a possibly partial list row.
-  if(selected?.id===runId&&typeof selectedListVersion==='number'&&typeof selected.taskVersion==='number'&&selectedListVersion>selected.taskVersion)void refreshSelectedTask(runId);
+  if(selected?.id===runId&&typeof selectedListVersion==='number'&&typeof selected.taskVersion==='number'&&selectedListVersion>selected.taskVersion){
+   void refreshSelectedTask(runId,{followUp:value=>Math.max(value?.taskVersion??0,currentRun.current?.taskVersion??0)<selectedListVersion});
+  }
  },[runId,selectedListVersion,workspaceAccountKey]);
+ useEffect(()=>{
+  if(runId&&(gapSequence||checkpointSequence))void readSelectedTask(runId,{route:'runs'}).catch(()=>{});
+ },[runId,gapSequence,checkpointSequence,workspaceAccountKey]);
  useEffect(()=>{
   if(!runId||openPollMs===null)return;
   const epoch=recoveryEpoch.current;
-  let live=true;const tick=async()=>{const value=await api<Run>('runs/'+runId);if(live&&epoch===recoveryEpoch.current&&value.id===runId)setRun(value);};
-  const stop=settledPoll(tick,openPollMs);return()=>{live=false;stop();};
+  return settledPoll(async()=>{
+   if(epoch!==recoveryEpoch.current)return;
+   const now=Date.now(),observed=observation.current,{pollStatus,hasBase}=pollState.current,last=selectedRead.current;
+   // A quiet stream falls back on the next fast tick, even when no new frame renders the hook.
+   const healthy=hasBase&&observed?.taskId===runId&&observed.epoch===epoch&&!observed.final&&now-observed.lastProgressAt<6000;
+   const delay=openChatPollMs(pollStatus,healthy);
+   if(delay!==null&&(!last||last.epoch!==epoch||last.taskId!==runId||now-last.startedAt>=delay))await readSelectedTask(runId,{route:'runs'});
+  },openPollMs);
  },[runId,openPollMs,workspaceAccountKey]);
 
  const replyToQuestion=async(payload:ReplyPayload|{question_id:string;answer:string})=>{
@@ -792,35 +861,37 @@ const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacem
    try{
     questionObserver.current?.abort();const observer=new AbortController();questionObserver.current=observer;
     const answer={questionId:command.questionId,questionVersion:command.questionVersion,...('answer' in command?{answer:command.answer}:{answers:command.answers})};
-    const stream=await transport.resumeQuestion({taskId:run.id,idempotencyKey:request.idempotencyKey,expectedTaskVersion:request.expectedTaskVersion,expectedPlanVersion:request.expectedPlanVersion,eventCursor:projection.cursor},payload.question_id,replyQuestionVersion,answer,crypto.randomUUID(),observer.signal);
-    const reader=stream.getReader();let admitted=false;
+     const replySubmissionId=crypto.randomUUID();
+     const stream=await transport.resumeQuestion({taskId:run.id,idempotencyKey:request.idempotencyKey,expectedTaskVersion:request.expectedTaskVersion,expectedPlanVersion:request.expectedPlanVersion,eventCursor:projection.cursor},payload.question_id,replyQuestionVersion,answer,replySubmissionId,observer.signal);
+     const reader=stream.getReader();let observed:TaskObservation|null=null;
     const observe=async()=>{try{for(;;){const next=await reader.read();if(next.done)break;if(!isCurrent())continue;const part=next.value;
-      if(part.type==='data-run')admitted=true;
-      if(part.type==='data-progress'&&part.data&&typeof part.data==='object'&&'record' in part.data){const event=part.data.record as RunEvent&{run?:Run};if(event.stage==='snapshot'&&event.run?.id===run.id)setRun(event.run);else if(event.taskId===run.id)setProjection(previous=>reduceProjection(previous,{event}));}
-    }}catch{if(isCurrent()&&admitted)recoverLiveView(run.id);}finally{if(questionObserver.current===observer)questionObserver.current=null;reader.releaseLock();}};
+       if(observation.current===observed&&part.type==='data-progress'&&part.data&&typeof part.data==='object'&&'record' in part.data)observeProgress(part.data.record);
+     }}catch{if(isCurrent()&&observation.current===observed)recoverLiveView(replySubmissionId,run.id);}finally{if(observation.current===observed)observation.current=null;if(questionObserver.current===observer)questionObserver.current=null;reader.releaseLock();}};
     // Admission must be observed before clearing the answer; observation continues in the background.
-    for(;;){const next=await reader.read();if(!isCurrent()){await reader.cancel();return;}if(next.done)throw new Error('The answer could not be confirmed. Check the saved task before retrying.');if(next.value.type==='data-run'){admitted=true;break;}}
+     for(;;){const next=await reader.read();if(!isCurrent()){await reader.cancel();return;}if(next.done)throw new Error('The answer could not be confirmed. Check the saved task before retrying.');if(next.value.type==='data-run'){observed=startObservation(run.id,replySubmissionId,projection.cursor);break;}}
     commandRetry.current.delete(signature);void observe();
    }
    catch(failure){
     if(replyEpoch!==recoveryEpoch.current)return;
     // A lost HTTP response can follow an accepted atomic resume. Read its
     // receipt before offering a retry; never create a second task.
+    const readBase=currentRun.current;
     const current=await api<Run>(`runs/${run.id}`).catch(()=>null);
     if(replyEpoch!==recoveryEpoch.current)return;
     const applied=(current as (Run&{commandReceipts?:{commandId:string;state:string}[]})|null)?.commandReceipts?.some(row=>row.commandId===request.idempotencyKey&&row.state==='applied');
     if(current?.id!==run.id||!applied||current.data.agent_reply_receipt?.questionId!==payload.question_id||current.data.agent_reply_receipt.version!==replyQuestionVersion){
      const status=(failure as Error&{status?:number}).status;
-     if(status&&status<500){commandRetry.current.delete(signature);if(current?.id===run.id){setRun(current);commandExpected.current={taskId:run.id,taskVersion:current.taskVersion??0,planVersion:current.currentPlanRef?.version??0};}}
+     if(status&&status<500){commandRetry.current.delete(signature);if(current?.id===run.id){setRun(current,readBase);commandExpected.current={taskId:run.id,taskVersion:current.taskVersion??0,planVersion:current.currentPlanRef?.version??0};}}
      throw failure;
     }
     commandRetry.current.delete(signature);
    }
    if('answer' in payload&&payload.answer.trim()===replyDraft.trim())confirmPromptDraft(replySource,replyDraft,replyDraftStore,replyDraftRevision);
    if(replyEpoch!==recoveryEpoch.current)return;
-   const current=await api<Run>(`runs/${run.id}`).catch(()=>null);
+    const readBase=currentRun.current;
+    const current=await api<Run>(`runs/${run.id}`).catch(()=>null);
    if(replyEpoch!==recoveryEpoch.current)return;
-   setRun(current??{...run,status:'queued',data:{...run.data,agent_question:undefined}});
+    setRun(current??{...run,status:'queued',data:{...run.data,agent_question:undefined}},readBase);
   }finally{replying.current=false;if(replyEpoch===recoveryEpoch.current)setActionBusy(false);}
  };
 
@@ -892,7 +963,12 @@ const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacem
    const expected=expectedVersion();
    requestKey.body??={frontendContext:featureEnabled(capabilities,'frontendContext')?buildFrontendContext({viewportWidth,workAreaOpen:workAreaView.current.open,section:workAreaSection,preview:workAreaView.current.preview,selectedKey:selectedDesignElement,roomKeys:plannedCandidate?.graph.rooms.map(room=>room.key),actions:featureEnabled(capabilities,'displayActions')?undefined:[]})??undefined:undefined,mode:override??mode,model:sendModel,reasoningEffort,modelContextRequirement:useCurrentModel?'read':'auto',deviceId:deviceId||run?.device_id,recipe,taskId:run?.id,projectId:run?undefined:newProject||undefined,idempotencyKey:requestKey.key,expectedTaskVersion:expected.taskVersion,expectedPlanVersion:expected.planVersion,eventCursor:submission.startCursor,visiblePlan:drawingCurrent&&!drawingError?run?.currentPlanRef:null,acceptedAssumptions:reviewAssumptions,placement:placementTask===run?.id?confirmedPlacement:null};
    requestKey.body.attachmentIds=sources.map(row=>row.id);
-   await sendMessage({text},{body:{...requestKey.body,clientSubmissionId:submission.clientSubmissionId}});
+    await sendMessage({text},{body:{...requestKey.body,clientSubmissionId:submission.clientSubmissionId}});
+    const observed=observation.current;
+    if(isCurrent()&&observed?.requestId===submission.clientSubmissionId){
+     observation.current=null;
+     if(!observed.final)void readSelectedTask(observed.taskId,{followUp:()=>true}).catch(()=>{});
+    }
   }catch(failure){
     if(!submission.runStarted&&liveSubmission.current?.submission===submission)liveSubmission.current=null;
     if(!isCurrent())return submission.runStarted;
@@ -901,7 +977,7 @@ const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacem
    const known=chatStartFailure(failure);
     setBlockedChat(known?.blockingTask?{id:known.blockingTask.id,message:known.message}:null);
    if(known?.state==='rejected')submissionKey.current=null;
-   if(pendingSubmission.current?.runStarted)recoverLiveView(pendingSubmission.current.taskId);
+   if(pendingSubmission.current?.runStarted)recoverLiveView(submission.clientSubmissionId,pendingSubmission.current.taskId);
    else setError(known?known.message+' Your prompt is preserved.':failure instanceof Error?(/^(?:failed to fetch|networkerror when attempting to fetch resource\.?|load failed)$/i.test(failure.message)?'DATUMM could not be reached.':failure.message)+' Your prompt is preserved; check the saved task before retrying.':'DATUMM could not start this task. Your prompt is preserved; check whether another task is active.');
    pendingSubmission.current=null;
   }finally{if(recoveryEpoch.current===epoch)setAdmissionPending(false);}
@@ -1137,7 +1213,7 @@ const placementContext=placementOwned?savedPlacementContext:null,confirmedPlacem
  const closeMobileNav=()=>{if(window.matchMedia('(max-width:899px)').matches)setLeft(false);};
  const newTask=(projectId='')=>{if(mediaBusy)return;setStudioView('workspace');setWorkspacePane('chat');setCanvasOpen(false);setWorkAreaState({key:workspaceScopeInput.key,section:'design',properties:false});closeProperties();setPlanningGoalOpen(false);setNewProject(projectId);questionObserver.current?.abort();recoveryEpoch.current++;setConnectionNotice('');reviewEpoch.current++;setActionBusy(false);setCompareVersion(null);setDrawingError('');const url=new URL(window.location.href);url.searchParams.delete('task');window.history.replaceState(null,'',url);pendingSubmission.current=null;transportMessageOwner.current=null;void stop();submissionKey.current=null;commandRetry.current.clear();setRun(null);setRunId('');setMessages([]);setAdmissionPending(false);setDesignVersion(null);setError('');displayPrompt(promptDrafts.current.get(projectId?'new:'+projectId:'new'));setUseCurrentModel(false);closeMobileNav();};
 
- const selectRun=(value:Run)=>{if(mediaBusy)return;setStudioView('workspace');setWorkspacePane('chat');setCanvasOpen(false);setWorkAreaState({key:workspaceScopeInput.key,section:'design',properties:false});closeProperties();setPlanningGoalOpen(false);displayPrompt(promptDrafts.current.get(value.id));questionObserver.current?.abort();recoveryEpoch.current++;setConnectionNotice('');reviewEpoch.current++;setActionBusy(false);setCompareVersion(null);setDrawingError('');pendingSubmission.current=null;transportMessageOwner.current=null;submissionKey.current=null;void stop();commandRetry.current.clear();setRun(value);setRunId(value.id);setMode(value.mode);setModel(value.model);setReasoningEffort(value.reasoningEffort??'high');setUseCurrentModel((value.data as Run['data']&{model_context_requirement?:string}).model_context_requirement==='read');setDesignVersion(null);setMessages([]);setAdmissionPending(false);closeMobileNav();void refreshSelectedTask(value.id);};
+ const selectRun=(value:Run)=>{if(mediaBusy)return;setStudioView('workspace');setWorkspacePane('chat');setCanvasOpen(false);setWorkAreaState({key:workspaceScopeInput.key,section:'design',properties:false});closeProperties();setPlanningGoalOpen(false);displayPrompt(promptDrafts.current.get(value.id));questionObserver.current?.abort();recoveryEpoch.current++;setConnectionNotice('');reviewEpoch.current++;setActionBusy(false);setCompareVersion(null);setDrawingError('');pendingSubmission.current=null;transportMessageOwner.current=null;submissionKey.current=null;void stop();commandRetry.current.clear();setRun(value);setRunId(value.id);setMode(value.mode);setModel(value.model);setReasoningEffort(value.reasoningEffort??'high');setUseCurrentModel((value.data as Run['data']&{model_context_requirement?:string}).model_context_requirement==='read');setDesignVersion(null);setMessages([]);setAdmissionPending(false);closeMobileNav();void refreshSelectedTask(value.id,{readBase:value});};
   const selectRunRef=useRef(selectRun);selectRunRef.current=selectRun;
   useEffect(()=>window.desktop?.onNavigateTask(id=>{const epoch=++recoveryEpoch.current;void api<Run>('tasks/'+id).then(value=>{if(epoch===recoveryEpoch.current)selectRunRef.current(value);}).catch(e=>{if(epoch===recoveryEpoch.current)setError((e as Error).message);});}),[]);
 

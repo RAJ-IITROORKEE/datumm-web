@@ -78,21 +78,25 @@ function answerEvents(runId,answer,streamed) {
   return [...start,...content,...replace,event({type:'TEXT_MESSAGE_END',messageId})];
 }
 export function terminalEvents(threadId,runId,taskId,snapshot,streamed) {
-  const rest=terminalBody(threadId,runId,taskId,snapshot,streamed);
-  // Only a completed run keeps its draft; every other outcome clears the unchecked text first.
-  if (streamed===undefined||snapshot?.status==='completed') return rest;
-  return [...answerEvents(runId,'',streamed),...rest];
-}
-function terminalBody(threadId,runId,taskId,snapshot,streamed) {
   if (!snapshot || snapshot.id!==taskId || typeof snapshot.status!=='string') throw new Error('Invalid task snapshot.');
+  const q=snapshot.status==='needs_input'?snapshot.data?.agent_question:null;
+  const question=q && typeof q.id==='string' && q.id && Number.isSafeInteger(q.version)
+    && q.version>=1 && typeof q.question==='string'?q:null;
+  const datumm={schemaVersion:1,taskId,run:snapshot};
+  if (question) datumm.question={id:question.id,version:question.version};
+  const state=event({type:'STATE_SNAPSHOT',snapshot:{datumm}});
+  const rest=terminalBody(threadId,runId,taskId,snapshot,question,streamed);
+  // Only a completed run keeps its draft.
+  const clearDraft=streamed!==undefined && snapshot.status!=='completed'?answerEvents(runId,'',streamed):[];
+  return [state,...clearDraft,...rest];
+}
+function terminalBody(threadId,runId,taskId,snapshot,q,streamed) {
   const status=snapshot.status, data=snapshot.data && typeof snapshot.data==='object'?snapshot.data:{};
   const finish=outcome=>event({type:'RUN_FINISHED',threadId,runId,outcome});
   if (status==='needs_input') {
-    const q=data.agent_question;
-    if (!q || typeof q.id!=='string' || !q.id || !Number.isInteger(q.version) || q.version<1 || typeof q.question!=='string')
+    if (!q)
       return [event({type:'RUN_ERROR',message:'The saved task is waiting for input. Open the task to continue.',code:'DATUMM_WAITING'})];
-    return [event({type:'STATE_SNAPSHOT',snapshot:{datumm:{taskId,question:{id:q.id,version:q.version}}}}),
-      event({type:'MESSAGES_SNAPSHOT',messages:[{id:`question:${q.id}:${q.version}`,role:'assistant',content:q.question}]}),
+    return [event({type:'MESSAGES_SNAPSHOT',messages:[{id:`question:${q.id}:${q.version}`,role:'assistant',content:q.question}]}),
       finish({type:'interrupt',interrupts:[{id:`${q.id}:${q.version}`,reason:'question',message:q.question,
       metadata:{taskId,questionId:q.id,questionVersion:q.version}}]})];
   }
@@ -197,13 +201,17 @@ export async function openAgui(value, backend, parseStart, requestSignal) {
           const ended=await consumeTaskStream(reader,item=>{
             if (!item || typeof item!=='object') throw new Error('Invalid task event.');
             if (item.stage==='snapshot') {
-              if (!item.run || item.run.id!==taskId) throw new Error('Invalid task snapshot.');
+              if (!item.run || item.run.id!==taskId || (item.run.taskId!==undefined && item.run.taskId!==taskId))
+                throw new Error('Invalid task snapshot.');
               const command=Array.isArray(item.run.commandReceipts)?item.run.commandReceipts.find(row=>row?.commandId===receipt.commandId):null;
               if (command && ['rejected','interrupted'].includes(command.state)) {
-                send(activity(input.runId,taskId,item));
                 send({type:'RUN_ERROR',message:'The request did not complete. Open the saved task before retrying.',code:'DATUMM_COMMAND_STOPPED'});
                 finished=true; return true;
               }
+              if (!Number.isSafeInteger(item.run.eventCursor) || item.run.eventCursor<0
+                || typeof item.run.executionId!=='string' || !item.run.executionId
+                || !item.run.data || typeof item.run.data!=='object' || Array.isArray(item.run.data))
+                throw new Error('Invalid task snapshot.');
               const questionReceipt=item.run.data?.agent_reply_receipt;
               const answerEvent=Array.isArray(item.run.events)?item.run.events.find(row=>row?.stage==='user_answer' && row.executionId===item.run.executionId && Number.isSafeInteger(row.sequence) && row.sequence>answerStartCursor):null;
               const answerBound=answer && item.run.id===taskId && Number.isSafeInteger(item.run.taskVersion) && item.run.taskVersion>=receipt.taskVersion
@@ -211,8 +219,10 @@ export async function openAgui(value, backend, parseStart, requestSignal) {
                 && !(item.run.status==='needs_input' && item.run.data?.agent_question?.id===answer.questionId && (item.run.data.agent_question.version??1)===answer.questionVersion)
                 && Array.isArray(item.run.commandReceipts) && item.run.commandReceipts.some(row=>row?.commandId===receipt.commandId && row.state==='applied')
                 && typeof item.run.executionId==='string' && answerEvent && item.run.events.some(row=>row?.stage===item.run.status && row.executionId===item.run.executionId && Number.isSafeInteger(row.sequence) && row.sequence>answerEvent.sequence);
-              if (!(answer ? answerBound : isCurrentSnapshot(item.run,taskId,receipt.commandId,receipt.taskVersion))) { staleSnapshot=true; return true; }
-              send(activity(input.runId,taskId,item));
+              if (item.run.eventCursor<Math.max(cursor,answerStartCursor)
+                || !(answer ? answerBound : isCurrentSnapshot(item.run,taskId,receipt.commandId,receipt.taskVersion))) {
+                staleSnapshot=true; return true;
+              }
               const closing=terminalEvents(input.threadId,input.runId,taskId,item.run,draft?.text);
               for (const next of closing) send(next);
               finished=true; return true;

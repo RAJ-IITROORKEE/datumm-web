@@ -2,7 +2,12 @@
 
 Overwritten at every checkpoint. Read [AGENTS.md](../../AGENTS.md) first, then this file, then the packet named under "Active phase". Older detail is in Git history and [docs/ux/history/](history/handoff-before-agui-progress-review-2026-11-16.md).
 
-Updated 19 November 2026, after W6d (V3b hosted and web side).
+Updated 20 November 2026, after the original roadmap's W1 local checkpoint.
+
+## Now (20 Nov)
+
+- **W1 verified locally on `main`.** Activity, Files and Exports use the same task projection as chat. AG-UI delivers the saved state, and the workspace makes fewer duplicate active-task reads while retaining saved-state recovery. See [W1 packet and results](w1-agui-work-area.md).
+- **Release status.** The 20 Nov production check recorded web `f5ecbf3` and backend `8b6e4ea`. W1 awaits its own hosted release decision. A4c still needs the MCP runtime secret, stack wiring, and a hosted read-only MCP test. Q1 and N4 activation follow the [go-live plan](g1-go-live-plan.md) and their phase packets.
 
 ## Now (19 Nov)
 

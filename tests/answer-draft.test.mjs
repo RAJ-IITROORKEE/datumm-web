@@ -145,7 +145,7 @@ const stream = body => new Response(new ReadableStream({start(controller) {
 }}), {headers: {'Content-Type': 'text/event-stream'}});
 const frame = value => `data: ${JSON.stringify(value)}\n\n`;
 const task = (status, data = {}) => ({
-  id: 'task-1', status, data, taskVersion: 1, executionId: 'e1',
+  id: 'task-1', status, data, taskVersion: 1, eventCursor: 1, executionId: 'e1',
   commandReceipts: [{commandId: 'k', state: 'applied'}], events: [{turnId: 'k', executionId: 'e1'}],
 });
 const open = async (frames, run) => {

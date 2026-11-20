@@ -56,7 +56,15 @@ Share links, tokens and the public shared-chat payload are validated by pure hel
 
 ## Poll intervals
 
-The open chat polls fast only while active, slowly while waiting and not at all once settled; the chat list polls fast only while a chat runs; hidden pages skip ticks and failures back off. See `settledPoll` in `src/lib/settled-poll.mjs`.
+The open chat polls fast only while active, slowly while waiting and not at all once settled. The chat list polls fast only while a chat runs. Hidden pages skip ticks and failures back off. See `settledPoll` in `src/lib/settled-poll.mjs`.
+
+### AG-UI work-area coverage
+
+An admitted same-task stream with a saved baseline and contiguous progress can space routine active reads. A saved update, stream gap, scope change or disconnect restores reconciliation without reposting the command.
+
+### AG-UI saved task state
+
+A full work-area snapshot is tied to the admitted task and its saved version and cursor. Question state travels with the saved record at interruption. Legacy activity snapshots remain readable for recorded replays.
 
 ## Unread chats
 

@@ -62,6 +62,8 @@ export class AguiChatTransport implements ChatTransport<UIMessage> {
     async function* chunks(): AsyncGenerator<UIMessageChunk> {
         const decoder = new TextDecoder();
         let buffer = '', started = false, finished = false, admittedTask = '', textId = '';
+        let taskVersion = typeof forwardedProps.expectedTaskVersion === 'number' ? forwardedProps.expectedTaskVersion : 0;
+        let eventCursor = typeof forwardedProps.eventCursor === 'number' ? forwardedProps.eventCursor : 0;
         const packet = (frame: string): UIMessageChunk[] => {
           const output: UIMessageChunk[] = [];
           const emit = (value: UIMessageChunk) => output.push(value);
@@ -85,8 +87,35 @@ export class AguiChatTransport implements ChatTransport<UIMessage> {
             if (!admittedTask) { admittedTask = taskId; emit({ type: 'data-run', data: { id: taskId, clientSubmissionId }, transient: true }); }
             if (record !== null && record !== undefined) {
               if (typeof record !== 'object' || typeof record.stage !== 'string' || (record.taskId && record.taskId !== taskId) || (record.stage === 'snapshot' ? record.run?.id !== taskId : !Number.isSafeInteger(record.index) || record.index < 0 || typeof record.detail !== 'string')) throw new Error('Invalid saved task activity.');
+              if (record.stage !== 'snapshot') {
+                const sequence = Number.isSafeInteger(record.sequence) ? record.sequence : record.index + 1;
+                eventCursor = Math.max(eventCursor, sequence);
+              }
               emit({ type: 'data-progress', data: { clientSubmissionId, record }, transient: true });
             }
+            return output;
+          }
+          if (event.type === EventType.STATE_SNAPSHOT) {
+            const state = event.snapshot?.datumm;
+            if (state?.schemaVersion === undefined && state?.run === undefined) return output;
+            const { run, question } = state;
+            if (state.schemaVersion !== 1 || !admittedTask || state.taskId !== admittedTask ||
+                !run || run.id !== admittedTask || (run.taskId !== undefined && run.taskId !== admittedTask) ||
+                !Number.isSafeInteger(run.taskVersion) || run.taskVersion < Math.max(1, taskVersion) ||
+                !Number.isSafeInteger(run.eventCursor) || run.eventCursor < eventCursor ||
+                typeof run.executionId !== 'string' || !run.executionId || typeof run.status !== 'string' ||
+                !Array.isArray(run.events) || !run.data || typeof run.data !== 'object' || Array.isArray(run.data)) {
+              throw new Error('Invalid saved task state. Check the saved task before retrying.');
+            }
+            const savedQuestion = run.data.agent_question;
+            if (question !== undefined && (run.status !== 'needs_input' || typeof question?.id !== 'string' ||
+                !question.id || !Number.isSafeInteger(question.version) || question.version < 1 ||
+                question.id !== savedQuestion?.id || question.version !== savedQuestion?.version)) {
+              throw new Error('Invalid saved task state. Check the saved task before retrying.');
+            }
+            taskVersion = run.taskVersion;
+            eventCursor = run.eventCursor;
+            emit({ type: 'data-progress', data: { clientSubmissionId, record: { stage: 'snapshot', run } }, transient: true });
             return output;
           }
           if (event.type === EventType.TEXT_MESSAGE_START) {

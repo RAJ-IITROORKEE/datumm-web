@@ -3,7 +3,7 @@ const FAST = new Set(['queued', 'running', 'reconciling']);
 const DONE = new Set(['completed', 'failed', 'cancelled']);
 
 /** Open-chat poll interval in ms, or null when the chat is settled and needs no polling. */
-export const openChatPollMs = (status) => (FAST.has(status) ? 1500 : DONE.has(status) ? null : 20000);
+export const openChatPollMs = (status, observed = false) => (FAST.has(status) ? observed ? 6000 : 1500 : DONE.has(status) ? null : 20000);
 
 /** Chat-list poll interval in ms: fast only while some chat is running. */
 export const listPollMs = (runs) => (runs.some((run) => FAST.has(run.status)) ? 6000 : 30000);
