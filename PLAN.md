@@ -6,7 +6,7 @@ Updated 20 November 2026. This file holds the decisions, the phase table and the
 
 The [21 November architectural agent MVP](docs/ux/architectural-agent-mvp-2026-11-21.md) sets out the chat, orchestration, multimodal retrieval and tool work. [Phase 1](docs/ux/architectural-agent-mvp-2026-11-21.md#phase-1-local-result) passed local save and reload checks for inline answers and checklist status. The table below records the earlier roadmap.
 
-[Phase 2A](docs/ux/phase-2a-plan-revisions.md) passed locally. Cosmetic plan repeats preserve saved step identities. Phase 2 continues with substantive revision identity and the autonomous concept workflow.
+[Phase 2A](docs/ux/phase-2a-plan-revisions.md) rejects cosmetic plan repeats. [Phase 2B](docs/ux/phase-2b-step-identity.md) passed backend tests for stable step IDs through real revisions and evidence-based progress. The repository-wide Graphify freshness check remains open.
 
 Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/PACKET_TEMPLATE.md). A phase starts after its packet is approved and ends at a checkpoint: gates run, packet result filled, handoff overwritten, this table updated, commit.
 
