@@ -1,4 +1,5 @@
 import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {runInNewContext} from 'node:vm';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -6,12 +7,16 @@ import * as React from 'react';
 import * as jsx from 'react/jsx-runtime';
 import ts from 'typescript';
 import * as sources from '../src/lib/project-sources.mjs';
-import {conversationTurns} from '../src/lib/conversation-turns.mjs';
+import {
+  answerCompletionCandidate,conversationTurns,verifyAnswerCompletionHash,
+} from '../src/lib/conversation-turns.mjs';
 
 const {PROJECT_SOURCE_LIMIT,PROJECT_SOURCE_JSON_LIMIT,parseProjectSource,parseProjectSources,parseProjectCitations,sourceExactPath,validUpload} = sources;
 const sha256 = 'a'.repeat(64);
 const file = {projectId:'project-a',sourceId:'source-a',version:2,sha256,filename:'A101.pdf',
   kind:'floor_plan',mediaType:'application/pdf',createdAt:'2026-11-21T12:00:00+00:00',sizeBytes:44};
+const image = {...file,sourceId:'source-image',filename:'Facade.png',
+  kind:'design_image',mediaType:'image/png'};
 const scope = {taskId:'task-a',turnId:'turn-a',executionId:'execution-a',answerHash:'b'.repeat(64),projectId:'project-a'};
 const citation = {...file, locator:{kind:'file'}};
 const wire = {schemaVersion:1,taskId:scope.taskId,turnId:scope.turnId,executionId:scope.executionId,
@@ -44,13 +49,44 @@ test('only the current answer and exact revision can open a cited project source
   assert.equal(parseProjectSource({...file,sha256:'e'.repeat(64)},'project-a',file),null);
   assert.equal(parseProjectSource({...file,version:3},'project-a',file),null);
   assert.equal(parseProjectSource(file,'project-a',file).version,2);
-  const stored = [{prompt:'/sources floor plan',turnId:'turn-a'},{answer:'Found a file',turnId:'turn-a',projectCitations:wire}];
-  assert.equal(conversationTurns(stored)[0].projectCitations,wire);
+});
+
+// @lat: [[contracts#Hosted contract tests#Project source locator and image search]]
+test('a reloaded answer keeps PDF and scanned sheet pages on the exact cited revision', async () => {
+  const answer = 'Found the door schedule.';
+  const answerHash = createHash('sha256').update(answer).digest('hex');
+  const completion = {schemaVersion:1,taskId:scope.taskId,turnId:scope.turnId,
+    executionId:scope.executionId,answerHash,status:'completed',completionSequence:4};
+  const pdfPage = {...file,locator:{kind:'page',page:2}};
+  const scanPage = {...file,sourceId:'source-scan',filename:'Scan.jpg',mediaType:'image/jpeg',
+    locator:{kind:'page',page:1}};
+  const projectCitations = {...wire,answerHash,sources:[pdfPage,scanPage,
+    {...image,locator:{kind:'file'}}]};
+  const stored = [{prompt:'/sources door schedule',turnId:scope.turnId},
+    {answer,turnId:scope.turnId,projectCitations,completion}];
+  const [turn] = conversationTurns(JSON.parse(JSON.stringify(stored)));
+  assert.ok(answerCompletionCandidate({turn,turns:[turn],taskId:scope.taskId,events:[]}));
+  assert.equal(await verifyAnswerCompletionHash(turn.completion,turn.answer),true);
+  const citedScope = {...scope,answerHash};
+  const citations = parseProjectCitations(turn.projectCitations,citedScope);
+  assert.equal(citations?.length,3);
+  const [pdf,scan,design] = citations;
+  assert.deepEqual(pdf.locator,pdfPage.locator);
+  assert.deepEqual(scan.locator,scanPage.locator);
+  assert.deepEqual(design.locator,{kind:'file'});
+  assert.equal(sourceExactPath(pdf,true),sourceExactPath(file,true));
+  assert.equal(parseProjectSource({...file,version:3},scope.projectId,pdf),null);
+  assert.equal(parseProjectSource(file,scope.projectId,pdf).version,2);
+  assert.equal(parseProjectCitations(turn.projectCitations,{...citedScope,projectId:'project-b'}),null);
+  for (const invalid of [{...scanPage,locator:{kind:'page',page:2}},
+    {...image,locator:{kind:'page',page:1}},{...pdfPage,locator:{kind:'page',page:1.5}}]) {
+    assert.equal(parseProjectCitations({...projectCitations,sources:[invalid]},citedScope),null);
+  }
 });
 
 // @lat: [[contracts#Hosted contract tests#Project file isolation]]
 test('project Files discards delayed foreign results and an old request on a return to the same project', async () => {
-  const pending=[], state=[], effects=[];let cursor=0;
+  const pending=[], state=[], effects=[], copies=[];let cursor=0;
   const hooks={...React,useId:()=> 'upload-control',
     useState(initial){const i=cursor++;if(!(i in state))state[i]=initial;return [state[i],value=>{state[i]=typeof value==='function'?value(state[i]):value;}];},
     useRef(initial){const i=cursor++;return state[i]??={current:initial};},
@@ -58,7 +94,9 @@ test('project Files discards delayed foreign results and an old request on a ret
   };
   const exports={};
   const request=(path,init)=>new Promise(resolve=>pending.push({path,...init,resolve}));
-  runInNewContext(compile('../src/components/workspace/project-files.tsx'),{exports,AbortController,require(name){
+  const navigator={clipboard:{async writeText(command) { copies.push(command); }}};
+  runInNewContext(compile('../src/components/workspace/project-files.tsx'),{
+    exports,AbortController,navigator,require(name){
     if(name==='react')return hooks;
     if(name==='react/jsx-runtime')return jsx;
     if(name==='@/lib/project-sources.mjs')return sources;
@@ -66,7 +104,7 @@ test('project Files discards delayed foreign results and an old request on a ret
     if(name.endsWith('.module.css'))return {default:{}};
     return new Proxy({},{get:(_target,key)=>String(key)});
   }});
-  function render(projectId) {cursor=0;const result=exports.ProjectFiles({projectId,archived:false});
+  function render(projectId,archived=false) {cursor=0;const result=exports.ProjectFiles({projectId,archived});
     while(effects.length)effects.shift()();return result;
   }
   function output(node) {
@@ -74,20 +112,44 @@ test('project Files discards delayed foreign results and an old request on a ret
     if(Array.isArray(node))return node.map(output).join('');
     return React.isValidElement(node)?output(node.props.children):'';
   }
+  function controls(node,label) {
+    if(Array.isArray(node))return node.flatMap(child=>controls(child,label));
+    if(!React.isValidElement(node))return [];
+    if(node.props['aria-label']?.startsWith(label))return [node];
+    return controls(node.props.children,label);
+  }
   const ticks=()=>new Promise(resolve=>setImmediate(resolve));
   render('project-a');
   render('project-b');
   assert.equal(pending[0].signal.aborted,true);
   assert.equal(pending[1].path,'projects/project-b/sources');
   pending[0].resolve({ok:true,json:async()=>[file]});
-  pending[1].resolve({ok:true,json:async()=>[file]});
+  pending[1].resolve({ok:true,json:async()=>[file,image]});
   await ticks();
   assert.doesNotMatch(output(render('project-b')),/A101\.pdf/);
   assert.match(output(render('project-b')),/Files could not be loaded/);
+  assert.equal(controls(render('project-b'),'Copy similar search').length,0);
   assert.doesNotMatch(output(render('project-a')),/A101\.pdf/);
-  pending[2].resolve({ok:true,json:async()=>[file]});
+  pending[2].resolve({ok:true,json:async()=>[file,image]});
   await ticks();
-  assert.match(output(render('project-a')),/A101\.pdf/);
+  const files = render('project-a');
+  assert.match(output(files),/A101\.pdf/);
+  const search = controls(files,'Copy similar search');
+  assert.equal(search.length,1);
+  assert.equal(search[0].props['aria-label'],'Copy similar search for Facade.png');
+  assert.equal(search[0].props.type,'button');
+  search[0].props.onClick({currentTarget:{isConnected:true}});
+  await ticks();
+  assert.deepEqual(copies,['/sources similar source-image']);
+  assert.match(output(render('project-a')),/Paste it into Ask in this project/);
+  navigator.clipboard.writeText = async () => { throw Error('Clipboard unavailable'); };
+  search[0].props.onClick({currentTarget:{isConnected:true}});
+  await ticks();
+  const [fallback] = controls(render('project-a'),'Similar-image search command');
+  assert.equal(fallback.props.value,'/sources similar source-image');
+  assert.equal(fallback.props.readOnly,true);
+  assert.equal(controls(render('project-a',true),'Copy similar search').length,0);
+  assert.equal(controls(render('project-b'),'Similar-image search command').length,0);
 });
 
 test('the web proxy forwards only project source routes and forces no-store attachment delivery', async () => {

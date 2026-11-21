@@ -74,7 +74,10 @@ export function parseProjectCitations(value, {taskId, turnId, executionId, answe
     const ref = sourceReference(row,projectId), locator = row?.locator;
     if (!ref || !object(locator)) return null;
     if (locator.kind === 'file') return {...ref, locator:{kind:'file'}};
-    if (locator.kind === 'page' && ref.mediaType === 'application/pdf' && positive(locator.page)) return {...ref, locator:{kind:'page',page:locator.page}};
+    if (locator.kind === 'page' && positive(locator.page) &&
+        (ref.mediaType === 'application/pdf' || (ref.kind === 'floor_plan' && locator.page === 1))) {
+      return {...ref, locator:{kind:'page',page:locator.page}};
+    }
     if (locator.kind === 'text' && ref.mediaType.startsWith('text/') && positive(locator.line)) return {...ref, locator:{kind:'text',line:locator.line}};
     return null;
   });

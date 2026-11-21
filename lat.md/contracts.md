@@ -308,6 +308,14 @@ Project Files rejects records from another project and discards late responses a
 
 parseProjectCitations in src/lib/project-sources.mjs accepts references for the current saved answer after its durable proof. sourceExactPath in that module carries both version and hash. [[src/components/workspace/project-source-preview.tsx#ProjectSourcePreview]] checks the response identity and hashes its bytes before rendering. Private source routes use the authenticated proxy and deliver raw files as no-store attachments.
 
+## Project source locator and image search
+
+Saved citations carry a one-based PDF page or page 1 for a scanned image sheet. Design image matches carry a file locator. Project Files copies a source-ID search command for the selected design image.
+
+In project Ask, use `/sources <keywords>` for PDF and OCR evidence or `/sources similar <sourceId or filename>` for image-by-example search. Paste the copied command into Ask in that project. When clipboard access fails, Files shows the command in a selectable input.
+
+The preview opens the cited page of the exact saved revision even when the current file has been replaced. It renders one page at a time with the existing pixel bounds, including when the PDF exceeds the page count accepted for redline intake.
+
 ## Work modes and the review gate
 
 The work area has two modes, Design and Review, plus a Details drawer; Accept and Approve stay off until Review was opened for that task version, in memory only.

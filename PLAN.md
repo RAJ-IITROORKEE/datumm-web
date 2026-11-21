@@ -8,7 +8,7 @@ The [21 November architectural agent MVP](docs/ux/architectural-agent-mvp-2026-1
 
 [Phase 2A](docs/ux/phase-2a-plan-revisions.md) rejects cosmetic plan repeats. [Phase 2B](docs/ux/phase-2b-step-identity.md) preserves checklist step identity across revisions. [Phase 2C](docs/ux/phase-2c-plan-completion.md) is live on AWS at 0bc283b with final-answer recovery and explicit checklist recording. A fresh 20 by 30 m 3BHK reopened with the inline answer, 2 of 2 checklist steps complete and the same eight-row room report. The Graphify freshness check remains open.
 
-[Phase 2D](docs/ux/phase-2d-optional-work-and-chat.md) adds optional advisory research and updates the local chat progress and output surfaces. [Phase 3A](docs/ux/phase-3a-project-files-and-citations.md) passed local checks for scoped file intake and saved citations pinned to immutable versions. PDF and image extraction and retrieval follow.
+[Phase 2D](docs/ux/phase-2d-optional-work-and-chat.md) adds optional advisory research and updates the local chat progress and output surfaces. [Phase 3A](docs/ux/phase-3a-project-files-and-citations.md) shipped scoped file intake and citations pinned to immutable versions. [Phase 3B](docs/ux/phase-3b-multimodal-project-retrieval.md) adds local PDF text extraction, floor-plan OCR and image-by-example retrieval with revision and page citations.
 
 Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/PACKET_TEMPLATE.md). A phase starts after its packet is approved and ends at a checkpoint: gates run, packet result filled, handoff overwritten, this table updated, commit.
 

@@ -44,9 +44,12 @@ export function ProjectSourcePreview({reference, locator}: {reference:SourceRefe
       } else {
         const {openRedlineFile} = await import('@/lib/redline-file');
         if (signal.aborted) return;
-        const preview = await openRedlineFile(new File([bytes],source.filename,{type:source.mediaType}));
+        const preview = await openRedlineFile(
+          new File([bytes],source.filename,{type:source.mediaType}), {limitPdfPages:false},
+        );
         try {
           if (signal.aborted) return;
+          if (page > preview.pageCount) throw Error('Unavailable page locator');
           const {image} = await preview.render(page);
           value = {image,pages:preview.pageCount,page};
         } finally { preview.close(); }
@@ -72,7 +75,8 @@ export function ProjectSourcePreview({reference, locator}: {reference:SourceRefe
     {shown && 'image' in shown && <>
       {/* The existing bounded renderer returns a JPEG data URL, never a raw uploaded document. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={shown.image} alt={reference.filename + (reference.mediaType === 'application/pdf' ? ' page ' + shown.page : '')}/>
+      <img src={shown.image} alt={reference.filename +
+        (locator?.kind === 'page' || reference.mediaType === 'application/pdf' ? ' page ' + shown.page : '')}/>
       {shown.pages > 1 && <nav className={styles.toolbar} aria-label="File pages">
         <Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page-1)}>Previous page</Button>
         <span>Page {page} of {shown.pages}</span>

@@ -2,7 +2,7 @@
 
 Overwritten at every checkpoint. Read [AGENTS.md](../../AGENTS.md) first, then this file, then the packet named under "Active phase". Older detail is in Git history and [docs/ux/history/](history/handoff-before-agui-progress-review-2026-11-16.md).
 
-Updated 21 November 2026 after Phase 3A local qualification.
+Updated 21 November 2026 for the Phase 3B local checkpoint.
 
 ## Architectural agent MVP (21 Nov)
 
@@ -14,7 +14,9 @@ Phase 1 of the [architectural agent and retrieval MVP](architectural-agent-mvp-2
 
 [Phase 2D](phase-2d-optional-work-and-chat.md) is the local checkpoint for required versus optional research, the sidebar attention dot, grouped chat progress and direct access to the room report.
 
-[Phase 3A](phase-3a-project-files-and-citations.md) passed local qualification. Project Files accepts specs, floor-plan sheets and design images. In a project chat, Ask supports `/sources <keywords>` with private citations that reopen the saved revision. The next retrieval work covers PDF extraction, OCR and visual evidence.
+[Phase 3A](phase-3a-project-files-and-citations.md) is live on API `0160b9a` and web `83e1ec4`. Project Files accepts specs, floor-plan sheets and design images. In a project chat, Ask supports `/sources <keywords>` with private citations that reopen the saved revision.
+
+[Phase 3B](phase-3b-multimodal-project-retrieval.md) adds local PDF text extraction, English OCR for scanned plans, and visual matching with `/sources similar <sourceId or filename>`. Saved citations reopen the cited version and page after a file replacement. The packet records local verification and extraction limits.
 
 ## Now (20 Nov)
 
@@ -46,6 +48,7 @@ Phase 1 of the [architectural agent and retrieval MVP](architectural-agent-mvp-2
 
 | Phase | Status | Next action |
 | --- | --- | --- |
+| 3B | Local checkpoint. [Packet and result](phase-3b-multimodal-project-retrieval.md) | Verify the Linux image before a production rollout |
 | S0 | Done: [packet](s0-source-verification-and-baseline.md) | none |
 | C1 | Done 16 Nov: [packet and result](c1-capability-contract-and-config.md) | Decide `history/done` and the unused `organizeDone`; browser scenarios were not run |
 | N1 | Done 16 Nov: [packet and result](n1-durable-completion-proof.md) | Real-Mongo plan and index build checks belong to G1 |

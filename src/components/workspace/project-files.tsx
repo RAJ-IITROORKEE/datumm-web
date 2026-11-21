@@ -70,6 +70,8 @@ export function ProjectFiles({projectId, archived}: {projectId:string;archived:b
   const [preview,setPreview] = useState<ProjectSource>();
   const [busy,setBusy] = useState(false);
   const [notice,setNotice] = useState<{message:string;error?:boolean}>();
+  const [similarCopy,setSimilarCopy] = useState<{file:ProjectSource;command:string;copied:boolean}>();
+  const copyAttempt = useRef(0);
   const picker = useRef<HTMLInputElement>(null);
   const previewOpener = useRef<HTMLButtonElement>(null);
   const request = useRef<AbortController|null>(null);
@@ -121,6 +123,15 @@ export function ProjectFiles({projectId, archived}: {projectId:string;archived:b
     setPreview(undefined);
     if (opener?.isConnected) opener.focus();
   };
+  const copySimilarSearch = async (file: ProjectSource, opener: HTMLButtonElement) => {
+    const attempt = ++copyAttempt.current;
+    const command = '/sources similar ' + file.sourceId;
+    setSimilarCopy(undefined);
+    const copied = await navigator.clipboard?.writeText(command).then(() => true, () => false);
+    if (opener.isConnected && attempt === copyAttempt.current) {
+      setSimilarCopy({file,command,copied:copied === true});
+    }
+  };
   const chooseReplacement = (file?: ProjectSource) => {
     setReplacement(file); setNotice(undefined);
     if (picker.current) { picker.current.value=''; picker.current.focus(); }
@@ -158,11 +169,20 @@ export function ProjectFiles({projectId, archived}: {projectId:string;archived:b
         <div className={styles.toolbar}>
           <Button type="button" variant="outline" size="sm" aria-label={'Preview ' + file.filename + ' revision ' + file.version}
             onClick={event => showPreview(file,event.currentTarget)}>Preview</Button>
+          {!archived && file.kind === 'design_image' &&
+            <Button type="button" variant="ghost" size="sm" aria-label={'Copy similar search for ' + file.filename}
+              onClick={event => void copySimilarSearch(file,event.currentTarget)}>Copy similar search</Button>}
           <Button type="button" variant="ghost" size="sm" aria-label={'Versions of ' + file.filename} aria-expanded={history===file.sourceId} onClick={() => setHistory(history===file.sourceId ? undefined : file.sourceId)}>Versions</Button>
           {!archived && file.version < PROJECT_SOURCE_VERSION_LIMIT &&
             <Button type="button" variant="ghost" size="sm" disabled={busy} aria-label={'Upload revision of ' + file.filename}
               onClick={() => chooseReplacement(file)}>Upload revision</Button>}
         </div>
+        {!archived && similarCopy?.file.projectId === projectId && similarCopy.file.sourceId === file.sourceId &&
+          (similarCopy.copied ? <p role="status">Command copied. Paste it into Ask in this project.</p> : <div>
+            <p role="alert">Clipboard unavailable. Copy this command and paste it into Ask in this project.</p>
+            <Input aria-label="Similar-image search command" value={similarCopy.command} readOnly
+              onFocus={event => event.currentTarget.select()}/>
+          </div>)}
         {history === file.sourceId && <SourceHistory key={file.sourceId} current={file} revision={revision} onPreview={showPreview}/>}
         {preview?.sourceId === file.sourceId && <div>
           <Button type="button" variant="ghost" size="sm" onClick={closePreview}>Close preview</Button>

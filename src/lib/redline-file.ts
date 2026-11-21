@@ -1,5 +1,6 @@
 // Browser-only: turns a chosen image or PDF page into one bounded JPEG data URL (and the PDF
 // page's text). Nothing is uploaded or stored here. pdfjs-dist loads only when a PDF is chosen.
+import type {PDFWorker} from 'pdfjs-dist';
 import {REDLINE_LIMITS, checkFile, clipText, fitEdge, pageCheck} from './redlines.mjs';
 
 export type RedlineSource = {
@@ -56,16 +57,17 @@ async function openImage(file: File): Promise<RedlineSource> {
   };
 }
 
-let pdfjsReady: Promise<typeof import('pdfjs-dist')> | null = null;
+let pdfjsReady: Promise<{pdfjs: typeof import('pdfjs-dist'); worker: PDFWorker}> | null = null;
 
 /** One worker for the whole session, created on first use; webpack bundles it from the package. */
 function loadPdfjs() {
   pdfjsReady ??= import('pdfjs-dist').then((pdfjs) => {
-    pdfjs.GlobalWorkerOptions.workerPort = new Worker(
+    const port = new Worker(
       new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url),
       {type: 'module'},
     );
-    return pdfjs;
+    // An explicit worker lets each document close without destroying the shared worker.
+    return {pdfjs, worker: pdfjs.PDFWorker.create({port})};
   }).catch((failure) => {
     pdfjsReady = null;
     throw failure;
@@ -76,12 +78,12 @@ function loadPdfjs() {
 type TextPart = {str?: string};
 type Note = {contentsObj?: {str?: string}; contents?: string};
 
-async function openPdf(file: File): Promise<RedlineSource> {
-  const pdfjs = await loadPdfjs();
+async function openPdf(file: File, limitPdfPages: boolean): Promise<RedlineSource> {
+  const {pdfjs, worker} = await loadPdfjs();
   const data = new Uint8Array(await file.arrayBuffer());
   if (String.fromCharCode(...data.subarray(0, 5)) !== '%PDF-') throw refuse(UNREADABLE);
   // 6.4.299 has no eval path, so it ignores this option; it stays to state the intent.
-  const params = {data, isEvalSupported: false, useSystemFonts: true};
+  const params = {data, worker, isEvalSupported: false, useSystemFonts: true};
   const loading = pdfjs.getDocument(params as Parameters<typeof pdfjs.getDocument>[0]);
   let pdf;
   try {
@@ -92,7 +94,7 @@ async function openPdf(file: File): Promise<RedlineSource> {
     throw refuse(locked ? 'That PDF is password protected.' : UNREADABLE);
   }
   const count = pdf.numPages;
-  if (count > REDLINE_LIMITS.maxPages) {
+  if (limitPdfPages && count > REDLINE_LIMITS.maxPages) {
     void loading.destroy();
     throw refuse(`Use a PDF of at most ${REDLINE_LIMITS.maxPages} pages.`);
   }
@@ -129,8 +131,8 @@ async function openPdf(file: File): Promise<RedlineSource> {
 }
 
 /** Validates the file, then opens it. Throws RedlineFileError with a plain message. */
-export async function openRedlineFile(file: File): Promise<RedlineSource> {
+export async function openRedlineFile(file: File, {limitPdfPages = true} = {}): Promise<RedlineSource> {
   const checked = checkFile(file);
   if (!checked.ok) throw refuse(checked.error);
-  return checked.kind === 'pdf' ? openPdf(file) : openImage(file);
+  return checked.kind === 'pdf' ? openPdf(file, limitPdfPages) : openImage(file);
 }
