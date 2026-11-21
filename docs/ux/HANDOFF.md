@@ -12,6 +12,8 @@ Phase 1 of the [architectural agent and retrieval MVP](architectural-agent-mvp-2
 
 [Phase 2C](phase-2c-plan-completion.md) is live on AWS at 0bc283b. All 19 production runtime checks passed. The fresh 20 by 30 m 3BHK kept one inline answer, two completed checklist steps and the same eight-row room report after reload. The offline research path finished 3 of 3, and the web-search-disabled path saved its design with a partial goal. Graphify freshness remains open. [Fresh live 3BHK](https://datumm-web.vercel.app/?task=2a0c8244-d4cf-5339-91ca-c2fa7aada70d)
 
+[Phase 2D](phase-2d-optional-work-and-chat.md) is the local checkpoint for required versus optional research, the sidebar attention dot, grouped chat progress and direct access to the room report. Phase 3 begins with project-scoped file intake and versioned citations.
+
 ## Now (20 Nov)
 
 - **W1 live.** Vercel serves web `1b92fc4` and the backend health endpoint reported `8b6e4ea`. All 19 production smoke checks passed. A signed-in workspace showed Activity, Files and scoped Exports. A synthetic Ask reopened after an in-progress reload and showed one saved prompt and a completed answer. See [W1 packet and results](w1-agui-work-area.md).

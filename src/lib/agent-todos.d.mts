@@ -1,3 +1,3 @@
-export type TodoItem = { id: string; title: string; status: 'pending' | 'running' | 'done' | 'failed' | 'unconfirmed' | 'stopped' | 'partial' | 'unknown' };
-export function deriveTodos(input: { plan?: { steps: { key: string; title: string }[]; progress: { key: string; status: string }[] } | null; todos?: { content: string; status: string }[]; active?: boolean; settled?: boolean }): TodoItem[];
-export function todoSummary(items: TodoItem[]): { done: number; total: number; allDone: boolean; current?: TodoItem };
+export type TodoItem = { id: string; title: string; required?: boolean; status: 'pending' | 'running' | 'done' | 'failed' | 'unconfirmed' | 'stopped' | 'partial' | 'skipped' | 'unknown' };
+export function deriveTodos(input: { plan?: { steps: { key: string; title: string; required?: boolean }[]; progress: { key: string; status: string }[] } | null; todos?: { content: string; status: string; required?: boolean }[]; active?: boolean; settled?: boolean }): TodoItem[];
+export function todoSummary(items: TodoItem[]): { done: number; total: number; allDone: boolean; current?: TodoItem; optional: number };

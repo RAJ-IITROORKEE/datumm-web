@@ -53,18 +53,29 @@ export function createPhaseOneChatFixture(onReads: (count: number) => void, inte
       const answer = checksComplete ? planAnswer : partialAnswer;
       const identity = {schemaVersion: 2 as const, taskId: current.id, turnId, executionId: current.executionId};
       const cursor = current.eventCursor ?? 0;
-      const events: RunEvent[] = [
+      const tool = {callId: 'fixture-room-report', tool: 'read_room_schedule'};
+      const recordedEvents: Partial<RunEvent>[] = checksComplete ? [
+        {stage: 'agent_stage_start', detail: 'Check the room schedule'},
+        {stage: 'agent_action', detail: 'finish_answer', activityId: 'fixture-report'},
+        {stage: 'tool_start', detail: 'Read the room schedule', ...tool},
+        {stage: 'tool_returned', detail: 'Room schedule read', outcome: 'succeeded', durationMs: 250, ...tool},
+        {stage: 'agent_stage_complete', detail: 'Room schedule checked', activityId: 'fixture-report', outcome: 'succeeded'},
+      ] : [];
+      const events = [
+        ...recordedEvents,
         {stage: 'answer', detail: answer},
         {stage: 'completed', detail: 'The fixture answer was saved.'},
-      ].map((row, i) => ({...identity, ...row, index: cursor + i, sequence: cursor + i + 1, at: new Date().toISOString()}));
+      ].map((row, i) => ({...identity, ...row, index: cursor + i, sequence: cursor + i + 1, at: new Date().toISOString()} as RunEvent));
       const steps = [{key: 'layout', title: 'Draft the concept layout', action: 'create_design', expectedResult: 'A 3BHK concept'},
-        {key: 'schedule', title: 'Check the room schedule', action: 'check_design', expectedResult: 'A verified room schedule'}];
+        {key: 'schedule', title: 'Check the room schedule', action: 'check_design', expectedResult: 'A verified room schedule'},
+        ...(checksComplete ? [{key: 'reference', title: 'Look up an extra daylight reference', action: 'web_search',
+          expectedResult: 'Advisory reference', required: false}] : [])];
       const snapshot: Task = {...current, status: 'completed', events: [...current.events, ...events], eventCursor: cursor + events.length,
         commandReceipts: [{commandId: turnId, state: 'applied'}],
         conversation: [...(current.conversation ?? []), {prompt: phaseOnePrompt, answer, turnId}],
         data: {answer, agent_result: {status: checksComplete ? 'completed' : 'partial', answer},
           agent_task_plan: {turnId, version: 1, goal: 'Prepare a 3BHK concept', successCriteria: ['Draft and check the concept'],
-            steps, progress: steps.map(({key}) => ({key, status: checksComplete ? 'completed' : 'pending'}))}}};
+            steps, progress: steps.map(step => ({key: step.key, status: 'required' in step && step.required === false ? 'skipped' : checksComplete ? 'completed' : 'pending'}))}}};
       const cutStream = interrupt();
       let timer: ReturnType<typeof setTimeout>;
       const stream = new ReadableStream({

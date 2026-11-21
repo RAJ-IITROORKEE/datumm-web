@@ -46,9 +46,9 @@ The first saved task read supplies a baseline if the stream has only admitted th
 
 ### Agent panel
 
-The inspector tab is "Agent". Each agent turn shows the message, then one collapsed process accordion (step, then agent or job, then tool names and statuses); raw output stays in the Activity tab.
+Each agent turn shows a compact activity disclosure above its inline answer. Open it to inspect the saved checklist, execution steps, tool calls and recorded workers. The current turn can open the Activity inspector.
 
-[[src/components/workspace/turn-process.tsx#TurnProcess]] builds the accordion from saved events, the run manifest and evidence, with a spinner and the current step while running. The transcript no longer shows background work, specialist review, the brief, partial-outcome or "Response prepared" cards; scheduler and specialists live in the Activity tab and the brief is summarised as chips in Properties. A budget checkpoint stays as one line with its action.
+[[src/components/workspace/turn-process.tsx#TurnProcess]] builds the accordion from saved events, the run manifest and evidence, with a spinner and the current step while running. Identified tool calls contribute to the header count. Payloads and deeper diagnostics stay in Activity. Format saved answers inline, and use the current task outputs to open a room report or Exports. The report reader verifies which revision it can display.
 
 The chat plan review is a compact card: one summary line, Accept this plan, Request changes and View details. [[src/components/workspace/plan-details.tsx#PlanDetails]] holds alternatives, comparison, exports, assumptions and limits in the Exports tab; the plan preview is never duplicated in the transcript.
 
@@ -58,13 +58,13 @@ The workspace polls sparingly: the open chat every 1.5 s only while queued, runn
 
 ### Chat list
 
-Rows show the title only, with status dots for running, pending question, failed and unread chats.
+Chat rows keep the title, a Working badge and an accessible Needs attention dot for unresolved workflow states. Unread results have their own dot.
 
 The unread dot comes from `src/lib/chat-seen.mjs` (last-seen task version per chat in localStorage). The row menu offers Rename (inline), Move to project, Pin, Archive and Delete; hosted project groups use the same sidebar UI as the desktop.
 
 ### Plan checklist
 
-A pinned "Plan · done of total" checklist above the composer shows the agent's steps, derived by `src/lib/agent-todos.mjs` from the saved task plan or native to-dos; it collapses once every step is done.
+The turn checklist uses saved task plan steps or native to-dos. The header counts required completions. Optional rows stay visible with their recorded outcomes.
 
 ### Question dock
 

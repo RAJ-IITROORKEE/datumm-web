@@ -105,6 +105,29 @@ test('real plan review details opens Design properties where drawing recovery an
  card.props.onDetails();assert.equal(opened,1);
 });
 
+test('completed concept exposes the current room report and artifact navigation without granting approval',()=>{
+ const run=task('task-plan');
+ run.data.agent_design={candidates:[{planId:'plan-a',version:1}]};
+ const calls=[];
+ const actions={
+  openSavedReport:opener=>calls.push(['report',opener]),
+  selectSection:(section,opener)=>calls.push([section,opener]),
+ };
+ const outputActions=(state, supportedExports)=>render(props({...run,status:state},{
+  workAreaActions:actions, runtimeConfig:supportedExports ? {supportedExports} : undefined,
+  act:unexpectedAction, submit:unexpectedAction,
+ })).filter(node=>node.type==='button' && elements(node).some(element=>element.type==='span' &&
+  React.Children.toArray(element.props.children).some(value=>typeof value==='string' &&
+   ['Open room report','View saved artifacts'].includes(value))));
+ const [report,artifacts]=outputActions('completed');
+ assert.ok(report&&artifacts);
+ report.props.onClick({currentTarget:'room-report'});
+ artifacts.props.onClick({currentTarget:'saved-artifacts'});
+ assert.deepEqual(calls,[['report','room-report'],['exports','saved-artifacts']]);
+ assert.equal(outputActions('failed').length,1);
+ assert.equal(outputActions('completed',['svg']).length,1);
+});
+
 test('empty latest failure offers only scoped navigation and preserves earlier answers',()=>{
  const run={...task('task-a',[{prompt:'Original',answer:'Saved concept answer'},{prompt:'Revise',answer:''}]),mode:'plan',status:'failed',data:{failure:{recoveryAction:'review_progress'},error:'internal stack must not render'}};
  const calls=[];
@@ -192,6 +215,12 @@ test('a saved 3BHK response does not complete unverified checklist steps',()=>{
  nodes=saved([events]);
  assert.equal(process(nodes).props.settledLabel,undefined);
  assert.equal(process(nodes).props.publicSummary,'Checklist · 2 of 2');
+ run.data.agent_task_plan.steps=[...steps,{key:'research',title:'Check an extra reference',required:false}];
+ run.data.agent_task_plan.progress.push({key:'research',status:'skipped'});
+ nodes=saved([events]);
+ assert.equal(process(nodes).props.publicSummary,'Checklist · 2 of 2 required');
+ assert.equal(nodes.find(node=>node.type==='PlanDock').props.items.at(-1).status,'skipped');
+ assert.equal(nodes.find(node=>node.type==='PlanDock').props.note,undefined);
  run.data.agent_result={status:'partial',answer};
  run.data.agent_task_plan.turnId=undefined;
  nodes=saved([]);

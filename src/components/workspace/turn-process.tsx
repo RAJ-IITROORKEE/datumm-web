@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import { Collapsible } from 'radix-ui';
-import { Check, ChevronDown, CircleHelp, Circle, Loader2, Users, X } from 'lucide-react';
+import { ArrowUpRight, Check, ChevronDown, CircleHelp, Circle, Loader2, Users, Wrench, X } from 'lucide-react';
 import { MessageResponse } from '../ai-elements/message';
 import { activityBatches, type RunManifest, type ToolEvidence } from '../agent-activity';
 import type { SchedulerView } from '../agent-scheduler';
@@ -79,6 +79,7 @@ type Props = {
   scheduler?: SchedulerView | null;
   specialists?: SpecialistResult[];
   evidenceExtra?: ReactNode;
+  onOpenActivity?: (opener: HTMLButtonElement) => void;
   /** Plan step key to title, for nested steps. */
   stepTitles?: Record<string, string>;
   /** Lifted disclosure state; when both are given the caller controls open/closed. */
@@ -161,7 +162,7 @@ export function TurnProcess(props: Props) {
   // No streaming effect: the user's choice survives updates and completion.
   const [localOpen, setLocalOpen] = useState(false);
   const open = props.open ?? localOpen, setOpen = props.onOpenChange ?? setLocalOpen;
-  const { manifest, evidenceExtra, stepTitles = {}, actionRows = [] } = props;
+  const { manifest, evidenceExtra, stepTitles = {}, actionRows = [], onOpenActivity } = props;
   const { active, waiting } = activityFlags(props);
   const { events, evidence, nested, batches, spans, children, jobs, team, updates, live, hasDetails, visible } = summarize(props);
   const public_ = updates.map((row) => <div key={row.id} className="activity-update"><MessageResponse isAnimating={live && !row.finish}>{row.text}</MessageResponse></div>);
@@ -214,6 +215,26 @@ export function TurnProcess(props: Props) {
   const current = publicUpdate || (live ? (genericStage.test(latest) ? spanRows.at(-1)?.name : latest) : recordedAction);
   const checklist = props.publicSummary?.trim() || (jobs.length ? `Scheduler checklist · ${jobs.length} recorded` : '');
   const eventCallIds = new Set(eventRows.map(row => row.callId).filter(Boolean));
+  const identity = new Map<string, string>();
+  const ambiguousCalls = events.some(event => {
+    const id = event.callId ?? event.toolCallId;
+    if (!id) return false;
+    const scope = JSON.stringify([event.taskId, event.turnId, event.executionId, event.sessionId]);
+    const prior = identity.get(id);
+    identity.set(id, scope);
+    return prior !== undefined && prior !== scope;
+  });
+  const recordedCalls = props.evidence ?? manifest?.tools ?? [];
+  const ambiguousEvidence = recordedCalls.some(call => recordedCalls.some(other =>
+    other.callId === call.callId && other.sessionId !== call.sessionId));
+  const toolCount = ambiguousCalls || ambiguousEvidence ? 0 :
+    new Set([...eventCallIds, ...evidence.map(call => call.callId)]).size;
+  const stepActivity = nested.steps.map(step => ({
+    step, groups: step.agents.map(agent => ({agent, rows: processRows(agent.events, active, waiting)}))
+      .filter(({rows}) => rows.length > 0),
+  })).filter(({groups}) => groups.length > 0);
+  const flatCalls = batches.flatMap(({rows}) => rows.filter(row => !row.team));
+  const flatWorkers = batches.flatMap(({rows}) => rows.filter(row => row.team));
   const agents: { key: string; title: string; status: Status; tools: Row[] }[] = [
     ...children.map((child) => ({ key: `c-${child.sessionId}`, title: `${label(child.role)}`, status: settledStatus(processStatus(child.state), active, waiting), tools: evidence.filter((call) => call.sessionId === child.sessionId && !eventCallIds.has(call.callId)).map((call) => ({ key: call.callId, callId: call.callId, name: label(call.tool.replace(/^datumm_revit_/, '')), status: settledStatus(processStatus(call.status), active, waiting) })) })),
     ...team.map((result, i) => {
@@ -230,7 +251,7 @@ export function TurnProcess(props: Props) {
         <Collapsible.Trigger className={styles.trigger}>
           <StatusIcon status={summaryStatus} />
           <span className={styles.summary}>
-            <span><span className={styles.lifecycle}>{stateLabel}</span>{evidence.length > 0 && <span className={styles.metadata}> · {evidence.length} recorded {evidence.length === 1 ? 'tool' : 'tools'}</span>}{elapsed && <span className={styles.metadata} title="Recorded run duration"> · {elapsed.text}</span>}{failed && <span className={styles.failure}> · Recorded work failed</span>}{unconfirmed && props.status !== 'unknown' && <span className={styles.metadata}> · Some work unconfirmed</span>}</span>
+            <span><span className={styles.lifecycle}>{stateLabel}</span>{toolCount > 0 && <span className={styles.metadata}> · {toolCount} {toolCount === 1 ? 'tool call' : 'tool calls'}</span>}{elapsed && <span className={styles.metadata} title="Recorded run duration"> · {elapsed.text}</span>}{failed && <span className={styles.failure}> · Recorded work failed</span>}{unconfirmed && props.status !== 'unknown' && <span className={styles.metadata}> · Some work unconfirmed</span>}</span>
             {(current || checklist) && <span className={styles.detail}>{current}{current && checklist ? ' · ' : ''}{checklist}</span>}
           </span>
           <ChevronDown size={14} className={styles.chevron} aria-hidden="true" />
@@ -241,18 +262,25 @@ export function TurnProcess(props: Props) {
         {public_}
         {(waiting || ['needs_input', 'awaiting_approval', 'waiting', 'waiting_for_input'].includes(props.status ?? '')) && <p className={styles.note}>Review the question or approval in this conversation.</p>}
         {!hasDetails && <p className={styles.note}>{live ? 'Waiting for recorded activity.' : 'Activity details are unavailable for this turn.'}</p>}
-        <div className={styles.tree}>
-          {batches.map(({ batch, rows }) => <Rows key={batch[0].eventId ?? batch[0].index} rows={rows} evidence={evidence} />)}
+        {stageGroups.length > 0 && <section className={styles.tree} aria-label="Execution steps">
+          <h3 className={styles.groupLabel}>Execution steps</h3>
           {stageGroups.map(group=>group.length===1?<Rows key={group[0].key} rows={group}/>:<Node key={group[0].key} title={group[0].name} status={aggregateStatus(group.map(row=>row.status))} count={group.length}>
             <Rows rows={group.map((row,index)=>({...row,name:`Attempt ${index+1} · execution ${row.attempt!.executionId} · activity ${row.attempt!.activityId}`}))}/>
           </Node>)}
-          {nested.steps.map((step, i) => {
-            const rows = step.agents.map((agent) => ({ agent, rows: processRows(agent.events, active, waiting) }));
-            const status = aggregateStatus(rows.flatMap(row => row.rows.map(item => item.status)));
+        </section>}
+        {(flatCalls.length > 0 || extraTools.length > 0) && <section className={styles.tree} aria-label="Tool calls">
+          <h3 className={styles.groupLabel}><Wrench size={13} aria-hidden="true" /> Tool calls</h3>
+          {flatCalls.length > 0 && <Rows rows={flatCalls} evidence={evidence} />}
+          {extraTools.length > 0 && <Rows rows={extraTools} evidence={evidence} />}
+        </section>}
+        {stepActivity.length > 0 && <section className={styles.tree} aria-label="Activity by plan step">
+          <h3 className={styles.groupLabel}>Activity by plan step</h3>
+          {stepActivity.map(({step, groups}, i) => {
+            const status = aggregateStatus(groups.flatMap(group => group.rows.map(item => item.status)));
             const title = stepTitles[step.id] ?? (/^[\w.-]{1,24}$/.test(step.id) ? label(step.id) : `Step ${i + 1}`);
             return (
               <Node key={`n-${step.id}`} title={title} status={status}>
-                {rows.map(({ agent, rows: tools }) => {
+                {groups.map(({ agent, rows: tools }) => {
                   const participant = agent.events.find(event => event.agent?.id)?.agent;
                   if (!participant) return tools.length ? <Rows key={agent.id} rows={tools} evidence={evidence} /> : null;
                   const agentStatus = aggregateStatus(tools.map(row => row.status));
@@ -262,11 +290,15 @@ export function TurnProcess(props: Props) {
               </Node>
             );
           })}
+        </section>}
+        {(flatWorkers.length > 0 || agents.length > 0) && <section className={styles.tree} aria-label="Workers">
+          <h3 className={styles.groupLabel}><Users size={13} aria-hidden="true" /> Workers</h3>
+          {flatWorkers.length > 0 && <Rows rows={flatWorkers} />}
           {agents.map((agent) => <Node key={agent.key} title={agent.title} status={agent.status} count={agent.tools.length}>{agent.tools.length > 0 ? <Rows rows={agent.tools} evidence={evidence} /> : undefined}</Node>)}
-          {extraTools.length > 0 && <Node title="Recorded tools" status={aggregateStatus(extraTools.map(row => row.status))} count={extraTools.length}><Rows rows={extraTools} evidence={evidence} /></Node>}
-          {jobs.length > 0 && <Node title="Scheduler checklist" status={aggregateStatus(jobs.map(job => settledStatus(processStatus(job.status), active, waiting)))} count={jobs.length}><p className={styles.note}>Checklist states do not confirm that a worker ran.</p><Rows rows={jobs.map((job) => ({ key: job.stepId, name: label(job.stepId), status: settledStatus(processStatus(job.status), active, waiting) }))} /></Node>}
-          {evidenceExtra && <Node title="Evidence sources" status="recorded">{evidenceExtra}</Node>}
-        </div>
+        </section>}
+        {jobs.length > 0 && <Node title="Scheduler checklist" status={aggregateStatus(jobs.map(job => settledStatus(processStatus(job.status), active, waiting)))} count={jobs.length}><p className={styles.note}>Checklist states do not confirm that a worker ran.</p><Rows rows={jobs.map((job) => ({ key: job.stepId, name: label(job.stepId), status: settledStatus(processStatus(job.status), active, waiting) }))} /></Node>}
+        {evidenceExtra && <Node title="Evidence sources" status="recorded">{evidenceExtra}</Node>}
+        {onOpenActivity && (events.length > 0 || evidence.length > 0) && <button type="button" className={styles.activityLink} onClick={event => onOpenActivity(event.currentTarget)}>Open Activity <ArrowUpRight size={13} aria-hidden="true" /></button>}
         {(evidence.length > 0 || eventRows.length > 0) && <p className={styles.footnote}>Tool completion records a result. Native verification is shown separately in the review.</p>}
         </Collapsible.Content>
       </Collapsible.Root>

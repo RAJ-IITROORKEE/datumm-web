@@ -23,7 +23,7 @@ import {DeletionClosureReview,NativeChangesPanel} from '../review/change-summary
 import {ProposalApprovalPanel} from '../review/proposal-approval';
 import {PlanReviewCard} from '../review/plan-review-card';
 import {alternativeChecks} from '@/lib/plan-checks.mjs';
-import { ShieldCheck, Loader2, ArrowUpRight, Expand, Check } from 'lucide-react';
+import { ShieldCheck, Loader2, ArrowUpRight, Expand, Check, FolderOpen, Table2 } from 'lucide-react';
 import { AgentQuestions } from '../agent-questions';
 import { PlanCanvas } from '../plan-canvas';
 import { EvidenceResults } from '../evidence-results';
@@ -599,7 +599,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                           ['completed', 'partial'].includes(process.status);
                         const checklistLabel = unboundPlan ? 'Run checklist · turn not recorded' : 'Checklist';
                         const checklistSummary = checklist.total
-                          ? `${checklistLabel} · ${checklist.done} of ${checklist.total}${incompleteChecklist ? ' confirmed' : ''}`
+                          ? `${checklistLabel} · ${checklist.done} of ${checklist.total}${checklist.optional ? ' required' : ''}${incompleteChecklist ? ' confirmed' : ''}`
                           : undefined;
                         // An unbound historical answer does not establish a process status.
                         const emptyHistoricalProcess = !last && process.status === 'unknown' &&
@@ -622,6 +622,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
                                 actionRows: props.displayActions.rows(run.id, turn.turnId),
                               } : {})}
                               publicSummary={checklistSummary}
+                              onOpenActivity={last ? opener => workAreaActions.selectSection('activity', opener) : undefined}
                               evidenceExtra={
                                 last && run.data.agent_coverage ? (
                                   <EvidenceResults
@@ -1517,15 +1518,21 @@ export function ConversationPanel(props: ConversationPanelProps) {
                 </div>
               )}
               {run && !executing && terminal.has(run.status) && hasArtifacts && (
-                <button
-                  type="button"
-                  className="artifacts-link"
-                  onClick={() => {
-                    workAreaActions.selectSection('exports');
-                  }}
-                >
-                  View saved artifacts <ArrowUpRight size={13} />
-                </button>
+                <section className="conversation-artifacts" aria-label="Task outputs">
+                  {run.status === 'completed' && d?.agent_design?.candidates?.length &&
+                   (!props.runtimeConfig?.supportedExports || props.runtimeConfig.supportedExports.includes('report-json')) ? (
+                    <button type="button" onClick={event => workAreaActions.openSavedReport(event.currentTarget)}>
+                      <Table2 size={16} aria-hidden="true" />
+                      <span>Open room report<small>Room schedule from the concept</small></span>
+                      <ArrowUpRight size={13} aria-hidden="true" />
+                    </button>
+                  ) : null}
+                  <button type="button" onClick={event => workAreaActions.selectSection('exports', event.currentTarget)}>
+                    <FolderOpen size={16} aria-hidden="true" />
+                    <span>View saved artifacts</span>
+                    <ArrowUpRight size={13} aria-hidden="true" />
+                  </button>
+                </section>
               )}
             </ConversationContent>
             <ConversationScrollButton aria-label="Jump to latest message" />

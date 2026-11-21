@@ -270,7 +270,12 @@ test('chat overlay actions remain separate single-click controls and preserve st
   assert.equal(all(select,node=>node.type==='span'&&node.props.children==='Working').length,1);
   const attention=loadComponent('../src/components/workspace/chat-row.tsx',{'@/lib/workflow-state':{workflowState:()=>({kind:'needs_input',label:'Waiting for your input'}),hasPendingQuestion:()=>true}});
   const waiting=attention.render('ChatRow',{...props,item:{...props.item,status:'needs_input'}});
-  assert.equal(all(waiting,node=>node.type==='span'&&node.props.children==='Needs attention').length,1);
+  const dot=all(waiting,node=>node.type==='span'&&node.props['aria-label']==='Needs attention')[0];
+  assert.equal(dot.props.role,'img');
+  assert.equal(dot.props.title,'Needs attention');
+  assert.equal(dot.props.children,undefined);
+  assert.equal(all(waiting,node=>node.type==='span'&&node.props.children==='Needs attention').length,0);
+  assert.equal(all(waiting,node=>node.props['aria-label']==='Unread result').length,1);
   assert.equal(all(select,node=>node.props['aria-label']==='Unread result').length,1);
   pin.props.onClick(); assert.deepEqual(actions,['pin']);
   menu.props.onClick({currentTarget:'menu-opener'});

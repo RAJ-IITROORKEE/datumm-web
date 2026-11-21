@@ -148,6 +148,8 @@ test('recorded participants and sources use supplied identity, without exposing 
   assert.ok(!text.includes('RAW_RESULT'));
   const nested = h.render(props({ status: 'completed', events: [event(1, 'tool_completed', { parentStepId: 'rooms', agent: { id: 'agent-a', name: 'Recorded reviewer' } })] }));
   assert.ok(content(nested).includes('Recorded reviewer'));
+  assert.ok(flatten(nested).some(node=>node.props?.['aria-label']==='Activity by plan step'));
+  assert.ok(!flatten(nested).some(node=>node.props?.['aria-label']==='Tool calls'));
   const unnamed = h.render(props({ status: 'completed', events: [event(1, 'tool_completed', { parentStepId: 'rooms' })] }));
   assert.ok(!content(unnamed).includes('DATUMM'));
   const idOnly = h.render(props({ status: 'completed', events: [event(1, 'tool_completed', { parentStepId: 'rooms', agent: { id: 'only-id' } })] }));
@@ -163,6 +165,7 @@ test('event and evidence duplicates use established identities, and checklist is
   assert.equal(flatten(participant).filter(node => node.type === 'li' && content(node).includes('get rooms')).length, 1);
   const scheduler = h.render(props({ status: 'running', active: true, scheduler: { steps: [{ stepId: 'check_dimensions', status: 'running' }, { stepId: 'future', status: 'pending' }] } }));
   assert.ok(content(scheduler).includes('Scheduler checklist'));
+  assert.ok(!flatten(scheduler).some(node=>node.props?.['aria-label']==='Workers'));
   assert.ok(content(scheduler).includes('Checklist states do not confirm that a worker ran'));
   assert.ok(!content(scheduler).includes('future'));
 });
@@ -306,12 +309,23 @@ test('closed live process shows scoped checklist alongside current action withou
  const text = content(header(live));
  assert.ok(text.includes('Capture request'));
  assert.ok(text.includes('Checklist · 0 of 1'));
- assert.ok(text.includes('1 recorded tool'));
+ assert.ok(text.includes('1 tool call'));
  assert.ok(!/\d+ tool calls? recorded/.test(text));
  const anonymous = h.render(props({status:'completed',events:[event(1,'tool_completed',{callId:undefined})]}));
- assert.ok(!/\d+ tool calls? recorded/.test(content(header(anonymous))));
- const ambiguous = h.render(props({status:'completed',evidence:[call({sessionId:'a'}),call({sessionId:'b'})]}));
- assert.ok(!/\d+ tool calls? recorded/.test(content(header(ambiguous))));
+ assert.ok(!/\d+ tool calls?/.test(content(header(anonymous))));
+ const eventOnly = h.render(props({status:'completed',events:[event(1,'tool_completed',{callId:'call-1'})]}));
+ assert.ok(content(header(eventOnly)).includes('1 tool call'));
+ const toolGroup = flatten(eventOnly).find(node=>node.props?.['aria-label']==='Tool calls');
+ assert.ok(content(toolGroup).includes('get rooms'));
+ const ambiguous = h.render(props({status:'completed',events:[
+  event(1,'tool_completed',{callId:'call-1',turnId:'turn-1',executionId:'exec-a'}),
+  event(2,'tool_completed',{callId:'call-1',turnId:'turn-1',executionId:'exec-b'}),
+ ]}));
+ assert.ok(!/\d+ tool calls?/.test(content(header(ambiguous))));
+ const inspector = h.render(props({status:'completed',evidence:[call()],onOpenActivity:(opener)=>assert.equal(opener,'activity-opener')}));
+ const button = flatten(inspector).find(node=>node.type==='button'&&content(node)==='Open Activity ');
+ assert.ok(button);
+ button.props.onClick({currentTarget:'activity-opener'});
 });
 
 test('historical connection requirement has a specific accessible lifecycle label', () => {

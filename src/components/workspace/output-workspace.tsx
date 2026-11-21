@@ -141,7 +141,7 @@ export function AnswerContent({ text, source, presentation, turnId, answerHash, 
       {visibleOutputs.map(output => {
         const Icon = icons[output.kind];
         return <button key={output.id} type="button" onClick={() => context.openOutput(output)} aria-label={`Open ${output.title} beside chat`}>
-          <Icon size={14} aria-hidden="true" /><span>{output.title}</span><ArrowUpRight size={13} aria-hidden="true" />
+          <Icon size={15} aria-hidden="true" /><span>{output.title}{output.kind === 'table' && <small>{output.rows?.length ?? 0} rows</small>}</span><ArrowUpRight size={13} aria-hidden="true" />
         </button>;
       })}
     </div>}

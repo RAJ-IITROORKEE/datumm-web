@@ -10,7 +10,7 @@ import { chatChip } from '@/lib/sidebar-history.mjs';
 import type { ProjectRow, Run } from './use-workspace-state';
 import styles from './sidebar.module.css';
 
-/** One minimal chat row: title only, a text status chip, inline rename and a row menu. */
+/** One minimal chat row: title, status indicators, inline rename and a row menu. */
 export function ChatRow({
   item, selected, busy, unread, dialogTrigger, onSelect, onHistory, onDelete, onProjects,
   onRename, moveTargets, onMove, onShare,
@@ -94,7 +94,8 @@ export function ChatRow({
         <button type="button" ref={select} className={styles.chatButton} disabled={busy} onClick={onSelect}
           aria-current={selected ? 'page' : undefined}>
           <span title={item.title} dir="auto">{item.title}</span>
-          {chip && <span className={cn(styles.chip, chip === 'Working' ? styles.chipWorking : styles.chipAttention)}>{chip}</span>}
+          {chip === 'Working' && <span className={styles.working}>{chip}</span>}
+          {chip === 'Needs attention' && <span className={styles.attention} role="img" aria-label={chip} title={chip} />}
           {unread && <span className={styles.unread} role="img" aria-label="Unread result" />}
         </button>
       )}

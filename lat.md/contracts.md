@@ -74,7 +74,7 @@ A chat is unread only when it settled with a task version newer than the one las
 
 Hosted chats with project identifiers remain visible without desktop project groups.
 
-Chats of unlisted projects stay in Recent when hosted groups are shown. The list rules in `src/lib/sidebar-history.mjs` preserve pinned separation, desktop grouping and the server's newest-first order. `groupChatsByDate` adds Today / Yesterday / Previous 7 days / Older groups by `created_at` without reordering, and `chatChip` is the one rule for the "Working" and "Needs attention" row chips.
+Chats of unlisted projects stay in Recent when hosted groups are shown. The list rules in `src/lib/sidebar-history.mjs` preserve pinned separation, desktop grouping and the server's newest-first order. `groupChatsByDate` adds Today / Yesterday / Previous 7 days / Older groups by `created_at` without reordering, and `chatChip` classifies the Working badge and Needs attention dot. The dot retains its accessible name.
 
 ## Plugin setup guide
 
@@ -86,7 +86,7 @@ Signed-out visitors see a non-dismissible Clerk sign-in dialog instead of the wo
 
 ## Agent plan checklist
 
-The pinned checklist maps saved plan progress or native to-dos to done, running, failed and pending items, and an active turn always has one running step. Ask turns without a plan use their stage spans as steps.
+The checklist displays recorded plan progress or native to-dos. Older rows default to required. An explicitly optional step is skipped only when the saved outcome says so, and optional rows stay outside the required completion count.
 
 ## Question stepper
 

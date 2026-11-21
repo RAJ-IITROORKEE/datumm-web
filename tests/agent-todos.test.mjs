@@ -8,7 +8,7 @@ const plan={steps:[{key:'a',title:'Read model'},{key:'b',title:'Draft plan'},{ke
 test('plan steps map progress to done and pending',()=>{
  const items=deriveTodos({plan});
  assert.deepEqual(items.map(i=>i.status),['done','pending','pending']);
- assert.deepEqual(todoSummary(items),{done:1,total:3,allDone:false,current:undefined});
+ assert.deepEqual(todoSummary(items),{done:1,total:3,allDone:false,current:undefined,optional:0});
 });
 
 test('an active task does not invent which pending plan step is running',()=>{
@@ -22,6 +22,18 @@ test('falls back to native todos and reports all done',()=>{
  assert.equal(todoSummary(items).allDone,true);
  assert.deepEqual(deriveTodos({todos:[{content:'X',status:'in_progress'}],active:true}).map(i=>i.status),['running']);
  assert.deepEqual(deriveTodos({todos:[{content:'X',status:'in_progress'}]}).map(i=>i.status),['unconfirmed']);
+});
+
+test('only required steps count toward completion, and optional skips need a saved status',()=>{
+ const items=deriveTodos({plan:{
+  steps:[...plan.steps.map(step=>({...step,required:step.key==='a'})),{key:'legacy',title:'Legacy'}],
+  progress:[...plan.progress,{key:'b',status:'skipped'},{key:'legacy',status:'skipped'}],
+ },settled:true});
+ assert.deepEqual(items.map(item=>item.status),['done','skipped','unconfirmed','unknown']);
+ assert.deepEqual(todoSummary(items),{done:1,total:2,allDone:false,current:undefined,optional:2});
+ const saved=deriveTodos({todos:[{content:'Required',status:'completed'},{content:'Optional',status:'skipped',required:false}]});
+ assert.deepEqual(saved.map(item=>item.status),['done','skipped']);
+ assert.deepEqual(todoSummary(saved),{done:1,total:1,allDone:true,current:undefined,optional:1});
 });
 
 test('no plan and no todos yields nothing',()=>{
