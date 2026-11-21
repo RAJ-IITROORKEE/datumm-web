@@ -6,7 +6,7 @@ Updated 21 November 2026. This file holds the decisions, the phase table and the
 
 The [21 November architectural agent MVP](docs/ux/architectural-agent-mvp-2026-11-21.md) sets out the chat, orchestration, multimodal retrieval and tool work. [Phase 1](docs/ux/architectural-agent-mvp-2026-11-21.md#phase-1-local-result) passed local save and reload checks for inline answers and checklist status. The table below records the earlier roadmap.
 
-[Phase 2A](docs/ux/phase-2a-plan-revisions.md) rejects cosmetic plan repeats. [Phase 2B](docs/ux/phase-2b-step-identity.md) is live on AWS at 41e41bf. The signed-in 3BHK saved its concepts and checklist, and report validation stopped at 1 of 2 steps. [Phase 2C](docs/ux/phase-2c-plan-completion.md) locally verifies that the agent continues ready work after saving a concept and shows a partial goal when steps are blocked. The live report failure and the Graphify freshness check remain open.
+[Phase 2A](docs/ux/phase-2a-plan-revisions.md) rejects cosmetic plan repeats. [Phase 2B](docs/ux/phase-2b-step-identity.md) preserves checklist step identity across revisions. [Phase 2C](docs/ux/phase-2c-plan-completion.md) is live on AWS at 0bc283b with final-answer recovery and explicit checklist recording. A fresh 20 by 30 m 3BHK reopened with the inline answer, 2 of 2 checklist steps complete and the same eight-row room report. The Graphify freshness check remains open.
 
 Each phase has a packet in `docs/ux/` copied from [PACKET_TEMPLATE.md](docs/ux/PACKET_TEMPLATE.md). A phase starts after its packet is approved and ends at a checkpoint: gates run, packet result filled, handoff overwritten, this table updated, commit.
 

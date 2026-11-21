@@ -2,15 +2,15 @@
 
 Overwritten at every checkpoint. Read [AGENTS.md](../../AGENTS.md) first, then this file, then the packet named under "Active phase". Older detail is in Git history and [docs/ux/history/](history/handoff-before-agui-progress-review-2026-11-16.md).
 
-Updated 21 November 2026 after the Phase 2B production rollout and Phase 2C local verification.
+Updated 21 November 2026 after the Phase 2C rollout and signed-in save and reload verification.
 
 ## Architectural agent MVP (21 Nov)
 
 Phase 1 of the [architectural agent and retrieval MVP](architectural-agent-mvp-2026-11-21.md#phase-1-local-result) passed local browser checks. The 3BHK Ask and Plan results stayed readable after save and reload. The checklist distinguished confirmed steps from a finished response. Phase 2 covers autonomous planning and dispatch. The Q1 production rollout has a separate trace window and approval.
 
-[Phase 2A](phase-2a-plan-revisions.md) rejects cosmetic plan revisions before they can replace the saved checklist. [Phase 2B](phase-2b-step-identity.md) preserves unchanged step IDs through substantive revisions and rechecks completion evidence. AWS serves 41e41bf and passed all 19 production runtime checks. A signed-in 20 by 30 m 3BHK saved three concepts, and the checklist persisted at 1 of 2 after reload. Final-answer validation failed twice and the live run has no room report.
+[Phase 2A](phase-2a-plan-revisions.md) rejects cosmetic plan revisions before they can replace the saved checklist. [Phase 2B](phase-2b-step-identity.md) preserves unchanged step IDs through substantive revisions and rechecks completion evidence. The Phase 2B live 3BHK reported a validation failure. The Phase 2C release recovered this path.
 
-[Phase 2C](phase-2c-plan-completion.md) is verified locally on the backend topic branch. The offline run used the real planner and a scripted model. It finished 3 of 3 steps and published the room report with available research. With web search disabled, it kept the saved design and left the goal partial. Investigate the live final-answer validation failure before qualifying the full Plan workflow for production. Graphify freshness remains open.
+[Phase 2C](phase-2c-plan-completion.md) is live on AWS at 0bc283b. All 19 production runtime checks passed. The fresh 20 by 30 m 3BHK kept one inline answer, two completed checklist steps and the same eight-row room report after reload. The offline research path finished 3 of 3, and the web-search-disabled path saved its design with a partial goal. Graphify freshness remains open. [Fresh live 3BHK](https://datumm-web.vercel.app/?task=2a0c8244-d4cf-5339-91ca-c2fa7aada70d)
 
 ## Now (20 Nov)
 
