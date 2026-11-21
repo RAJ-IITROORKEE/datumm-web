@@ -132,6 +132,7 @@ test('the proxy forwards the health read and nothing next to it', async () => {
   const context = {exports: {}, Response, Headers, URL, Buffer, console, require: (name) => {
     if (name === '@/lib/backend') return {backend};
     if (name === '@/lib/request-body') return {requestBody: (request) => request.text()};
+    if(name==='@/lib/project-sources.mjs')return {};
     if (name === '@/lib/plan-pdf') return {};
     throw Error(`Unexpected import: ${name}`);
   }};

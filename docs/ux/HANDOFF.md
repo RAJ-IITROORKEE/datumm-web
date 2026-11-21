@@ -2,7 +2,7 @@
 
 Overwritten at every checkpoint. Read [AGENTS.md](../../AGENTS.md) first, then this file, then the packet named under "Active phase". Older detail is in Git history and [docs/ux/history/](history/handoff-before-agui-progress-review-2026-11-16.md).
 
-Updated 21 November 2026 after the Phase 2C rollout and signed-in save and reload verification.
+Updated 21 November 2026 after Phase 3A local qualification.
 
 ## Architectural agent MVP (21 Nov)
 
@@ -12,7 +12,9 @@ Phase 1 of the [architectural agent and retrieval MVP](architectural-agent-mvp-2
 
 [Phase 2C](phase-2c-plan-completion.md) is live on AWS at 0bc283b. All 19 production runtime checks passed. The fresh 20 by 30 m 3BHK kept one inline answer, two completed checklist steps and the same eight-row room report after reload. The offline research path finished 3 of 3, and the web-search-disabled path saved its design with a partial goal. Graphify freshness remains open. [Fresh live 3BHK](https://datumm-web.vercel.app/?task=2a0c8244-d4cf-5339-91ca-c2fa7aada70d)
 
-[Phase 2D](phase-2d-optional-work-and-chat.md) is the local checkpoint for required versus optional research, the sidebar attention dot, grouped chat progress and direct access to the room report. Phase 3 begins with project-scoped file intake and versioned citations.
+[Phase 2D](phase-2d-optional-work-and-chat.md) is the local checkpoint for required versus optional research, the sidebar attention dot, grouped chat progress and direct access to the room report.
+
+[Phase 3A](phase-3a-project-files-and-citations.md) passed local qualification. Project Files accepts specs, floor-plan sheets and design images. In a project chat, Ask supports `/sources <keywords>` with private citations that reopen the saved revision. The next retrieval work covers PDF extraction, OCR and visual evidence.
 
 ## Now (20 Nov)
 

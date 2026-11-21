@@ -11,6 +11,7 @@ test('me/permissions reaches /v1/me/permissions and nothing else under me',async
   const context={exports:{},Response,Headers,URL,Buffer,console,require:name=>{
     if(name==='@/lib/backend')return {backend:async(path,init)=>{calls.push({path,method:init.method});return Response.json({ok:true});}};
     if(name==='@/lib/request-body')return {requestBody:request=>request.text()};
+    if(name==='@/lib/project-sources.mjs')return {};
     if(name==='@/lib/plan-pdf')return {};
     throw Error(`Unexpected import: ${name}`);
   }};
@@ -28,6 +29,7 @@ test('admin routes reach /v1/admin and nothing else under admin is open',async()
   const context={exports:{},Response,Headers,URL,Buffer,console,require:name=>{
     if(name==='@/lib/backend')return {backend:async(path,init)=>{calls.push({path,method:init.method});return Response.json({ok:true});}};
     if(name==='@/lib/request-body')return {requestBody:request=>request.text()};
+    if(name==='@/lib/project-sources.mjs')return {};
     if(name==='@/lib/plan-pdf')return {};
     throw Error(`Unexpected import: ${name}`);
   }};

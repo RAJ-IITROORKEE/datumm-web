@@ -11,6 +11,7 @@ test('the proxy forwards the plan edit route and nothing next to it', async () =
   const context = {exports: {}, Response, Headers, URL, Buffer, console, require: name => {
     if (name === '@/lib/backend') return {backend};
     if (name === '@/lib/request-body') return {requestBody: request => request.text()};
+    if(name==='@/lib/project-sources.mjs')return {};
     if (name === '@/lib/plan-pdf') return {};
     throw Error(`Unexpected import: ${name}`);
   }};
@@ -41,6 +42,7 @@ test('the proxy forwards the redline read with a larger body limit for that rout
   const context = {exports: {}, Response, Headers, URL, Buffer, console, require: name => {
     if (name === '@/lib/backend') return {backend};
     if (name === '@/lib/request-body') return {requestBody: (request, limit) => { limits.push(limit); return request.text(); }};
+    if(name==='@/lib/project-sources.mjs')return {};
     if (name === '@/lib/plan-pdf') return {};
     throw Error(`Unexpected import: ${name}`);
   }};

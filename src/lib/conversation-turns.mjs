@@ -9,6 +9,7 @@ export function conversationTurns(records = []) {
    previous.turnId = record.turnId ?? previous.turnId;
    previous.presentation = record.presentation;
    previous.completion = record.completion;
+   previous.projectCitations = record.projectCitations;
    previous.recordedOutcome = record.recordedOutcome;
   } else turns.push({...record, index, endIndex:index, answerIndex:record.answer ? index : undefined});
  });

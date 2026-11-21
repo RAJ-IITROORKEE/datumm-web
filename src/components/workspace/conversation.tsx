@@ -652,7 +652,9 @@ export function ConversationPanel(props: ConversationPanelProps) {
                             )}
                             {turn.answer && (
                               <MessageContent>
-                                <ConversationAnswer text={turn.answer} turnId={turn.turnId} presentation={turn.presentation} completed={answerComplete} completion={completion} source={{ key: `${run.id}:answer:${turn.answerIndex ?? index}`, taskId: run.id, conversationIndex: turn.answerIndex ?? index, answerNumber: ordinal + 1, state: answerOutputState }} />
+                                <ConversationAnswer text={turn.answer} turnId={turn.turnId} presentation={turn.presentation} completed={answerComplete} completion={completion}
+                                  projectId={featureEnabled(capabilities,'projectSources') ? run.projectId : undefined}
+                                  projectCitations={turn.projectCitations} source={{ key: `${run.id}:answer:${turn.answerIndex ?? index}`, taskId: run.id, conversationIndex: turn.answerIndex ?? index, answerNumber: ordinal + 1, state: answerOutputState }} />
                               </MessageContent>
                             )}
                             {turn.answer && <DisplayActionsTurn api={props.displayActions} taskId={run.id} turnId={turn.turnId} last={last} text={turn.answer} completion={completion} actions={(turn.presentation as {actions?: unknown} | undefined)?.actions} turnIds={displayedTurns.flatMap(row => row.turnId ? [row.turnId] : [])} />}

@@ -1,11 +1,16 @@
 const origin=new URL(process.argv[2]??'http://127.0.0.1:3000').origin;
 const localOrigin=['127.0.0.1','localhost','[::1]'].includes(new URL(origin).hostname);
 
+const projectSources=origin+'/api/service/projects/00000000-0000-4000-8000-000000000001/sources';
+
 // @lat: [[contracts#Hosted contract tests#Browser request boundaries]]
 const checks=[
  ['studio',origin,{},200],
  ['config',origin+'/api/service/config',{},localOrigin?[401,503]:401],
  ['unsupported-project-route',origin+'/api/service/projects/canary/workspace',{},404],
+ ['project-source-list-auth',projectSources,{},localOrigin?[401,503]:401],
+ ['project-source-write-origin',projectSources,{method:'POST',headers:{Origin:'https://example.invalid','Content-Type':'application/json'},body:'{}'},403],
+ ['project-source-write-auth',projectSources,{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:'{}'},localOrigin?[401,503]:401],
  ['pricing',origin+'/pricing',{},200],
  ['admin-entry-gate',origin+'/admin',{},404],
  ['admin-config-auth-gate',origin+'/api/service/admin/config',{},localOrigin?[401,503]:401],

@@ -66,6 +66,7 @@ type SidebarProps = Pick<
   | 'createProject'
   | 'archiveProject'
   | 'projects'
+  | 'capabilities'
   | 'workspaceReady'
   | 'serviceError'
 > & { scope: WorkScope; navigationRail?: boolean; externalBackdrop?: boolean };
@@ -133,7 +134,9 @@ export function Sidebar(props: SidebarProps) {
   };
   const pendingNewProject = useRef(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [overviewId, setOverviewId] = useState<string | null>(null);
+  const [overview, setOverview] = useState<{id:string;accountKey:string} | null>(null);
+  const overviewId = overview?.accountKey === scope.accountKey ? overview.id : null;
+  const setOverviewId = (id: string | null) => setOverview(id ? {id,accountKey:scope.accountKey} : null);
   const pendingOverview = useRef<string | null>(null);
   const searchOpener = useRef<HTMLElement | null>(null);
   const projectSection = useRef<HTMLElement | null>(null);
@@ -253,6 +256,7 @@ export function Sidebar(props: SidebarProps) {
         opener={searchOpener} onActivate={activateSearch} />
       <ProjectOverview project={projects.find(project => project.id === overviewId) ?? null} chats={runs}
         historyView={historyView} busy={mediaBusy || actionBusy} opener={dialogTrigger}
+        filesAccountKey={hosted && workspaceReady && props.capabilities?.features.projectSources === 'on' ? scope.accountKey : undefined}
         onClose={() => setOverviewId(null)} onSelect={selectRun} onNewChat={newTask} />
       {left && viewportReady && !navigationRail && !externalBackdrop && (
         <button type="button" className="sidebar-backdrop" aria-label="Close task navigation" onClick={collapseNavigation} />

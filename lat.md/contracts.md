@@ -302,6 +302,12 @@ Attachment chips, paste and drop exist but render only when the backend reports 
 
 `src/lib/composer-attachments.mjs` accepts JPEG, PNG and WebP only (four per message, 1.5 MB after the browser resizes to 1,568 px) and `attachment-chips.tsx` holds the reading, ready and error states. Nothing is sent to the service: the hosted command schema has no attachment field yet.
 
+## Project file isolation
+
+Project Files rejects records from another project and discards late responses after a scope change. Saved chat citations must match the answer hash and exact task, turn, execution, project and file revision.
+
+parseProjectCitations in src/lib/project-sources.mjs accepts references for the current saved answer after its durable proof. sourceExactPath in that module carries both version and hash. [[src/components/workspace/project-source-preview.tsx#ProjectSourcePreview]] checks the response identity and hashes its bytes before rendering. Private source routes use the authenticated proxy and deliver raw files as no-store attachments.
+
 ## Work modes and the review gate
 
 The work area has two modes, Design and Review, plus a Details drawer; Accept and Approve stay off until Review was opened for that task version, in memory only.

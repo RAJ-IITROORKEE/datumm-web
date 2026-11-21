@@ -1,7 +1,9 @@
 import { planPdf } from '@/lib/plan-pdf';
 import { backend } from '@/lib/backend';
 import { requestBody } from '@/lib/request-body';
+import { PROJECT_SOURCE_JSON_LIMIT } from '@/lib/project-sources.mjs';
 export const maxDuration=240;
+const projectSourceRoute=/^projects\/[a-zA-Z0-9-]{1,64}\/sources(?:\/[a-zA-Z0-9-]{1,64}(?:\/versions(?:\/[1-9][0-9]{0,8}(?:\/content)?)?)?)?$/;
 // A redline read carries one downscaled page image (at most 2.5 MB decoded, about 3.4 MB as JSON).
 const redlineRoute=/^variable\/plans\/[a-zA-Z0-9-]+\/versions\/[0-9]+\/redlines$/;
 const allowed=/^(?:admin\/(?:config(?:\/(?:history(?:\/[0-9]{1,9})?|restore))?|audit|overview|traces|feedback(?:\/(?!\.{1,2}\/)[A-Za-z0-9._:-]{1,120}\/case)?|models(?:\/(?:test|usage)|\/(?!\.{1,2}\/)[A-Za-z0-9._:-]{1,80}\/(?!\.{1,2}\/)[A-Za-z0-9._:-]{1,80}\/tests)?|knowledge\/sources(?:\/[a-zA-Z0-9-]{1,64}(?:\/reindex)?)?|skills\/preview|mcp(?:\/[a-z0-9-]{1,20}(?:\/(?:test|enable|disable)|\/tools\/[A-Za-z0-9_-]{1,38})?)?)|me\/(?:permissions|usage\/today)|config|tools|devices(?:\/[a-zA-Z0-9-]+(?:\/(?:context|control|agent-control|tools|health|compare-plan))?)?|device-authorizations\/[a-zA-Z0-9_-]+(?:\/approve)?|pairing|runs(?:\/[a-zA-Z0-9-]+(?:\/(?:events|resume|reply|access|cancel|pause|continue|recover|pin|archive|export\/(?:json|analysis-json|report-json|csv|elements-csv|svg|preview-png|preview-jpeg|plan-pdf|md|pdf|docx|xlsx|concept|native-png|native-jpeg|handoff|plan)))?)?|variable\/(?:briefs\/[a-zA-Z0-9-]+\/(?:alternatives|selection)|plans\/[a-zA-Z0-9-]+\/versions\/[0-9]+(?:\/(?:edits|package|redlines))?|diff))$/;
@@ -18,13 +20,20 @@ function boundedRasterSvg(svg:string):Buffer|null{
 }
 async function proxy(request:Request,context:{params:Promise<{path:string[]}>}){
  const {path}=await context.params;const suffix=path.join('/');
-    const taskRoute=/^tasks(?:\/[a-zA-Z0-9-]+(?:\/(?:commands|build-context|events|questions\/answer|cancel|queue(?:\/(?:resume|[a-f0-9-]+))?|design-review|reports(?:\/[a-f0-9-]{1,64}(?:\/export\/(?:json|csv|elements-csv))?)?|specialist-artifacts\/[a-f0-9]{64}|history\/(?:pin|archive|delete)|goal|title|project|share|feedback|steps))?)?$/.test(suffix)||/^projects(?:\/[a-zA-Z0-9-]{1,64}(?:\/(?:title|brief|history\/archive))?)?$/.test(suffix);
+ const projectSource=projectSourceRoute.test(suffix);
+ if(projectSource){
+  const sourceRoot=suffix.endsWith('/sources');
+  const revoke=/\/sources\/[a-zA-Z0-9-]{1,64}$/.test(suffix);
+  const methodAllowed=request.method==='GET'?!revoke:request.method==='POST'?sourceRoot:request.method==='DELETE'&&revoke;
+  if(!methodAllowed)return new Response(null,{status:405});
+ }
+ const taskRoute=projectSource||/^tasks(?:\/[a-zA-Z0-9-]+(?:\/(?:commands|build-context|events|questions\/answer|cancel|queue(?:\/(?:resume|[a-f0-9-]+))?|design-review|reports(?:\/[a-f0-9-]{1,64}(?:\/export\/(?:json|csv|elements-csv))?)?|specialist-artifacts\/[a-f0-9]{64}|history\/(?:pin|archive|delete)|goal|title|project|share|feedback|steps))?)?$/.test(suffix)||/^projects(?:\/[a-zA-Z0-9-]{1,64}(?:\/(?:title|brief|history\/archive))?)?$/.test(suffix);
  if(!allowed.test(suffix)&&!taskRoute)return Response.json({code:'DATUMM_PROXY_NOT_ALLOWED',detail:'This web build does not expose that route.'},{status:404});
  let phase='backend';
  try{
  const preview=suffix.match(/^runs\/([a-zA-Z0-9-]+)\/export\/(?:preview-(png|jpeg)|(plan-pdf))$/);
  let upstream=taskRoute?`/v2/${suffix}`:`/v1/${preview?`runs/${preview[1]}/export/svg`:suffix}`;
-  const payload=['GET','HEAD'].includes(request.method)?undefined:await requestBody(request,redlineRoute.test(suffix)?3_500_000:undefined);
+  const payload=['GET','HEAD'].includes(request.method)?undefined:await requestBody(request,projectSource&&request.method==='POST'?PROJECT_SOURCE_JSON_LIMIT:redlineRoute.test(suffix)?3_500_000:undefined);
   if(payload instanceof Response)return payload;
  const runRoute=suffix.match(/^runs(?:\/([a-zA-Z0-9-]+)(?:\/(.*))?)?$/);
  if(runRoute){
@@ -60,6 +69,13 @@ async function proxy(request:Request,context:{params:Promise<{path:string[]}>}){
   return new Response(new Uint8Array(body),{headers:{'Content-Type':preview[2]==='jpeg'?'image/jpeg':'image/png','Content-Disposition':`attachment; filename="datumm-${preview[1]}.${preview[2]==='jpeg'?'jpg':'png'}"`,'Cache-Control':'private, no-store'}});
  }
   const headers=new Headers();for(const key of ['content-type','content-disposition','cache-control','x-datumm-project-export-projection']){const value=response.headers.get(key);if(value)headers.set(key,value);}
+ if(projectSource){
+  if(suffix.endsWith('/content')&&response.ok&&!/^attachment(?:;|$)/i.test(headers.get('Content-Disposition')??'')){
+   return Response.json({detail:'This source could not be opened.'},{status:502});
+  }
+  headers.set('Cache-Control','private, no-store');
+  headers.set('X-Content-Type-Options','nosniff');
+ }
  return new Response(response.body,{status:response.status,headers});
  }catch(error){
   const message=error instanceof Error?error.message:'';

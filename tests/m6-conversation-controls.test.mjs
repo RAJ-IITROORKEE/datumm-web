@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import * as jsx from 'react/jsx-runtime';
+import * as projectSources from '../src/lib/project-sources.mjs';
 import ts from 'typescript';
 import {answerHasCompletionProof,legacyAnswerOutputState,answerCompletionCandidate,verifyAnswerCompletionHash} from '../src/lib/conversation-turns.mjs';
 
 const source=readFileSync(new URL('../src/components/workspace/conversation-answer.tsx',import.meta.url),'utf8');
 const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText;
 const exports={};
-runInNewContext(code,{exports,require(name){if(name==='react/jsx-runtime')return jsx;if(name==='react')return {};if(name==='@/lib/conversation-turns.mjs')return {answerCompletionCandidate,verifyAnswerCompletionHash};if(name==='./output-workspace')return {AnswerContent:'answer-content'};if(name==='./chat-composition')return {ChatCompositionView:'chat-composition'};throw Error(name);}});
+runInNewContext(code,{exports,require(name){if(name==='react/jsx-runtime')return jsx;if(name==='react')return {};if(name==='@/lib/conversation-turns.mjs')return {answerCompletionCandidate,verifyAnswerCompletionHash};if(name==='./output-workspace')return {AnswerContent:'answer-content'};if(name==='./chat-composition')return {ChatCompositionView:'chat-composition'};if(name==='@/lib/project-sources.mjs')return projectSources;if(name==='./project-citations')return {ProjectCitations:'project-citations'};throw Error(name);}});
 
 test('answer remains scoped to its saved presentation without interactive suggestions',()=>{
  const presentation={summary:'Done',nextPrompts:['Compare alternatives']};

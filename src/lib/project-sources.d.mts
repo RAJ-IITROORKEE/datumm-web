@@ -1,0 +1,17 @@
+export type SourceKind = 'specification' | 'floor_plan' | 'design_image';
+export type SourceReference = {projectId:string;sourceId:string;version:number;sha256:string;filename:string;kind:SourceKind;mediaType:string};
+export type ProjectSource = SourceReference & {sizeBytes:number;createdAt:string};
+export type SourceLocator = {kind:'file'} | {kind:'page';page:number} | {kind:'text';line:number};
+export type SourceCitation = SourceReference & {locator:SourceLocator};
+export const PROJECT_SOURCE_LIMIT:number;
+export const PROJECT_SOURCE_JSON_LIMIT:number;
+export const PROJECT_SOURCE_VERSION_LIMIT:number;
+export const SOURCE_TYPES: Readonly<Record<SourceKind,string[]>>;
+export const SOURCE_KIND_LABELS: Readonly<Record<SourceKind,string>>;
+export function acceptSource(kind:SourceKind):string;
+export function validUpload(file:Pick<File,'name'|'size'> | undefined,kind:SourceKind):string;
+export function sourcePath(projectId:string,sourceId?:string,version?:number,sha256?:string):string|null;
+export function sourceExactPath(ref:SourceReference,content?:boolean):string|null;
+export function parseProjectSource(value:unknown,projectId:string,exact?:SourceReference):ProjectSource|null;
+export function parseProjectSources(value:unknown,projectId:string,sourceId?:string):ProjectSource[]|null;
+export function parseProjectCitations(value:unknown,scope:{taskId?:string;turnId?:string;executionId?:string;answerHash?:string;projectId?:string}):SourceCitation[]|null;

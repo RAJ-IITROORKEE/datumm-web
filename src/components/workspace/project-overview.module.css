@@ -1,4 +1,5 @@
 .panel { width:min(480px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); overflow:hidden; }
+.filesPanel { width:min(570px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow:auto; overscroll-behavior:contain; }
 .filters { display:flex;flex-wrap:wrap;gap:4px; }
 .filter { min-height:36px;padding:6px 9px;border:0;border-radius:6px;background:transparent;color:var(--text);font:inherit;font-size:12px;cursor:pointer; }
 .filter:hover { background:var(--select);color:var(--ink); }

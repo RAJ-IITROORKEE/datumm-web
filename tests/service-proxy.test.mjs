@@ -12,6 +12,7 @@ test('Ask, Plan and project controls reach v2 without opening native routes or c
   const context={exports:{},Response,Headers,URL,Buffer,console,require:name=>{
     if(name==='@/lib/backend')return {backend};
     if(name==='@/lib/request-body')return {requestBody:request=>request.text()};
+    if(name==='@/lib/project-sources.mjs')return {};
     if(name==='@/lib/plan-pdf')return {};
     throw Error(`Unexpected import: ${name}`);
   }};

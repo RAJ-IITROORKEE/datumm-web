@@ -1,4 +1,4 @@
-export type ConversationRecord = {prompt?:string;answer?:string;turnId?:string;presentation?:unknown;completion?:unknown;recordedOutcome?:{schemaVersion:1;taskId:string;turnId:string;executionId:string;status:'needs_connection'};attachmentIds?:string[];nativeMessages?:{id:string;text:string;finish:string|null}[]};
+export type ConversationRecord = {prompt?:string;answer?:string;turnId?:string;presentation?:unknown;completion?:unknown;projectCitations?:unknown;recordedOutcome?:{schemaVersion:1;taskId:string;turnId:string;executionId:string;status:'needs_connection'};attachmentIds?:string[];nativeMessages?:{id:string;text:string;finish:string|null}[]};
 export type ConversationTurn = ConversationRecord & {index:number;endIndex:number;answerIndex?:number};
 export function conversationTurns(records?:ConversationRecord[]):ConversationTurn[];
 export function turnEvents<T extends {turnId?:string}>(turns:ConversationTurn[],groups:T[][],ordinal:number):T[];
